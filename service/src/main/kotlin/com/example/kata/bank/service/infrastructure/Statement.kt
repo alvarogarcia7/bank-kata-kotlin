@@ -15,7 +15,7 @@ class Statement private constructor(val lines: List<StatementLine>) {
                         z.add(0, element)
                         Pair(element, z)
                     })
-            return Statement(lines)
+            return Statement(lines.union(listOf(initial)).toList())
         }
     }
 

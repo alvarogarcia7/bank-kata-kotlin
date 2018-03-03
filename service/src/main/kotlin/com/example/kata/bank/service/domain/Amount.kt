@@ -23,6 +23,6 @@ data class Amount private constructor(private val value: BigDecimal) {
     }
 
     fun formatted(): String {
-        return DecimalFormat("#.00").format(this.value)
+        return DecimalFormat("0.00").format(this.value)
     }
 }

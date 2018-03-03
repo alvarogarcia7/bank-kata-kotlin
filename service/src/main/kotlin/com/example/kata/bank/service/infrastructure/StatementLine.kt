@@ -6,70 +6,87 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 sealed class StatementLine(open val balance: Amount) {
-    protected val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/uuuu")
-    protected fun format(localDateTime: LocalDateTime) = localDateTime.format(this.formatter)
-
+    abstract fun format(format: String): FormattedStatementLine
 
     data class Description(val message: String, override var balance: Amount) : StatementLine(balance) {
-        override fun format(): FormattedStatementLine {
-            return FormattedStatementLine("${message} || ${balance}")
+        override fun format(format: String): FormattedStatementLine {
+            val values = mapOf("message" to message, "balance" to balance)
+            return StatementLineTemplate(format, values).applyTemplate()
         }
     }
 
-    data class Credit(val date: LocalDateTime, val description: String, val credit: Amount, override val balance: Amount) : StatementLine(balance) {
-        override fun format(): FormattedStatementLine {
-            val formattedDate = format(date)
-            val formattedBalance = balance.formatted()
-            val formattedAmount = credit.formatted()
-            return FormattedStatementLine("$formattedDate ||  || ${formattedAmount} || ${formattedBalance}")
+    class StatementLineTemplate(val format: String, val values: Map<String, Any>) {
+        private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/uuuu")
+
+        fun applyTemplate(): FormattedStatementLine {
+            val line = format
+                    .let { consumeMarkers(it) }
+                    .let { removeAllUnusedMarkers(it) }
+            return StatementLine.FormattedStatementLine(line)
         }
 
+        private fun removeAllUnusedMarkers(format: String) = format.replace("%\\{\\w*}".toRegex(), "")
+
+        private fun consumeMarkers(format: String): String {
+            return values.entries.fold(format, { acc, entry ->
+                acc.replace("%{${entry.key}}", xformat(entry.value))
+            })
+        }
+
+        private fun xformat(value: Any): String {
+            return when (value) {
+                is LocalDateTime -> {
+                    format(value)
+                }
+                is Amount -> {
+                    format(value)
+                }
+                is String -> {
+                    format(value)
+                }
+                else -> {
+                    format(value)
+                }
+            }
+        }
+
+        private fun format(localDateTime: LocalDateTime) = localDateTime.format(this.formatter)
+        private fun format(amount: Amount) = amount.formatted()
+        private fun format(value: String) = value
+        private fun format(any: Any): Nothing = throw IllegalArgumentException("can't format this field: " + any.javaClass)
     }
 
-    data class Debit(val date: LocalDateTime, val description: String, val debit: Amount, override val balance: Amount) : StatementLine(balance) {
-        override fun format(): FormattedStatementLine {
-            val formattedDate = format(date)
-            val formattedBalance = balance.formatted()
-            val formattedAmount = debit.formatted()
-            return FormattedStatementLine("$formattedDate || ${formattedAmount} ||  || ${formattedBalance}")
+    data class Credit(val date: LocalDateTime, val description: String, val amount: Amount, override val balance: Amount) : StatementLine(balance) {
+        override fun format(format: String): FormattedStatementLine {
+            val values = mapOf("date" to date, "credit" to amount, "balance" to balance)
+            return StatementLineTemplate(format, values).applyTemplate()
+        }
+    }
+
+    data class Debit(val date: LocalDateTime, val description: String, val amount: Amount, override val balance: Amount) : StatementLine(balance) {
+        override fun format(format: String): FormattedStatementLine {
+            val values = mapOf("date" to date, "debit" to amount, "balance" to balance)
+            return StatementLineTemplate(format, values).applyTemplate()
         }
     }
 
     companion object {
         fun `initial`(): StatementLine {
-            return Description("Previous balance:", Amount.of("0"))
+            return Description("previous balance", Amount.of("0"))
         }
 
         fun parse(transaction: Transaction, previousBalance: Amount): StatementLine {
             return when (transaction) {
                 is Transaction.Deposit -> {
-                    Debit(transaction.time, "", transaction.amount, previousBalance.add(transaction.amount))
+                    Credit(transaction.time, "", transaction.amount, previousBalance.add(transaction.amount))
                 }
                 is Transaction.Withdrawal -> {
-                    Credit(transaction.time, "", transaction.amount, previousBalance.subtract(transaction.amount))
+                    Debit(transaction.time, "", transaction.amount, previousBalance.subtract(transaction.amount))
                 }
             }
         }
     }
 
-    abstract fun format(): FormattedStatementLine
 
     data class FormattedStatementLine(val value: String)
-
-//        abstract class StatementLineFormatter {
-//            fun format(line: StatementLine) {
-//                return line.format()
-//            }
-//
-//            companion object {
-//                fun of(definition: String): StatementLineFormatter {
-//                    return onlyKind()
-//                }
-//
-//                private fun onlyKind(): StatementLineFormatter {
-//                }
-//            }
-//
-//        }
-
 }
