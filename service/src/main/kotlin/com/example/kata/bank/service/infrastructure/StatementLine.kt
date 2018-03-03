@@ -6,19 +6,23 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 sealed class StatementLine(open val balance: Amount) {
-    abstract fun format(format: String): FormattedStatementLine
+    fun format(format: String): FormattedStatementLine {
+        return this.toValues().applyTemplate(format)
+    }
+
+    abstract fun toValues(): StatementLineValues
 
     data class Description(val message: String, override var balance: Amount) : StatementLine(balance) {
-        override fun format(format: String): FormattedStatementLine {
+        override fun toValues(): StatementLineValues {
             val values = mapOf("message" to message, "balance" to balance)
-            return StatementLineTemplate(format, values).applyTemplate()
+            return StatementLineValues(values)
         }
     }
 
-    class StatementLineTemplate(val format: String, val values: Map<String, Any>) {
+    class StatementLineValues(val values: Map<String, Any>) {
         private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/uuuu")
 
-        fun applyTemplate(): FormattedStatementLine {
+        fun applyTemplate(format: String): FormattedStatementLine {
             val line = format
                     .let { consumeMarkers(it) }
                     .let { removeAllUnusedMarkers(it) }
@@ -57,16 +61,16 @@ sealed class StatementLine(open val balance: Amount) {
     }
 
     data class Credit(val date: LocalDateTime, val description: String, val amount: Amount, override val balance: Amount) : StatementLine(balance) {
-        override fun format(format: String): FormattedStatementLine {
+        override fun toValues(): StatementLineValues {
             val values = mapOf("date" to date, "credit" to amount, "balance" to balance)
-            return StatementLineTemplate(format, values).applyTemplate()
+            return StatementLineValues(values)
         }
     }
 
     data class Debit(val date: LocalDateTime, val description: String, val amount: Amount, override val balance: Amount) : StatementLine(balance) {
-        override fun format(format: String): FormattedStatementLine {
+        override fun toValues(): StatementLineValues {
             val values = mapOf("date" to date, "debit" to amount, "balance" to balance)
-            return StatementLineTemplate(format, values).applyTemplate()
+            return StatementLineValues(values)
         }
     }
 
