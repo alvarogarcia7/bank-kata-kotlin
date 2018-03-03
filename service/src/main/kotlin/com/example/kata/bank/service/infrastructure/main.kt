@@ -5,17 +5,17 @@ import io.ktor.http.ContentType
 import io.ktor.response.respondText
 import io.ktor.routing.get
 import io.ktor.routing.routing
+import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import io.ktor.server.netty.NettyApplicationEngine
 
 fun main(args: Array<String>) {
-    Application.server().start(wait = true)
+    Application.server(8080).start(wait = true)
 }
 
 object Application {
-    fun server(): NettyApplicationEngine {
-        val server = embeddedServer(Netty, 8080) {
+    fun server(port: Int): ApplicationEngine {
+        val server = embeddedServer(Netty, port) {
             routing {
                 get("/") {
                     val name = call.parameters["name"]

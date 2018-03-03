@@ -7,22 +7,37 @@ import com.github.kittinunf.fuel.core.Request
 import com.github.kittinunf.fuel.core.Response
 import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.result.Result
+import io.ktor.server.engine.ApplicationEngine
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.platform.runner.JUnitPlatform
 import org.junit.runner.RunWith
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 @RunWith(JUnitPlatform::class)
 class E2EServiceFeatureTest {
 
-    private val server = Application.server()
+    private var server: ApplicationEngine? = null
+    private var serverPort: Int? = null
 
     @BeforeEach
     fun setup() {
-        server.start()
+        while (true) {
+            val current = Random().nextInt(3000) + 57000
+            println("Trying to start on port $current...")
+            try {
+                server = Application.server(current)
+                server?.start()
+                serverPort = current
+                break
+            } catch (e: java.net.BindException) {
+                e.printStackTrace()
+                println("Port $current is already in use.")
+            }
+        }
     }
 
     @BeforeEach
@@ -32,7 +47,7 @@ class E2EServiceFeatureTest {
 
     @AfterEach
     fun stop() {
-        server.stop(3, 4, TimeUnit.SECONDS)
+        server?.stop(3, 4, TimeUnit.SECONDS)
     }
 
     @org.junit.jupiter.api.Test
