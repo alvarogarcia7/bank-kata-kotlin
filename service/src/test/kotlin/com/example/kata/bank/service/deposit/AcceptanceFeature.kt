@@ -51,13 +51,10 @@ class AcceptanceFeature {
     }
 
     private fun verifyPrintedLines(linePrinter: LinePrinter, vararg lines: String) {
-        //create inOrder object passing any mocks that need to be verified in order
-//        val inOrder = inOrder(linePrinter)
-//        lines.map {
-//            inOrder.verify(linePrinter).println(it)
-//        }
-//
-        lines.map { Mockito.verify(linePrinter).println(it) }
+        val inOrder = Mockito.inOrder(linePrinter)
+        lines.map {
+            inOrder.verify(linePrinter).println(it)
+        }
     }
 
     class Account(val clock: Clock) {
