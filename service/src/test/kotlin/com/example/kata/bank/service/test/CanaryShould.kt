@@ -9,6 +9,6 @@ import org.junit.runner.RunWith
 class CanaryShould {
     @Test
     fun `run`() {
-        assertThat(false).isTrue()
+        assertThat(true).isTrue()
     }
 }
