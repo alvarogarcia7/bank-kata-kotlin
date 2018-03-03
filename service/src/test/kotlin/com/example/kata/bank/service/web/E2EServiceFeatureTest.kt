@@ -1,0 +1,95 @@
+package com.example.kata.bank.service.web
+
+import com.github.kittinunf.fuel.core.FuelError
+import com.github.kittinunf.fuel.core.FuelManager
+import com.github.kittinunf.fuel.core.Request
+import com.github.kittinunf.fuel.core.Response
+import com.github.kittinunf.fuel.httpGet
+import com.github.kittinunf.result.Result
+import io.ktor.application.call
+import io.ktor.http.ContentType
+import io.ktor.response.respondText
+import io.ktor.routing.get
+import io.ktor.routing.routing
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
+import io.ktor.server.netty.NettyApplicationEngine
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.fail
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.platform.runner.JUnitPlatform
+import org.junit.runner.RunWith
+import java.util.concurrent.TimeUnit
+
+@RunWith(JUnitPlatform::class)
+class E2EServiceFeatureTest {
+    private val server: NettyApplicationEngine
+        get() {
+            val server = embeddedServer(Netty, 8080) {
+                routing {
+                    get("/") {
+                        val name = call.parameters["name"]
+                        call.respondText(hello(name), ContentType.Text.Html)
+                    }
+                }
+            }
+            return server
+        }
+
+    private fun hello(name: String?) = if (null == name) "Hello, world!" else "Hello $name!"
+
+
+    @BeforeEach
+    fun setup() {
+        server.start()
+    }
+
+    @BeforeEach
+    fun configurePort() {
+        FuelManager.instance.basePath = "http://localhost:" + "8080"
+    }
+
+    @AfterEach
+    fun stop() {
+        server.stop(3, 4, TimeUnit.SECONDS)
+    }
+
+    @org.junit.jupiter.api.Test
+    fun testRequest() {
+        val parameters = listOf(Pair("name", "me"))
+
+        helloRequest(parameters)
+                .let(this::request)
+                .let { (response, result) ->
+                    assertThat(response.statusCode).isEqualTo(200)
+                    assertThat(result.value).isEqualToIgnoringCase("Hello me!")
+                }
+    }
+
+    private fun request(request: Request): Pair<Response, Result.Success<String, FuelError>> {
+        try {
+            val (_, response, result) = request.responseString()
+
+            when (result) {
+                is Result.Success -> {
+                    return Pair(response, result)
+                }
+                is Result.Failure -> {
+                    fail("expected a Result.success: " + result.error)
+                    throw RuntimeException() // unreachable code
+                }
+                else -> {
+                    fail("expected a Result.success: " + result.javaClass)
+                    throw RuntimeException() // unreachable code
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            fail("exception: " + e.message)
+            throw RuntimeException() // unreachable code
+        }
+    }
+
+    private fun helloRequest(parameters: List<Pair<String, String>>) = "/".httpGet(parameters)
+}
