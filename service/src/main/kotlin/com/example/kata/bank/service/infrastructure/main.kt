@@ -7,16 +7,25 @@ import io.ktor.routing.get
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import java.util.concurrent.TimeUnit
+import io.ktor.server.netty.NettyApplicationEngine
 
 fun main(args: Array<String>) {
-    val server = embeddedServer(Netty, 8080) {
-        routing {
-            get("/") {
-                call.respondText("Hello, world!", ContentType.Text.Html)
+    Application.server().start(wait = true)
+}
+
+object Application {
+    fun server(): NettyApplicationEngine {
+        val server = embeddedServer(Netty, 8080) {
+            routing {
+                get("/") {
+                    val name = call.parameters["name"]
+                    call.respondText(hello(name), ContentType.Text.Html)
+                }
             }
         }
+        return server
     }
-    server.start(wait = true)
-    server.stop(3, 10, TimeUnit.SECONDS)
+
+    private fun hello(name: String?) = if (null == name) "Hello, world!" else "Hello $name!"
+
 }

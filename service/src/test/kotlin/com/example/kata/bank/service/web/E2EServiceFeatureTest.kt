@@ -1,19 +1,12 @@
 package com.example.kata.bank.service.web
 
+import com.example.kata.bank.service.infrastructure.Application
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.FuelManager
 import com.github.kittinunf.fuel.core.Request
 import com.github.kittinunf.fuel.core.Response
 import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.result.Result
-import io.ktor.application.call
-import io.ktor.http.ContentType
-import io.ktor.response.respondText
-import io.ktor.routing.get
-import io.ktor.routing.routing
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
-import io.ktor.server.netty.NettyApplicationEngine
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
 import org.junit.jupiter.api.AfterEach
@@ -24,21 +17,8 @@ import java.util.concurrent.TimeUnit
 
 @RunWith(JUnitPlatform::class)
 class E2EServiceFeatureTest {
-    private val server: NettyApplicationEngine
-        get() {
-            val server = embeddedServer(Netty, 8080) {
-                routing {
-                    get("/") {
-                        val name = call.parameters["name"]
-                        call.respondText(hello(name), ContentType.Text.Html)
-                    }
-                }
-            }
-            return server
-        }
 
-    private fun hello(name: String?) = if (null == name) "Hello, world!" else "Hello $name!"
-
+    private val server = Application.server()
 
     @BeforeEach
     fun setup() {
