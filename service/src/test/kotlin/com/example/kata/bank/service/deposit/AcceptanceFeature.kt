@@ -57,7 +57,7 @@ class AcceptanceFeature {
         }
     }
 
-    class Account(val clock: Clock) {
+    class Account(private val clock: Clock) {
         private val transactionRepository: TransactionRepository = TransactionRepository()
 
         fun deposit(amount: Amount, description: String) {
