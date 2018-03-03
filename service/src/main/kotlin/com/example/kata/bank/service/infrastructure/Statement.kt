@@ -9,13 +9,15 @@ class Statement private constructor(val lines: List<StatementLine>) {
                 transactions: List<Transaction>): Statement {
 
             val initial1 = Pair(initial, mutableListOf<StatementLine>())
-            val (_, lines) = transactions.foldRight(initial1,
+            val (_, statementLines) = transactions.reversed().foldRight(initial1,
                     { x, (y, z) ->
                         val element = StatementLine.parse(x, y.balance)
-                        z.add(0, element)
+                        z.add(element)
                         Pair(element, z)
                     })
-            return Statement(lines.union(listOf(initial)).toList())
+            statementLines.reverse()
+            statementLines.add(initial)
+            return Statement(statementLines)
         }
     }
 

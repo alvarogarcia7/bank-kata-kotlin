@@ -3,6 +3,7 @@ package com.example.kata.bank.service.deposit
 import com.example.kata.bank.service.domain.Account
 import com.example.kata.bank.service.domain.Amount
 import com.example.kata.bank.service.domain.Clock
+import com.example.kata.bank.service.infrastructure.ConsoleLinePrinter
 import com.example.kata.bank.service.infrastructure.LinePrinter
 import com.example.kata.bank.service.infrastructure.StatementPrinter
 import com.nhaarman.mockito_kotlin.doReturn
@@ -27,20 +28,23 @@ class AcceptanceFeature {
                     date("14/01/2012")
             )
         }
-        val linePrinter = mock<LinePrinter> { }
-//        val linePrinter = ConsoleLinePrinter()
+        val mockLinePrinter = mock<LinePrinter> {}
+        val decoratedLinePrinter = object : ConsoleLinePrinter() {
+            override fun println(line: String) {
+                super.println(line)
+                mockLinePrinter.println(line)
+            }
+        }
+
         val account = Account(clock)
 
 
         account.deposit(Amount.of("1000"), "from friend 1")
         account.deposit(Amount.of("2000"), "from friend 2")
         account.withdraw(Amount.of("500"), "for friend 3")
-        account.printStatement(StatementPrinter(linePrinter
-//                ,
-//                StatementLine.StatementLineFormatter.of("{{date}} || {{credit}} || {{debit}} || {{balance}}"))
-        ))
+        account.printStatement(StatementPrinter(decoratedLinePrinter))
 
-        verifyPrintedLines(linePrinter,
+        verifyPrintedLines(mockLinePrinter,
                 "date || message || credit || debit || balance",
                 "14/01/2012 ||  ||  || 500.00 || 2500.00",
                 "13/01/2012 ||  || 2000.00 ||  || 3000.00",
