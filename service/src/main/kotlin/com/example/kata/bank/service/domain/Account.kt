@@ -24,15 +24,14 @@ class Account(private val clock: Clock) {
     class StatementLines {
         companion object {
             fun parse(initialStatement: StatementLine, transactions: List<Transaction>): List<StatementLine> {
-                val initial = Pair(initialStatement, mutableListOf<StatementLine>())
-                val (_, statementLines) = transactions.fold(initial,
-                        { (previousStatement, result), current ->
-                            val currentStatement = StatementLine.parse(current, previousStatement.balance)
+                val initial = mutableListOf(initialStatement)
+                val statementLines = transactions.fold(initial,
+                        { result, current ->
+                            val currentStatement = StatementLine.parse(current, result.last().balance)
                             result.add(currentStatement)
-                            Pair(currentStatement, result)
+                            result
                         })
-
-                return listOf(initialStatement).union(statementLines).toList()
+                return statementLines.toList()
             }
         }
         
