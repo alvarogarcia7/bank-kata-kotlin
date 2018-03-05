@@ -1,5 +1,6 @@
 package com.example.kata.bank.service.web
 
+import com.example.kata.bank.service.infrastructure.ApplicationEngine
 import com.example.kata.bank.service.infrastructure.BankWebApplication
 import com.example.kata.bank.service.infrastructure.HelloService
 import com.github.kittinunf.fuel.core.FuelError
@@ -15,14 +16,12 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.platform.runner.JUnitPlatform
 import org.junit.runner.RunWith
-import java.net.BindException
-import java.util.*
 
 @RunWith(JUnitPlatform::class)
 class E2EServiceFeatureTest {
 
     companion object {
-        private var application: BankWebApplication? = null
+        private var application: ApplicationEngine? = null
 
         @AfterAll
         @JvmStatic
@@ -33,7 +32,7 @@ class E2EServiceFeatureTest {
         @BeforeAll
         @JvmStatic
         fun setup() {
-            val (application, serverPort) = startAtRandomPort()
+            val (application, serverPort) = ApplicationBooter<ApplicationEngine>(configuredApplication).atRandomPort()
             this.application = application
             configurePort(serverPort)
         }
@@ -42,25 +41,7 @@ class E2EServiceFeatureTest {
             FuelManager.instance.basePath = "http://localhost:" + serverPort
         }
 
-        private fun startAtRandomPort(): Pair<BankWebApplication, Int> {
-            val randomGenerator = Random()
-            val configuredApplication = configuredApplication()
-            while (true) {
-                val currentPort = randomUnprivilegedPort(randomGenerator)
-                println("Trying to start on port $currentPort...")
-                try {
-                    val application = configuredApplication.start(currentPort)
-                    return Pair(application, currentPort)
-                } catch (e: BindException) {
-                    e.printStackTrace()
-                    println("Port $currentPort is already in use.")
-                }
-            }
-        }
-
-        private fun randomUnprivilegedPort(randomGenerator: Random) = randomGenerator.nextInt(3000) + 57000
-
-        private fun configuredApplication(): BankWebApplication = BankWebApplication(HelloService())
+        private val configuredApplication: () -> BankWebApplication = { BankWebApplication(HelloService()) }
     }
 
 
