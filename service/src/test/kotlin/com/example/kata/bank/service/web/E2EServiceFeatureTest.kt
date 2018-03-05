@@ -44,11 +44,12 @@ class E2EServiceFeatureTest {
 
         private fun startAtRandomPort(): Pair<BankWebApplication, Int> {
             val randomGenerator = Random()
+            val configuredApplication = configuredApplication()
             while (true) {
                 val currentPort = randomUnprivilegedPort(randomGenerator)
                 println("Trying to start on port $currentPort...")
                 try {
-                    val application = configuredApplication().start(currentPort)
+                    val application = configuredApplication.start(currentPort)
                     return Pair(application, currentPort)
                 } catch (e: BindException) {
                     e.printStackTrace()
