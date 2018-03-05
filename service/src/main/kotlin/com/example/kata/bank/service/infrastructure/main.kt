@@ -1,29 +1,27 @@
 package com.example.kata.bank.service.infrastructure
 
-import io.ktor.application.call
-import io.ktor.http.ContentType
-import io.ktor.response.respondText
-import io.ktor.routing.get
-import io.ktor.routing.routing
-import io.ktor.server.engine.ApplicationEngine
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
+import spark.kotlin.Http
+import spark.kotlin.ignite
 
 fun main(args: Array<String>) {
-    Application.server(8080).start(wait = true)
+    BankWebApplication.start(8080)
 }
 
-object Application {
-    fun server(port: Int): ApplicationEngine {
-        val server = embeddedServer(Netty, port) {
-            routing {
-                get("/") {
-                    val name = call.parameters["name"]
-                    call.respondText(hello(name), ContentType.Text.Html)
-                }
-            }
+object BankWebApplication {
+    private var http: Http = ignite()
+
+    fun start(port: Int) {
+        val http = http
+                .port(port)
+                .threadPool(10)
+
+        http.get("/") {
+            hello(request.queryParamOrDefault("name", null))
         }
-        return server
+    }
+
+    fun stop() {
+        http.stop()
     }
 
     private fun hello(name: String?) = if (null == name) "Hello, world!" else "Hello $name!"

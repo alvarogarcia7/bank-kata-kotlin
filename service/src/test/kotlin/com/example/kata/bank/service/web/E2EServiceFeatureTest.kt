@@ -1,39 +1,42 @@
 package com.example.kata.bank.service.web
 
-import com.example.kata.bank.service.infrastructure.Application
+import com.example.kata.bank.service.infrastructure.BankWebApplication
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.FuelManager
 import com.github.kittinunf.fuel.core.Request
 import com.github.kittinunf.fuel.core.Response
 import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.result.Result
-import io.ktor.server.engine.ApplicationEngine
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.junit.platform.runner.JUnitPlatform
 import org.junit.runner.RunWith
+import java.net.BindException
 import java.util.*
-import java.util.concurrent.TimeUnit
 
 @RunWith(JUnitPlatform::class)
 class E2EServiceFeatureTest {
 
-    private var server: ApplicationEngine? = null
+    //    private var server: ApplicationEngine? = null
     private var serverPort: Int? = null
 
     @BeforeEach
     fun setup() {
+        this.serverPort = startAtRandomPort()
+    }
+
+    private fun startAtRandomPort(): Int? {
+        val randomGenerator = Random()
         while (true) {
-            val current = Random().nextInt(3000) + 57000
+            val current = randomGenerator.nextInt(3000) + 57000
             println("Trying to start on port $current...")
             try {
-                server = Application.server(current)
-                server?.start()
-                serverPort = current
-                break
-            } catch (e: java.net.BindException) {
+                BankWebApplication.start(current)
+                return current
+            } catch (e: BindException) {
                 e.printStackTrace()
                 println("Port $current is already in use.")
             }
@@ -42,23 +45,32 @@ class E2EServiceFeatureTest {
 
     @BeforeEach
     fun configurePort() {
-        FuelManager.instance.basePath = "http://localhost:" + "8080"
+        FuelManager.instance.basePath = "http://localhost:" + serverPort
     }
 
     @AfterEach
     fun stop() {
-        server?.stop(3, 4, TimeUnit.SECONDS)
+        BankWebApplication.stop()
     }
 
-    @org.junit.jupiter.api.Test
-    fun testRequest() {
-        val parameters = listOf(Pair("name", "me"))
+    @Test
+    fun `salute - all features`() {
 
-        helloRequest(parameters)
+        helloRequest(listOf(Pair("name", "me")))
                 .let(this::request)
                 .let { (response, result) ->
+                    println(result)
                     assertThat(response.statusCode).isEqualTo(200)
                     assertThat(result.value).isEqualToIgnoringCase("Hello me!")
+                }
+
+
+        helloRequest(emptyList())
+                .let(this::request)
+                .let { (response, result) ->
+                    println(result)
+                    assertThat(response.statusCode).isEqualTo(200)
+                    assertThat(result.value).isEqualToIgnoringCase("Hello, world!")
                 }
     }
 

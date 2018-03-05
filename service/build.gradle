@@ -16,7 +16,6 @@ version '0.0.1-SNAPSHOT'
 ext.log4jVersion = '2.9.0'
 ext.junitplatformversion = '1.0.0-M4'
 ext.junitVersion = '5.0.0-M4' // need to keep it at this version for intellij idea (as of 2018-03-03)
-ext.ktor_version = '0.9.1'
 ext.fuel_version = '1.12.1'
 
 apply plugin: 'kotlin'
@@ -25,17 +24,16 @@ apply plugin: 'org.junit.platform.gradle.plugin'
 repositories {
     mavenCentral()
     jcenter()
-    maven { url "http://dl.bintray.com/kotlin/ktor" }
-    maven { url "https://dl.bintray.com/kotlin/kotlinx" }
     jcenter { url "https://jcenter.bintray.com/com.github.kittinunf" }
 }
 
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    // Ktor - web framework
-    compile "io.ktor:ktor-server-core:$ktor_version"
-    compile "io.ktor:ktor-server-netty:$ktor_version"
-    testCompile "io.ktor:ktor-server-test-host:$ktor_version"
+
+    // web framework
+    compile 'com.sparkjava:spark-kotlin:1.0.0-alpha'
+    compile 'org.slf4j:slf4j-simple:1.7.21'
+
     testCompile "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
     testRuntime "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
     testCompile 'org.assertj:assertj-core:3.9.0'
