@@ -32,7 +32,7 @@ class E2EServiceFeatureTest {
         @BeforeAll
         @JvmStatic
         fun setup() {
-            val (application, serverPort) = ApplicationBooter<ApplicationEngine>(configuredApplication).atRandomPort()
+            val (application, serverPort) = ApplicationBooter(configuredApplication).atRandomPort()
             this.application = application
             configurePort(serverPort)
         }

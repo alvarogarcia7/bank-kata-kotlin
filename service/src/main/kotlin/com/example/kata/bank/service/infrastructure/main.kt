@@ -33,7 +33,7 @@ class BankWebApplication(private val helloService: HelloService) : ApplicationEn
 
 }
 
-interface ApplicationEngine  {
+interface ApplicationEngine {
     fun start(port: Int): ApplicationEngine
     fun stop()
 }
