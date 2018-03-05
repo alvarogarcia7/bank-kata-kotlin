@@ -22,6 +22,8 @@ import java.util.*
 class E2EServiceFeatureTest {
 
     companion object {
+        private var application: BankWebApplication? = null
+
         @AfterAll
         @JvmStatic
         fun stop() {
@@ -43,7 +45,7 @@ class E2EServiceFeatureTest {
         private fun startAtRandomPort(): Pair<BankWebApplication, Int> {
             val randomGenerator = Random()
             while (true) {
-                val currentPort = randomGenerator.nextInt(3000) + 57000
+                val currentPort = randomUnprivilegedPort(randomGenerator)
                 println("Trying to start on port $currentPort...")
                 try {
                     val application = configuredApplication().start(currentPort)
@@ -55,7 +57,7 @@ class E2EServiceFeatureTest {
             }
         }
 
-        private var application: BankWebApplication? = null
+        private fun randomUnprivilegedPort(randomGenerator: Random) = randomGenerator.nextInt(3000) + 57000
 
         private fun configuredApplication(): BankWebApplication = BankWebApplication(HelloService())
     }
