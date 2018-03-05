@@ -10,8 +10,8 @@ import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.result.Result
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.platform.runner.JUnitPlatform
 import org.junit.runner.RunWith
@@ -21,45 +21,48 @@ import java.util.*
 @RunWith(JUnitPlatform::class)
 class E2EServiceFeatureTest {
 
-    private var serverPort: Int? = null
-    private var application: BankWebApplication? = null
+    companion object {
+        @AfterAll
+        @JvmStatic
+        fun stop() {
+            application?.stop()
+        }
 
-    @BeforeEach
-    fun setup() {
-        val (application, serverPort) = startAtRandomPort()
-        this.serverPort = serverPort
-        this.application = application
-    }
+        @BeforeAll
+        @JvmStatic
+        fun setup() {
+            val (application, serverPort) = startAtRandomPort()
+            this.application = application
+            configurePort(serverPort)
+        }
 
-    private fun startAtRandomPort(): Pair<BankWebApplication, Int> {
-        val randomGenerator = Random()
-        while (true) {
-            val currentPort = randomGenerator.nextInt(3000) + 57000
-            println("Trying to start on port $currentPort...")
-            try {
-                val application = configuredApplication().start(currentPort)
-                return Pair(application, currentPort)
-            } catch (e: BindException) {
-                e.printStackTrace()
-                println("Port $currentPort is already in use.")
+        fun configurePort(serverPort: Int) {
+            FuelManager.instance.basePath = "http://localhost:" + serverPort
+        }
+
+        private fun startAtRandomPort(): Pair<BankWebApplication, Int> {
+            val randomGenerator = Random()
+            while (true) {
+                val currentPort = randomGenerator.nextInt(3000) + 57000
+                println("Trying to start on port $currentPort...")
+                try {
+                    val application = configuredApplication().start(currentPort)
+                    return Pair(application, currentPort)
+                } catch (e: BindException) {
+                    e.printStackTrace()
+                    println("Port $currentPort is already in use.")
+                }
             }
         }
+
+        private var application: BankWebApplication? = null
+
+        private fun configuredApplication(): BankWebApplication = BankWebApplication(HelloService())
     }
 
-    private fun configuredApplication(): BankWebApplication = BankWebApplication(HelloService())
-
-    @BeforeEach
-    fun configurePort() {
-        FuelManager.instance.basePath = "http://localhost:" + serverPort
-    }
-
-    @AfterEach
-    fun stop() {
-        application?.stop()
-    }
 
     @Test
-    fun `salute - all features`() {
+    fun `salute - with a name`() {
 
         helloRequest(listOf(Pair("name", "me")))
                 .let(this::request)
@@ -68,7 +71,10 @@ class E2EServiceFeatureTest {
                     assertThat(response.statusCode).isEqualTo(200)
                     assertThat(result.value).isEqualToIgnoringCase("Hello me!")
                 }
+    }
 
+    @Test
+    fun `salute - no name`() {
 
         helloRequest(emptyList())
                 .let(this::request)
