@@ -1,6 +1,7 @@
 package com.example.kata.bank.service.web
 
 import com.example.kata.bank.service.infrastructure.BankWebApplication
+import com.example.kata.bank.service.infrastructure.HelloService
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.FuelManager
 import com.github.kittinunf.fuel.core.Request
@@ -20,28 +21,32 @@ import java.util.*
 @RunWith(JUnitPlatform::class)
 class E2EServiceFeatureTest {
 
-    //    private var server: ApplicationEngine? = null
     private var serverPort: Int? = null
+    private var application: BankWebApplication? = null
 
     @BeforeEach
     fun setup() {
-        this.serverPort = startAtRandomPort()
+        val (application, serverPort) = startAtRandomPort()
+        this.serverPort = serverPort
+        this.application = application
     }
 
-    private fun startAtRandomPort(): Int? {
+    private fun startAtRandomPort(): Pair<BankWebApplication, Int> {
         val randomGenerator = Random()
         while (true) {
-            val current = randomGenerator.nextInt(3000) + 57000
-            println("Trying to start on port $current...")
+            val currentPort = randomGenerator.nextInt(3000) + 57000
+            println("Trying to start on port $currentPort...")
             try {
-                BankWebApplication.start(current)
-                return current
+                val application = configuredApplication().start(currentPort)
+                return Pair(application, currentPort)
             } catch (e: BindException) {
                 e.printStackTrace()
-                println("Port $current is already in use.")
+                println("Port $currentPort is already in use.")
             }
         }
     }
+
+    private fun configuredApplication(): BankWebApplication = BankWebApplication(HelloService())
 
     @BeforeEach
     fun configurePort() {
@@ -50,7 +55,7 @@ class E2EServiceFeatureTest {
 
     @AfterEach
     fun stop() {
-        BankWebApplication.stop()
+        application?.stop()
     }
 
     @Test
