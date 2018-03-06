@@ -1,9 +1,6 @@
 package com.example.kata.bank.service.web
 
-import com.example.kata.bank.service.infrastructure.ApplicationEngine
-import com.example.kata.bank.service.infrastructure.BankWebApplication
-import com.example.kata.bank.service.infrastructure.HelloRequest
-import com.example.kata.bank.service.infrastructure.HelloService
+import com.example.kata.bank.service.infrastructure.*
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.FuelManager
 import com.github.kittinunf.fuel.core.Request
@@ -63,7 +60,7 @@ class ServiceIntegrationTest {
             }
         }
 
-        private val configuredApplication: () -> BankWebApplication = { BankWebApplication(MockHelloService()) }
+        private val configuredApplication: () -> BankWebApplication = { BankWebApplication(MockHelloService(), OperationService()) }
     }
 
 

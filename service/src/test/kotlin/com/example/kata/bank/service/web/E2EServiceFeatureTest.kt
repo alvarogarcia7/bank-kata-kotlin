@@ -1,13 +1,13 @@
 package com.example.kata.bank.service.web
 
-import com.example.kata.bank.service.infrastructure.ApplicationEngine
-import com.example.kata.bank.service.infrastructure.BankWebApplication
-import com.example.kata.bank.service.infrastructure.HelloService
+import com.example.kata.bank.service.infrastructure.*
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.FuelManager
 import com.github.kittinunf.fuel.core.Request
 import com.github.kittinunf.fuel.core.Response
 import com.github.kittinunf.fuel.httpGet
+import com.github.kittinunf.fuel.httpPost
 import com.github.kittinunf.result.Result
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
@@ -41,9 +41,36 @@ class E2EServiceFeatureTest {
             FuelManager.instance.basePath = "http://localhost:" + serverPort
         }
 
-        private val configuredApplication: () -> BankWebApplication = { BankWebApplication(HelloService()) }
+        private val configuredApplication: () -> BankWebApplication = { BankWebApplication(HelloService(), OperationService()) }
     }
 
+
+    @Test
+    fun `deposit - a correct request`() {
+        depositRequest("""
+{
+	"type": "deposit",
+	"amount": {
+		"value": "1234.56",
+		"currency": "EUR"
+	},
+	"description": "rent for this month"
+}
+            """).let(this::request)
+                .let { (response, result) ->
+                    assertThat(response.statusCode).isEqualTo(200)
+                    val objectMapper = JSONMapper.aNew()
+                    val x = objectMapper.readValue<MyResponse<String>>(result.value)
+                    println(x)
+                    assertThat(x.links).hasSize(1)
+                    assertThat(x.links).filteredOn { it.rel == "list" }.isNotEmpty()
+                    assertThat(x.payload).isEqualTo("")
+                }
+    }
+
+    private fun depositRequest(jsonPayload: String): Request {
+        return "users/1234/operations".httpPost().header("Content-Type" to "application/json").body(jsonPayload, Charsets.UTF_8)
+    }
 
     @Test
     fun `salute - with a name`() {
@@ -95,3 +122,4 @@ class E2EServiceFeatureTest {
 
     private fun helloRequest(parameters: List<Pair<String, String>>) = "/".httpGet(parameters)
 }
+
