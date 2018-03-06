@@ -50,12 +50,18 @@ class OperationsHandler(private val operationService: OperationService) {
         }
         val objectMapper = JSONMapper.aNew()
         val operationRequest = objectMapper.readValue<OperationRequest>(request.body())
+        var result = ""
         when (operationRequest) {
             is OperationRequest.DepositRequest -> {
-                operationRequest.let { operationService.deposit(AccountLocator.`for`(UserId(userId)), it) }
+                operationRequest
+                        .let { operationService.deposit(AccountLocator.`for`(UserId(userId)), it) }
+                        .map {
+                            val operationId = it.toString()
+                            result = objectMapper.writeValueAsString(MyResponse("", listOf(Link("/users/$userId/operations/$operationId", "list", "GET"))))
+                        }
             }
         }
         response.status(200)
-        objectMapper.writeValueAsString(MyResponse("", listOf(Link("/users/1234/operations/223333", "list", "GET"))))
+        result
     }
 }
