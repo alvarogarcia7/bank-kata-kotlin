@@ -1,6 +1,8 @@
-package com.example.kata.bank.service.infrastructure.operations
+package com.example.kata.bank.service.delivery
 
 
+import com.example.kata.bank.service.infrastructure.operations.AmountDTO
+import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.core.TreeNode

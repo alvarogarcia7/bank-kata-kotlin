@@ -1,6 +1,6 @@
-package com.example.kata.bank.service.infrastructure
+package com.example.kata.bank.service.delivery
 
-import com.example.kata.bank.service.infrastructure.application.BankWebApplication
+import com.example.kata.bank.service.infrastructure.HelloService
 import com.example.kata.bank.service.infrastructure.operations.OperationService
 
 fun main(args: Array<String>) {

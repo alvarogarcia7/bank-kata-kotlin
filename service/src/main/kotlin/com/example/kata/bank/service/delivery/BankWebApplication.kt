@@ -1,14 +1,11 @@
-package com.example.kata.bank.service.infrastructure.application
+package com.example.kata.bank.service.delivery
 
 import com.example.kata.bank.service.domain.UserId
 import com.example.kata.bank.service.infrastructure.AccountLocator
 import com.example.kata.bank.service.infrastructure.HelloRequest
 import com.example.kata.bank.service.infrastructure.HelloService
-import com.example.kata.bank.service.infrastructure.JSONMapper
 import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.OperationService
-import com.example.kata.bank.service.web.Link
-import com.example.kata.bank.service.web.MyResponse
 import com.fasterxml.jackson.module.kotlin.readValue
 import spark.kotlin.Http
 import spark.kotlin.RouteHandler
