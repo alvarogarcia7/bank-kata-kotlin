@@ -1,4 +1,4 @@
-package com.example.kata.bank.service.delivery
+package com.example.kata.bank.service.delivery.json
 
 
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
