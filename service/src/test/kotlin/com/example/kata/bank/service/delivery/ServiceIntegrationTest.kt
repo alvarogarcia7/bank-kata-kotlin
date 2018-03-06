@@ -63,7 +63,14 @@ class ServiceIntegrationTest {
             }
         }
 
-        private val configuredApplication: () -> BankWebApplication = { BankWebApplication(MockHelloService(), OperationsHandler(OperationService(), AccountRepository())) }
+        private val configuredApplication: () -> BankWebApplication = {
+            val accountRepository = AccountRepository()
+            BankWebApplication(
+                    MockHelloService(),
+                    OperationsHandler(OperationService(), accountRepository),
+                    AccountsHandler(accountRepository)
+            )
+        }
     }
 
 

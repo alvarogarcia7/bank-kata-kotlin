@@ -1,5 +1,6 @@
 package com.example.kata.bank.service.delivery
 
+import com.example.kata.bank.service.domain.Account
 import com.example.kata.bank.service.domain.Amount
 import com.example.kata.bank.service.domain.Transaction
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
@@ -24,7 +25,13 @@ class Mapper {
         return AmountDTO.EUR(value.formatted())
     }
 
+    fun toDTO(account: Account): AccountDTO {
+        return AccountDTO(account.name)
+    }
+
 }
+
+data class AccountDTO(val name: String)
 
 data class TimeDTO(val locale: String, val iso: String)
 

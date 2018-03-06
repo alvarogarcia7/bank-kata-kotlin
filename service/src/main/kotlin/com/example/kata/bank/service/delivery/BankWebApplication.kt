@@ -17,7 +17,8 @@ import spark.kotlin.RouteHandler
 import spark.kotlin.ignite
 import java.util.*
 
-class BankWebApplication(private val helloService: HelloService, private val operationsHandler: OperationsHandler) : ApplicationEngine {
+class BankWebApplication(private val helloService: HelloService, private val operationsHandler: OperationsHandler, private val accountsHandler: AccountsHandler) :
+        ApplicationEngine {
     private var http: Http = ignite()
     private val helloHandler: RouteHandler.() -> String = {
         HelloRequest(request.queryParamOrDefault("name", null))
@@ -37,11 +38,30 @@ class BankWebApplication(private val helloService: HelloService, private val ope
         http.get("/", function = helloHandler)
         http.post("/accounts/:accountId/operations", function = operationsHandler.add)
         http.get("/accounts/:accountId/operations/:operationId", function = operationsHandler.get)
+        http.get("/accounts", function = accountsHandler.list)
 //        http.post("/users/:userId/operations", function = { req: spark.Request, res: spark.Response -> }) // send the userId parameter explicitly here
     }
 
     override fun stop() {
         http.stop()
+    }
+}
+
+
+class AccountsHandler(private val accountRepository: AccountRepository) {
+    private val mapper = Mapper()
+    private val objectMapper = JSONMapper.aNew()
+    val list: RouteHandler.() -> String = {
+        var result = "echo"
+        val x = accountRepository
+                .findAll()
+                .map { Pair(it.id, toDTO(it.value)) }
+                .map { (id, account) -> MyResponse(account, listOf(Link("/accounts/$id", rel = "self", method = "GET"))) }
+        objectMapper.writeValueAsString(x)
+    }
+
+    private fun toDTO(account: Account): AccountDTO {
+        return mapper.toDTO(account)
     }
 }
 
@@ -66,7 +86,7 @@ class OperationsHandler(private val operationService: OperationService, private 
                                 val operationId = it.toString()
                                 result = objectMapper.writeValueAsString(MyResponse("", listOf(Link("/accounts/$accountId/operations/$operationId", "list", "GET"))))
                             }
-                        }
+                }
             }
         }
         response.status(200)
@@ -105,6 +125,10 @@ class AccountRepository {
 
     fun save(entity: Persisted<Account>) {
         this.accounts.add(entity)
+    }
+
+    fun findAll(): List<Persisted<Account>> {
+        return accounts.toList()
     }
 }
 

@@ -50,7 +50,31 @@ class E2EServiceFeatureTest {
         }
 
         val accountRepository = AccountRepository()
-        private val configuredApplication: () -> BankWebApplication = { BankWebApplication(HelloService(), OperationsHandler(OperationService(), accountRepository)) }
+        private val configuredApplication: () -> BankWebApplication = {
+            BankWebApplication(
+                    HelloService(),
+                    OperationsHandler(
+                            OperationService(),
+                            accountRepository),
+                    AccountsHandler(accountRepository))
+        }
+    }
+
+
+    @Test
+    fun `list accounts`() {
+        accountRepository.save(Persisted.`for`(Account(Clock.aNew()), UUID.randomUUID()))
+        accountRepository.save(Persisted.`for`(Account(Clock.aNew()), UUID.randomUUID()))
+        accountRepository.save(Persisted.`for`(Account(Clock.aNew()), UUID.randomUUID()))
+
+
+        get("/accounts")
+                .let(this::request)
+                .let { (response, result) ->
+                    assertThat(response.statusCode).isEqualTo(200)
+                    println(result.value)
+                    ""
+                }
     }
 
 
@@ -60,15 +84,15 @@ class E2EServiceFeatureTest {
         val accountId = UUID.randomUUID()
         accountRepository.save(Persisted.`for`(Account(Clock.aNew()), accountId))
         depositRequest(accountId, """
-{
-	"type": "deposit",
-	"amount": {
-		"value": "1234.56",
-		"currency": "EUR"
-	},
-	"description": "rent for this month"
-}
-            """).let(this::request)
+        {
+            "type": "deposit",
+            "amount": {
+            "value": "1234.56",
+            "currency": "EUR"
+        },
+            "description": "rent for this month"
+        }
+        """).let(this::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     val objectMapper = JSONMapper.aNew()

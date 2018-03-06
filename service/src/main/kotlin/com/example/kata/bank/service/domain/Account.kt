@@ -8,6 +8,7 @@ import java.util.*
 
 class Account(private val clock: Clock) {
     private val transactionRepository: TransactionRepository = TransactionRepository()
+    val name = "name"
 
     fun deposit(amount: Amount, description: String): UUID {
         val transaction = createIdentityFor(Transaction.Deposit(amount, clock.getTime(), description))
@@ -33,6 +34,7 @@ class Account(private val clock: Clock) {
     }
 
     val find = transactionRepository::findBy
+    val findAll = transactionRepository::findAll
 
     class StatementLines {
         companion object {
