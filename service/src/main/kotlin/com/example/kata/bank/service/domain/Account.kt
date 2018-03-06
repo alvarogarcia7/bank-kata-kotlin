@@ -32,6 +32,8 @@ class Account(private val clock: Clock) {
         statementPrinter.print(statement)
     }
 
+    val find = transactionRepository::findBy
+
     class StatementLines {
         companion object {
             fun parse(initialStatement: StatementLine, transactions: List<Transaction>): List<StatementLine> {

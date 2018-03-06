@@ -14,6 +14,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import spark.kotlin.Http
 import spark.kotlin.RouteHandler
 import spark.kotlin.ignite
+import java.util.*
 
 class BankWebApplication(private val helloService: HelloService, private val operationsHandler: OperationsHandler) : ApplicationEngine {
     private var http: Http = ignite()
@@ -34,6 +35,7 @@ class BankWebApplication(private val helloService: HelloService, private val ope
     private fun configurePaths(http: Http) {
         http.get("/", function = helloHandler)
         http.post("/users/:userId/operations", function = operationsHandler.add)
+        http.get("/users/:userId/operations/:operationId", function = operationsHandler.get)
 //        http.post("/users/:userId/operations", function = { req: spark.Request, res: spark.Response -> }) // send the userId parameter explicitly here
     }
 
@@ -43,6 +45,7 @@ class BankWebApplication(private val helloService: HelloService, private val ope
 }
 
 class OperationsHandler(private val operationService: OperationService) {
+    val mapper = Mapper()
     val add: RouteHandler.() -> String = {
         val userId: String? = request.params(":userId")
         if (userId == null) {
@@ -53,15 +56,38 @@ class OperationsHandler(private val operationService: OperationService) {
         var result = ""
         when (operationRequest) {
             is OperationRequest.DepositRequest -> {
-                operationRequest
-                        .let { operationService.deposit(AccountLocator.`for`(UserId(userId)), it) }
-                        .map {
-                            val operationId = it.toString()
-                            result = objectMapper.writeValueAsString(MyResponse("", listOf(Link("/users/$userId/operations/$operationId", "list", "GET"))))
+                operationRequest.let {
+                    AccountLocator.`for`(UserId(userId))
+                            .flatMap { account ->
+                                operationService.deposit(account, it)
+                            }.map {
+                                val operationId = it.toString()
+                                result = objectMapper.writeValueAsString(MyResponse("", listOf(Link("/users/$userId/operations/$operationId", "list", "GET"))))
+                            }
                         }
             }
         }
         response.status(200)
         result
+    }
+
+    val get: RouteHandler.() -> String = {
+        val userId: String? = request.params(":userId")
+        val operationId: String? = request.params(":operationId")
+        if (userId == null || operationId == null) {
+            throw RuntimeException("invalid request") //TODO AGB
+        }
+        val objectMapper = JSONMapper.aNew()
+
+        var result = ""
+        AccountLocator.`for`(UserId(userId))
+                .flatMap {
+                    it.find(UUID.fromString(operationId))
+                }.map {
+                    result = objectMapper.writeValueAsString(MyResponse(mapper.toDTO(it.value), listOf(Link("/users/$userId/operations/$operationId", "self", "GET"))))
+                }
+
+        result
+
     }
 }

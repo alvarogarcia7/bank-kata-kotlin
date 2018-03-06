@@ -68,12 +68,24 @@ class E2EServiceFeatureTest {
                     println(x)
                     assertThat(x.links).hasSize(1)
                     assertThat(x.links).filteredOn { it.rel == "list" }.isNotEmpty()
-                    assertThat(x.payload).isEqualTo("")
+                    assertThat(x.response).isEqualTo("")
+                    val url = x.links.find { it.rel == "list" }?.href
+                    get(url!!)
+                            .let(this::request)
+                            .let { (response, result) ->
+                                assertThat(response.statusCode).isEqualTo(200)
+                                println(result.value)
+                            }
+                    ""
                 }
     }
 
     private fun depositRequest(userId: Int, jsonPayload: String): Request {
         return "users/$userId/operations".httpPost().header("Content-Type" to "application/json").body(jsonPayload, Charsets.UTF_8)
+    }
+
+    private fun get(url: String): Request {
+        return url.httpGet()
     }
 
     @Test
