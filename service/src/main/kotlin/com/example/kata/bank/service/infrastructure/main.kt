@@ -23,7 +23,7 @@ class BankWebApplication(private val helloService: HelloService, private val ope
     }
 
     val operationsHandler: RouteHandler.() -> String = {
-        val userId = request.params(":userId")
+        val userId: String? = request.params(":userId")
         if (userId == null) {
             throw RuntimeException("null user") //TODO AGB
         }
@@ -34,8 +34,8 @@ class BankWebApplication(private val helloService: HelloService, private val ope
                 operationRequest.let { operationService.deposit(AccountLocator.`for`(UserId(userId)), it) }
             }
         }
+        response.status(200)
         objectMapper.writeValueAsString(MyResponse("", listOf(Link("/users/1234/operations/223333", "list", "GET"))))
-
     }
 
     class AccountLocator {
