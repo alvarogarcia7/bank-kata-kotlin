@@ -47,7 +47,7 @@ class E2EServiceFeatureTest {
 
     @Test
     fun `deposit - a correct request`() {
-        depositRequest("""
+        depositRequest(1234, """
 {
 	"type": "deposit",
 	"amount": {
@@ -68,8 +68,8 @@ class E2EServiceFeatureTest {
                 }
     }
 
-    private fun depositRequest(jsonPayload: String): Request {
-        return "users/1234/operations".httpPost().header("Content-Type" to "application/json").body(jsonPayload, Charsets.UTF_8)
+    private fun depositRequest(userId: Int, jsonPayload: String): Request {
+        return "users/$userId/operations".httpPost().header("Content-Type" to "application/json").body(jsonPayload, Charsets.UTF_8)
     }
 
     @Test
