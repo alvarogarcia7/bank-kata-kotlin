@@ -3,6 +3,9 @@ package com.example.kata.bank.service.delivery
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
+import com.example.kata.bank.service.domain.Account
+import com.example.kata.bank.service.domain.Clock
+import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.infrastructure.HelloService
 import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -20,6 +23,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.platform.runner.JUnitPlatform
 import org.junit.runner.RunWith
+import java.util.*
 
 @RunWith(JUnitPlatform::class)
 class E2EServiceFeatureTest {
@@ -45,13 +49,17 @@ class E2EServiceFeatureTest {
             FuelManager.instance.basePath = "http://localhost:" + serverPort
         }
 
-        private val configuredApplication: () -> BankWebApplication = { BankWebApplication(HelloService(), OperationsHandler(OperationService())) }
+        val accountRepository = AccountRepository()
+        private val configuredApplication: () -> BankWebApplication = { BankWebApplication(HelloService(), OperationsHandler(OperationService(), accountRepository)) }
     }
 
 
     @Test
     fun `deposit - a correct request`() {
-        depositRequest(1234, """
+
+        val accountId = UUID.randomUUID()
+        accountRepository.save(Persisted.`for`(Account(Clock.aNew()), accountId))
+        depositRequest(accountId, """
 {
 	"type": "deposit",
 	"amount": {
@@ -80,8 +88,8 @@ class E2EServiceFeatureTest {
                 }
     }
 
-    private fun depositRequest(userId: Int, jsonPayload: String): Request {
-        return "users/$userId/operations".httpPost().header("Content-Type" to "application/json").body(jsonPayload, Charsets.UTF_8)
+    private fun depositRequest(accountId: UUID, jsonPayload: String): Request {
+        return "accounts/$accountId/operations".httpPost().header("Content-Type" to "application/json").body(jsonPayload, Charsets.UTF_8)
     }
 
     private fun get(url: String): Request {

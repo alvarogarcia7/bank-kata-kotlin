@@ -1,11 +1,12 @@
 package com.example.kata.bank.service.delivery
 
+import arrow.core.Option
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.delivery.json.hateoas.Link
-import com.example.kata.bank.service.domain.UserId
-import com.example.kata.bank.service.infrastructure.AccountLocator
+import com.example.kata.bank.service.domain.Account
+import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.infrastructure.HelloRequest
 import com.example.kata.bank.service.infrastructure.HelloService
 import com.example.kata.bank.service.infrastructure.operations.OperationRequest
@@ -34,8 +35,8 @@ class BankWebApplication(private val helloService: HelloService, private val ope
 
     private fun configurePaths(http: Http) {
         http.get("/", function = helloHandler)
-        http.post("/users/:userId/operations", function = operationsHandler.add)
-        http.get("/users/:userId/operations/:operationId", function = operationsHandler.get)
+        http.post("/accounts/:accountId/operations", function = operationsHandler.add)
+        http.get("/accounts/:accountId/operations/:operationId", function = operationsHandler.get)
 //        http.post("/users/:userId/operations", function = { req: spark.Request, res: spark.Response -> }) // send the userId parameter explicitly here
     }
 
@@ -44,12 +45,13 @@ class BankWebApplication(private val helloService: HelloService, private val ope
     }
 }
 
-class OperationsHandler(private val operationService: OperationService) {
-    val mapper = Mapper()
+class OperationsHandler(private val operationService: OperationService, private val accountRepository: AccountRepository) {
+    private val mapper = Mapper()
+
     val add: RouteHandler.() -> String = {
-        val userId: String? = request.params(":userId")
-        if (userId == null) {
-            throw RuntimeException("null user") //TODO AGB
+        val accountId: String? = request.params(":accountId")
+        if (accountId == null) {
+            throw RuntimeException("null account") //TODO AGB
         }
         val objectMapper = JSONMapper.aNew()
         val operationRequest = objectMapper.readValue<OperationRequest>(request.body())
@@ -57,12 +59,12 @@ class OperationsHandler(private val operationService: OperationService) {
         when (operationRequest) {
             is OperationRequest.DepositRequest -> {
                 operationRequest.let {
-                    AccountLocator.`for`(UserId(userId))
+                    accountFor(accountId)
                             .flatMap { account ->
                                 operationService.deposit(account, it)
                             }.map {
                                 val operationId = it.toString()
-                                result = objectMapper.writeValueAsString(MyResponse("", listOf(Link("/users/$userId/operations/$operationId", "list", "GET"))))
+                                result = objectMapper.writeValueAsString(MyResponse("", listOf(Link("/accounts/$accountId/operations/$operationId", "list", "GET"))))
                             }
                         }
             }
@@ -72,22 +74,38 @@ class OperationsHandler(private val operationService: OperationService) {
     }
 
     val get: RouteHandler.() -> String = {
-        val userId: String? = request.params(":userId")
+        val accountId: String? = request.params(":accountId")
         val operationId: String? = request.params(":operationId")
-        if (userId == null || operationId == null) {
+        if (accountId == null || operationId == null) {
             throw RuntimeException("invalid request") //TODO AGB
         }
         val objectMapper = JSONMapper.aNew()
 
         var result = ""
-        AccountLocator.`for`(UserId(userId))
+        accountFor(accountId)
                 .flatMap {
                     it.find(UUID.fromString(operationId))
                 }.map {
-                    result = objectMapper.writeValueAsString(MyResponse(mapper.toDTO(it.value), listOf(Link("/users/$userId/operations/$operationId", "self", "GET"))))
+                    result = objectMapper.writeValueAsString(MyResponse(mapper.toDTO(it.value), listOf(Link("/accounts/$accountId/operations/$operationId", "self", "GET"))))
                 }
 
         result
 
     }
+
+    private fun accountFor(accountId: String) = accountRepository.findBy(AccountId(accountId))
 }
+
+class AccountRepository {
+    private val accounts = mutableListOf<Persisted<Account>>()
+
+    fun findBy(accountId: AccountId): Option<Account> {
+        return Option.fromNullable(accounts.find { it.id == UUID.fromString(accountId.value) }).map { it.value }
+    }
+
+    fun save(entity: Persisted<Account>) {
+        this.accounts.add(entity)
+    }
+}
+
+data class AccountId(val value: String)
