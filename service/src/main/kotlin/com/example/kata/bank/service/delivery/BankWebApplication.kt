@@ -34,6 +34,7 @@ class BankWebApplication(private val helloService: HelloService, private val ope
     private fun configurePaths(http: Http) {
         http.get("/", function = helloHandler)
         http.post("/users/:userId/operations", function = operationsHandler.add)
+//        http.post("/users/:userId/operations", function = { req: spark.Request, res: spark.Response -> }) // send the userId parameter explicitly here
     }
 
     override fun stop() {
