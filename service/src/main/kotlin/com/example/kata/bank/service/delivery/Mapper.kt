@@ -3,6 +3,7 @@ package com.example.kata.bank.service.delivery
 import com.example.kata.bank.service.domain.Account
 import com.example.kata.bank.service.domain.Amount
 import com.example.kata.bank.service.domain.Transaction
+import com.example.kata.bank.service.domain.User
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -29,9 +30,14 @@ class Mapper {
         return AccountDTO(account.name)
     }
 
+    fun toDTO(user: User): UserDTO {
+        return UserDTO(user.name)
+    }
+
 }
 
 data class AccountDTO(val name: String)
+data class UserDTO(val name: String)
 
 data class TimeDTO(val locale: String, val iso: String)
 

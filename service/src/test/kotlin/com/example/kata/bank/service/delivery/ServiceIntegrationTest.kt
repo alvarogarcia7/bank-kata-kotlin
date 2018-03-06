@@ -68,7 +68,8 @@ class ServiceIntegrationTest {
             BankWebApplication(
                     MockHelloService(),
                     OperationsHandler(OperationService(), accountRepository),
-                    AccountsHandler(accountRepository)
+                    AccountsHandler(accountRepository),
+                    UsersHandler(UsersRepository())
             )
         }
     }

@@ -56,7 +56,8 @@ class E2EServiceFeatureTest {
                     OperationsHandler(
                             OperationService(),
                             accountRepository),
-                    AccountsHandler(accountRepository))
+                    AccountsHandler(accountRepository),
+                    UsersHandler(UsersRepository()))
         }
     }
 

@@ -7,6 +7,7 @@ import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.delivery.json.hateoas.Link
 import com.example.kata.bank.service.domain.Account
 import com.example.kata.bank.service.domain.Persisted
+import com.example.kata.bank.service.domain.User
 import com.example.kata.bank.service.infrastructure.HelloRequest
 import com.example.kata.bank.service.infrastructure.HelloService
 import com.example.kata.bank.service.infrastructure.operations.OperationRequest
@@ -17,7 +18,11 @@ import spark.kotlin.RouteHandler
 import spark.kotlin.ignite
 import java.util.*
 
-class BankWebApplication(private val helloService: HelloService, private val operationsHandler: OperationsHandler, private val accountsHandler: AccountsHandler) :
+class BankWebApplication(
+        private val helloService: HelloService,
+        private val operationsHandler: OperationsHandler,
+        private val accountsHandler: AccountsHandler,
+        private val usersHandler: UsersHandler) :
         ApplicationEngine {
     private var http: Http = ignite()
     private val helloHandler: RouteHandler.() -> String = {
@@ -39,6 +44,7 @@ class BankWebApplication(private val helloService: HelloService, private val ope
         http.post("/accounts/:accountId/operations", function = operationsHandler.add)
         http.get("/accounts/:accountId/operations/:operationId", function = operationsHandler.get)
         http.get("/accounts", function = accountsHandler.list)
+        http.get("/users", function = usersHandler.list)
 //        http.post("/users/:userId/operations", function = { req: spark.Request, res: spark.Response -> }) // send the userId parameter explicitly here
     }
 
@@ -52,7 +58,6 @@ class AccountsHandler(private val accountRepository: AccountRepository) {
     private val mapper = Mapper()
     private val objectMapper = JSONMapper.aNew()
     val list: RouteHandler.() -> String = {
-        var result = "echo"
         val x = accountRepository
                 .findAll()
                 .map { Pair(it.id, toDTO(it.value)) }
@@ -64,6 +69,35 @@ class AccountsHandler(private val accountRepository: AccountRepository) {
         return mapper.toDTO(account)
     }
 }
+
+class UsersHandler(private val usersRepository: UsersRepository) {
+    private val mapper = Mapper()
+    private val objectMapper = JSONMapper.aNew()
+    val list: RouteHandler.() -> String = {
+        val x = usersRepository
+                .findAll()
+                .map { Pair(it.id, mapper.toDTO(it.value)) }
+                .map { (id, user) -> MyResponse(user, listOf(Link("/users/$id", rel = "self", method = "GET"))) }
+        objectMapper.writeValueAsString(x)
+    }
+
+}
+
+
+class UsersRepository : InMemoryRepository<User>()
+
+open class InMemoryRepository<X> {
+    private val values = mutableListOf<Persisted<X>>()
+
+    fun save(entity: Persisted<X>) {
+        this.values.add(entity)
+    }
+
+    fun findAll(): List<Persisted<X>> {
+        return values.toList()
+    }
+}
+
 
 class OperationsHandler(private val operationService: OperationService, private val accountRepository: AccountRepository) {
     private val mapper = Mapper()
