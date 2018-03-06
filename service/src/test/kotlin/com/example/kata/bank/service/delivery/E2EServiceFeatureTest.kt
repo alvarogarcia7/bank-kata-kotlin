@@ -45,7 +45,7 @@ class E2EServiceFeatureTest {
             FuelManager.instance.basePath = "http://localhost:" + serverPort
         }
 
-        private val configuredApplication: () -> BankWebApplication = { BankWebApplication(HelloService(), OperationService()) }
+        private val configuredApplication: () -> BankWebApplication = { BankWebApplication(HelloService(), OperationsHandler(OperationService())) }
     }
 
 

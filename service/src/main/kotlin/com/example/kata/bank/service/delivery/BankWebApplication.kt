@@ -15,14 +15,34 @@ import spark.kotlin.Http
 import spark.kotlin.RouteHandler
 import spark.kotlin.ignite
 
-class BankWebApplication(private val helloService: HelloService, private val operationService: OperationService) : ApplicationEngine {
+class BankWebApplication(private val helloService: HelloService, private val operationsHandler: OperationsHandler) : ApplicationEngine {
     private var http: Http = ignite()
     private val helloHandler: RouteHandler.() -> String = {
         HelloRequest(request.queryParamOrDefault("name", null))
                 .let { helloService.salute(it) }
     }
 
-    val operationsHandler: RouteHandler.() -> String = {
+    override fun start(port: Int): BankWebApplication {
+        val http = http
+                .port(port)
+                .threadPool(10)
+
+        configurePaths(http)
+        return this
+    }
+
+    private fun configurePaths(http: Http) {
+        http.get("/", function = helloHandler)
+        http.post("/users/:userId/operations", function = operationsHandler.add)
+    }
+
+    override fun stop() {
+        http.stop()
+    }
+}
+
+class OperationsHandler(private val operationService: OperationService) {
+    val add: RouteHandler.() -> String = {
         val userId: String? = request.params(":userId")
         if (userId == null) {
             throw RuntimeException("null user") //TODO AGB
@@ -36,19 +56,5 @@ class BankWebApplication(private val helloService: HelloService, private val ope
         }
         response.status(200)
         objectMapper.writeValueAsString(MyResponse("", listOf(Link("/users/1234/operations/223333", "list", "GET"))))
-    }
-
-    override fun start(port: Int): BankWebApplication {
-        val http = http
-                .port(port)
-                .threadPool(10)
-
-        http.get("/", function = helloHandler)
-        http.post("/users/:userId/operations", function = operationsHandler)
-        return this
-    }
-
-    override fun stop() {
-        http.stop()
     }
 }
