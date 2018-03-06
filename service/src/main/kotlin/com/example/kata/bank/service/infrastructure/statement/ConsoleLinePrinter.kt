@@ -1,4 +1,4 @@
-package com.example.kata.bank.service.infrastructure
+package com.example.kata.bank.service.infrastructure.statement
 
 open class ConsoleLinePrinter : LinePrinter {
     override fun println(line: String) {

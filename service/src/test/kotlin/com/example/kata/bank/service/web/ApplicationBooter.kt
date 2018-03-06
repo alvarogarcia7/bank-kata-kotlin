@@ -1,6 +1,6 @@
 package com.example.kata.bank.service.web
 
-import com.example.kata.bank.service.infrastructure.ApplicationEngine
+import com.example.kata.bank.service.infrastructure.application.ApplicationEngine
 import java.net.BindException
 import java.net.ServerSocket
 

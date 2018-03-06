@@ -3,9 +3,9 @@ package com.example.kata.bank.service.deposit
 import com.example.kata.bank.service.domain.Account
 import com.example.kata.bank.service.domain.Amount
 import com.example.kata.bank.service.domain.Clock
-import com.example.kata.bank.service.infrastructure.ConsoleLinePrinter
-import com.example.kata.bank.service.infrastructure.LinePrinter
-import com.example.kata.bank.service.infrastructure.StatementPrinter
+import com.example.kata.bank.service.infrastructure.statement.ConsoleLinePrinter
+import com.example.kata.bank.service.infrastructure.statement.LinePrinter
+import com.example.kata.bank.service.infrastructure.statement.StatementPrinter
 import com.nhaarman.mockito_kotlin.doReturn
 import com.nhaarman.mockito_kotlin.mock
 import org.junit.jupiter.api.Test

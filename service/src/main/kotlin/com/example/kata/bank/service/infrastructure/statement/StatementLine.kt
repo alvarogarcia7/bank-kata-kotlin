@@ -1,4 +1,4 @@
-package com.example.kata.bank.service.infrastructure
+package com.example.kata.bank.service.infrastructure.statement
 
 import com.example.kata.bank.service.domain.Amount
 import com.example.kata.bank.service.domain.Transaction

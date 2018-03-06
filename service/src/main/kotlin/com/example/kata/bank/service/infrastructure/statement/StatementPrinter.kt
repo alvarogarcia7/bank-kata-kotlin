@@ -1,4 +1,4 @@
-package com.example.kata.bank.service.infrastructure
+package com.example.kata.bank.service.infrastructure.statement
 
 class StatementPrinter(val linePrinter: LinePrinter) {
     fun print(statement: Statement) {

@@ -1,8 +1,8 @@
 package com.example.kata.bank.service.domain
 
-import com.example.kata.bank.service.infrastructure.Statement
-import com.example.kata.bank.service.infrastructure.StatementLine
-import com.example.kata.bank.service.infrastructure.StatementPrinter
+import com.example.kata.bank.service.infrastructure.statement.Statement
+import com.example.kata.bank.service.infrastructure.statement.StatementLine
+import com.example.kata.bank.service.infrastructure.statement.StatementPrinter
 
 class Account(private val clock: Clock) {
     private val transactionRepository: TransactionRepository = TransactionRepository()
