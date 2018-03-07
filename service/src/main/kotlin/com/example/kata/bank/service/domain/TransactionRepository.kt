@@ -18,13 +18,3 @@ class TransactionRepository {
     }
 }
 
-data class Persisted<out T> private constructor(val value: T, val id: UUID) {
-
-    companion object {
-        fun <T> `for`(value: T, id: UUID): Persisted<T> {
-            return Persisted(value, id)
-        }
-    }
-
-
-}
