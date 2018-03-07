@@ -1,10 +1,14 @@
-package com.example.kata.bank.service.delivery
+package com.example.kata.bank.service.infrastructure.mapper
 
 import com.example.kata.bank.service.domain.Account
 import com.example.kata.bank.service.domain.Amount
 import com.example.kata.bank.service.domain.Transaction
 import com.example.kata.bank.service.domain.User
+import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
+import com.example.kata.bank.service.infrastructure.operations.TimeDTO
+import com.example.kata.bank.service.infrastructure.operations.TransactionDTO
+import com.example.kata.bank.service.infrastructure.users.UserDTO
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -36,9 +40,3 @@ class Mapper {
 
 }
 
-data class AccountDTO(val name: String)
-data class UserDTO(val name: String)
-
-data class TimeDTO(val locale: String, val iso: String)
-
-data class TransactionDTO(val amount: AmountDTO, val description: String, val time: TimeDTO)

@@ -1,16 +1,24 @@
 package com.example.kata.bank.service.delivery
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.None
+import arrow.core.Some
+import arrow.core.flatMap
+import com.example.kata.bank.service.NotTestedOperation
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.delivery.json.hateoas.Link
 import com.example.kata.bank.service.domain.Account
-import com.example.kata.bank.service.domain.Clock
+import com.example.kata.bank.service.domain.AccountId
+import com.example.kata.bank.service.domain.OpenAccountRequest
 import com.example.kata.bank.service.domain.Persisted
-import com.example.kata.bank.service.domain.User
 import com.example.kata.bank.service.infrastructure.HelloRequest
 import com.example.kata.bank.service.infrastructure.HelloService
+import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
+import com.example.kata.bank.service.infrastructure.accounts.AccountRepository
+import com.example.kata.bank.service.infrastructure.accounts.UsersRepository
+import com.example.kata.bank.service.infrastructure.mapper.Mapper
 import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -119,28 +127,6 @@ class AccountsHandler(private val accountRepository: AccountRepository) {
     }
 }
 
-data class OpenAccountRequest private constructor(val name: String) {
-    companion object {
-        fun parse(name: String): Either<List<Error>, Account> {
-            return Either.right(Account(Clock.aNew(), name))
-        }
-    }
-}
-
-data class OpenAccountRequestDTO(val name: String?) {
-    fun validate(): Either<List<Exception>, OpenAccountRequestDTO> {
-        var errors = mutableListOf<Exception>()
-        if (name == null || name == "") {
-            errors.add(IllegalArgumentException("empty/blank account name"))
-        }
-        return if (errors.isEmpty()) {
-            Either.right(this)
-        } else {
-            Either.left(errors)
-        }
-    }
-}
-
 
 class UsersHandler(private val usersRepository: UsersRepository) {
     private val mapper = Mapper()
@@ -153,21 +139,6 @@ class UsersHandler(private val usersRepository: UsersRepository) {
         objectMapper.writeValueAsString(x)
     }
 
-}
-
-
-class UsersRepository : InMemoryRepository<User>()
-
-open class InMemoryRepository<X> {
-    private val values = mutableListOf<Persisted<X>>()
-
-    fun save(entity: Persisted<X>) {
-        this.values.add(entity)
-    }
-
-    fun findAll(): List<Persisted<X>> {
-        return values.toList()
-    }
 }
 
 
@@ -246,22 +217,3 @@ class OperationsHandler(private val operationService: OperationService, private 
     private fun accountFor(accountId: String) = accountRepository.findBy(AccountId(accountId)).map { it.value }
 }
 
-class NotTestedOperation : Throwable()
-
-class AccountRepository {
-    private val accounts = mutableListOf<Persisted<Account>>()
-
-    fun findBy(accountId: AccountId): Option<Persisted<Account>> {
-        return Option.fromNullable(accounts.find { it.id == UUID.fromString(accountId.value) })
-    }
-
-    fun save(entity: Persisted<Account>) {
-        this.accounts.add(entity)
-    }
-
-    fun findAll(): List<Persisted<Account>> {
-        return accounts.toList()
-    }
-}
-
-data class AccountId(val value: String)
