@@ -34,7 +34,7 @@ class BankWebApplication(
     override fun start(port: Int): BankWebApplication {
         val http = http
                 .port(port)
-                .threadPool(10)
+//                .threadPool(10)
 
         configurePaths(http)
         return this
@@ -50,6 +50,7 @@ class BankWebApplication(
 
         //operations
         http.get("/accounts/:accountId/operations/:operationId", function = operationsHandler.get)
+        http.get("/accounts/:accountId/operations", function = operationsHandler.list)
         http.post("/accounts/:accountId/operations", function = operationsHandler.add)
 
         //users
@@ -172,6 +173,7 @@ open class InMemoryRepository<X> {
 
 class OperationsHandler(private val operationService: OperationService, private val accountRepository: AccountRepository) {
     private val mapper = Mapper()
+    private val objectMapper = JSONMapper.aNew()
 
     val add: RouteHandler.() -> String = {
         val accountId: String? = request.params(":accountId")
@@ -218,8 +220,33 @@ class OperationsHandler(private val operationService: OperationService, private 
 
     }
 
+    val list: RouteHandler.() -> String = {
+        val accountId: String = request.params(":accountId") ?: throw RuntimeException("invalid request") //TODO AGB
+        val result = accountRepository
+                .findBy(AccountId(accountId))
+                .map {
+                    it.value.findAll()
+                            .map { Pair(it.id, mapper.toDTO(it.value)) }
+                            .map { (id, dto) ->
+                                MyResponse(dto, listOf(Link("/accounts/$accountId/operations/$id", rel = "self", method = "GET")))
+                            }
+                }
+        when (result) {
+            is None -> {
+                throw NotTestedOperation()
+                response.status(400)
+                objectMapper.writeValueAsString("")
+            }
+            is Some -> {
+                objectMapper.writeValueAsString(result.t)
+            }
+        }
+    }
+
     private fun accountFor(accountId: String) = accountRepository.findBy(AccountId(accountId)).map { it.value }
 }
+
+class NotTestedOperation : Throwable()
 
 class AccountRepository {
     private val accounts = mutableListOf<Persisted<Account>>()

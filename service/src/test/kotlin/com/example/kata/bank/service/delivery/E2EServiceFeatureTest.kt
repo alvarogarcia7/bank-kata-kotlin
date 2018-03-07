@@ -4,6 +4,7 @@ import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.domain.Account
+import com.example.kata.bank.service.domain.Amount
 import com.example.kata.bank.service.domain.Clock
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.infrastructure.HelloService
@@ -144,6 +145,27 @@ class E2EServiceFeatureTest {
                                 println(result.value)
                             }
                     ""
+                }
+    }
+
+    @Test
+    fun `list the operations`() {
+
+        val accountId = UUID.randomUUID()
+        accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
+        accountRepository.findBy(AccountId(accountId.toString()))
+                .map {
+                    it.value.deposit(Amount.Companion.of("100"), "rent, part 1")
+                    it.value.deposit(Amount.Companion.of("200"), "rent, part 2")
+                }
+        get("/accounts/$accountId/operations")
+                .let(this::request)
+                .let { (response, result) ->
+                    assertThat(response.statusCode).isEqualTo(200)
+                    println(result.value)
+                    val objectMapper = JSONMapper.aNew()
+                    val x = objectMapper.readValue<List<MyResponse<TransactionDTO>>>(result.value)
+                    assertThat(x).hasSize(2)
                 }
     }
 
