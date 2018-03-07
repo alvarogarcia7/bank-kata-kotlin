@@ -1,6 +1,7 @@
-package com.example.kata.bank.service.domain
+package com.example.kata.bank.service.domain.transactions
 
 import arrow.core.Option
+import com.example.kata.bank.service.domain.Persisted
 import java.util.*
 
 class TransactionRepository {

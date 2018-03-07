@@ -1,5 +1,9 @@
-package com.example.kata.bank.service.domain
+package com.example.kata.bank.service.domain.accounts
 
+import com.example.kata.bank.service.domain.Persisted
+import com.example.kata.bank.service.domain.transactions.Amount
+import com.example.kata.bank.service.domain.transactions.Transaction
+import com.example.kata.bank.service.domain.transactions.TransactionRepository
 import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.example.kata.bank.service.infrastructure.statement.StatementLine
 import com.example.kata.bank.service.infrastructure.statement.StatementPrinter
@@ -48,7 +52,7 @@ class Account(private val clock: Clock, val name: String) {
                 return statementLines.toList()
             }
         }
-        
+
 
     }
 

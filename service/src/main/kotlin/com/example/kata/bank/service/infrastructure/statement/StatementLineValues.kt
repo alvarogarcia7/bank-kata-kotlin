@@ -1,6 +1,6 @@
 package com.example.kata.bank.service.infrastructure.statement
 
-import com.example.kata.bank.service.domain.Amount
+import com.example.kata.bank.service.domain.transactions.Amount
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 

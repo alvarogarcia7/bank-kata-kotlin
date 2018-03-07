@@ -1,6 +1,4 @@
-package com.example.kata.bank.service.infrastructure.accounts
-
-import com.example.kata.bank.service.domain.Persisted
+package com.example.kata.bank.service.domain
 
 open class InMemoryRepository<X> {
     private val values = mutableListOf<Persisted<X>>()

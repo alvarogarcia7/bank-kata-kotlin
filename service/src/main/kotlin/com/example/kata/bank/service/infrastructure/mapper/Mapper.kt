@@ -1,9 +1,9 @@
 package com.example.kata.bank.service.infrastructure.mapper
 
-import com.example.kata.bank.service.domain.Account
-import com.example.kata.bank.service.domain.Amount
-import com.example.kata.bank.service.domain.Transaction
-import com.example.kata.bank.service.domain.User
+import com.example.kata.bank.service.domain.accounts.Account
+import com.example.kata.bank.service.domain.transactions.Amount
+import com.example.kata.bank.service.domain.transactions.Transaction
+import com.example.kata.bank.service.domain.users.User
 import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
 import com.example.kata.bank.service.infrastructure.operations.TimeDTO

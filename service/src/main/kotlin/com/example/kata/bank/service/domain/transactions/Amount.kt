@@ -1,4 +1,4 @@
-package com.example.kata.bank.service.domain
+package com.example.kata.bank.service.domain.transactions
 
 import java.math.BigDecimal
 import java.text.DecimalFormat

@@ -1,7 +1,7 @@
 package com.example.kata.bank.service.infrastructure.statement
 
-import com.example.kata.bank.service.domain.Amount
-import com.example.kata.bank.service.domain.Transaction
+import com.example.kata.bank.service.domain.transactions.Amount
+import com.example.kata.bank.service.domain.transactions.Transaction
 import java.time.LocalDateTime
 
 sealed class StatementLine(open val balance: Amount) {

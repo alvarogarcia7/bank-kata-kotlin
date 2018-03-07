@@ -1,8 +1,8 @@
 package com.example.kata.bank.service.deposit
 
-import com.example.kata.bank.service.domain.Account
-import com.example.kata.bank.service.domain.Amount
-import com.example.kata.bank.service.domain.Clock
+import com.example.kata.bank.service.domain.accounts.Account
+import com.example.kata.bank.service.domain.accounts.Clock
+import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.infrastructure.statement.ConsoleLinePrinter
 import com.example.kata.bank.service.infrastructure.statement.LinePrinter
 import com.example.kata.bank.service.infrastructure.statement.StatementPrinter

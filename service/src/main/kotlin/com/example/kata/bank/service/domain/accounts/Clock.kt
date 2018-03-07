@@ -1,4 +1,4 @@
-package com.example.kata.bank.service.domain
+package com.example.kata.bank.service.domain.accounts
 
 import java.time.LocalDateTime
 
