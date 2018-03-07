@@ -9,9 +9,9 @@ import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.delivery.json.hateoas.Link
+import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
-import com.example.kata.bank.service.domain.accounts.AccountId
 import com.example.kata.bank.service.domain.accounts.AccountRepository
 import com.example.kata.bank.service.domain.accounts.OpenAccountRequest
 import com.example.kata.bank.service.domain.users.UsersRepository
@@ -79,7 +79,7 @@ class AccountsHandler(private val accountRepository: AccountRepository) {
         val x = accountRepository
                 .findAll()
                 .map { Pair(it.id, toDTO(it.value)) }
-                .map { (id, account) -> MyResponse(account, listOf(Link("/accounts/$id", rel = "self", method = "GET"))) }
+                .map { (id, account) -> MyResponse(account, listOf(Link("/accounts/${id.value}", rel = "self", method = "GET"))) }
         objectMapper.writeValueAsString(x)
     }
 
@@ -88,13 +88,13 @@ class AccountsHandler(private val accountRepository: AccountRepository) {
         val result = openAccountRequestDTO
                 .validate()
                 .flatMap { OpenAccountRequest.parse(it.name!!) }
-                .map { Persisted.`for`(it, UUID.randomUUID()) }
+                .map { Persisted.`for`(it, Id(UUID.randomUUID().toString())) }
                 .map {
                     accountRepository.save(it)
                     it
                 }
                 .map { Pair(it.id, toDTO(it.value)) }
-                .map { (id, account) -> MyResponse(account, listOf(Link("/accounts/$id", rel = "self", method = "GET"))) }
+                .map { (id, account) -> MyResponse(account, listOf(Link("/accounts/${id.value}", rel = "self", method = "GET"))) }
         when (result) {
             is Either.Right -> {
                 objectMapper.writeValueAsString(result.b)
@@ -108,7 +108,7 @@ class AccountsHandler(private val accountRepository: AccountRepository) {
 
     val detail: RouteHandler.() -> String = {
         val accountId: String = request.params(":accountId") ?: throw RuntimeException("null account") //TODO AGB
-        val result = accountRepository.findBy(AccountId(accountId))
+        val result = accountRepository.findBy(Id(accountId))
                 .map { Pair(it.id, toDTO(it.value)) }
                 .map { (id, account) -> MyResponse(account, listOf(Link("/accounts/$id", rel = "self", method = "GET"))) }
         when (result) {
@@ -182,7 +182,7 @@ class OperationsHandler(private val operationService: OperationService, private 
         var result = ""
         accountFor(accountId)
                 .flatMap {
-                    it.find(UUID.fromString(operationId))
+                    it.find(Id(operationId))
                 }.map {
                     result = objectMapper.writeValueAsString(MyResponse(mapper.toDTO(it.value), listOf(Link("/accounts/$accountId/operations/$operationId", "self", "GET"))))
                 }
@@ -194,7 +194,7 @@ class OperationsHandler(private val operationService: OperationService, private 
     val list: RouteHandler.() -> String = {
         val accountId: String = request.params(":accountId") ?: throw RuntimeException("invalid request") //TODO AGB
         val result = accountRepository
-                .findBy(AccountId(accountId))
+                .findBy(Id(accountId))
                 .map {
                     it.value.findAll()
                             .map { Pair(it.id, mapper.toDTO(it.value)) }
@@ -214,6 +214,6 @@ class OperationsHandler(private val operationService: OperationService, private 
         }
     }
 
-    private fun accountFor(accountId: String) = accountRepository.findBy(AccountId(accountId)).map { it.value }
+    private fun accountFor(accountId: String) = accountRepository.findBy(Id(accountId)).map { it.value }
 }
 

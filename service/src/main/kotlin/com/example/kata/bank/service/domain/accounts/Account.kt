@@ -1,5 +1,6 @@
 package com.example.kata.bank.service.domain.accounts
 
+import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
@@ -8,25 +9,24 @@ import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.example.kata.bank.service.infrastructure.statement.StatementLine
 import com.example.kata.bank.service.infrastructure.statement.StatementPrinter
 import com.fasterxml.jackson.annotation.ObjectIdGenerators
-import java.util.*
 
 class Account(private val clock: Clock, val name: String) {
     private val transactionRepository: TransactionRepository = TransactionRepository()
 
-    fun deposit(amount: Amount, description: String): UUID {
+    fun deposit(amount: Amount, description: String): Id {
         val transaction = createIdentityFor(Transaction.Deposit(amount, clock.getTime(), description))
         this.transactionRepository.save(transaction)
         return transaction.id
     }
 
-    fun withdraw(amount: Amount, description: String): UUID {
+    fun withdraw(amount: Amount, description: String): Id {
         val transaction = createIdentityFor(Transaction.Withdrawal(amount, clock.getTime(), description))
         this.transactionRepository.save(transaction)
         return transaction.id
     }
 
     private fun createIdentityFor(transaction: Transaction): Persisted<Transaction> {
-        val id = ObjectIdGenerators.UUIDGenerator().generateId(transaction)
+        val id = Id(ObjectIdGenerators.UUIDGenerator().generateId(transaction).toString())
         return Persisted.`for`(transaction, id)
     }
 

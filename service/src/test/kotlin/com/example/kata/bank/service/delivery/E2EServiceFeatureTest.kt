@@ -3,9 +3,9 @@ package com.example.kata.bank.service.delivery
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
+import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
-import com.example.kata.bank.service.domain.accounts.AccountId
 import com.example.kata.bank.service.domain.accounts.AccountRepository
 import com.example.kata.bank.service.domain.accounts.Clock
 import com.example.kata.bank.service.domain.transactions.Amount
@@ -70,9 +70,9 @@ class E2EServiceFeatureTest {
 
     @Test
     fun `list accounts`() {
-        accountRepository.save(Persisted.`for`(aNewAccount(), UUID.randomUUID()))
-        accountRepository.save(Persisted.`for`(aNewAccount(), UUID.randomUUID()))
-        accountRepository.save(Persisted.`for`(aNewAccount(), UUID.randomUUID()))
+        accountRepository.save(Persisted.`for`(aNewAccount(), Id(UUID.randomUUID().toString())))
+        accountRepository.save(Persisted.`for`(aNewAccount(), Id(UUID.randomUUID().toString())))
+        accountRepository.save(Persisted.`for`(aNewAccount(), Id(UUID.randomUUID().toString())))
 
 
         get("/accounts")
@@ -86,10 +86,10 @@ class E2EServiceFeatureTest {
 
     @Test
     fun `detail for an account`() {
-        val accountId = UUID.randomUUID()
+        val accountId = Id(UUID.randomUUID().toString())
         accountRepository.save(Persisted.`for`(aNewAccount("pepe"), accountId))
 
-        get("/accounts/$accountId")
+        get("/accounts/${accountId.value}")
                 .let(this::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
@@ -122,7 +122,7 @@ class E2EServiceFeatureTest {
     @Test
     fun `deposit - a correct request`() {
 
-        val accountId = UUID.randomUUID()
+        val accountId = Id(UUID.randomUUID().toString())
         accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
         depositRequest(accountId, """
         {
@@ -156,14 +156,14 @@ class E2EServiceFeatureTest {
     @Test
     fun `list the operations`() {
 
-        val accountId = UUID.randomUUID()
+        val accountId = Id(UUID.randomUUID().toString())
         accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
-        accountRepository.findBy(AccountId(accountId.toString()))
+        accountRepository.findBy(accountId)
                 .map {
                     it.value.deposit(Amount.Companion.of("100"), "rent, part 1")
                     it.value.deposit(Amount.Companion.of("200"), "rent, part 2")
                 }
-        get("/accounts/$accountId/operations")
+        get("/accounts/${accountId.value}/operations")
                 .let(this::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
@@ -178,8 +178,8 @@ class E2EServiceFeatureTest {
 
     private fun aNewAccount(accountName: String) = Account(Clock.aNew(), accountName)
 
-    private fun depositRequest(accountId: UUID, jsonPayload: String): Request {
-        return post("accounts/$accountId/operations", jsonPayload)
+    private fun depositRequest(accountId: Id, jsonPayload: String): Request {
+        return post("accounts/${accountId.value}/operations", jsonPayload)
     }
 
     private fun post(url: String, body: String) = url.httpPost().header("Content-Type" to "application/json").body(body, Charsets.UTF_8)
