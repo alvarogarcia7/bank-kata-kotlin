@@ -79,8 +79,23 @@ class E2EServiceFeatureTest {
     }
 
     @Test
+    fun `detail for an account`() {
+        val accountId = UUID.randomUUID()
+        accountRepository.save(Persisted.`for`(aNewAccount("pepe"), accountId))
+
+        get("/accounts/$accountId")
+                .let(this::request)
+                .let { (response, result) ->
+                    assertThat(response.statusCode).isEqualTo(200)
+                    println(result.value)
+                    val account = JSONMapper.aNew().readValue<MyResponse<AccountDTO>>(result.value)
+                    assertThat(account.response.name).isEqualTo("pepe")
+                }
+    }
+
+    @Test
     fun `create account`() {
-        val accountName = "savings account for maria"
+        val accountName = "savings aNewAccount for maria"
         openAccount(name = accountName)
                 .let(this::request)
                 .let { (response, result) ->
@@ -132,7 +147,9 @@ class E2EServiceFeatureTest {
                 }
     }
 
-    private fun aNewAccount() = Account(Clock.aNew(), "savings account #" + Random().nextInt(10))
+    private fun aNewAccount() = aNewAccount("savings account #" + Random().nextInt(10))
+
+    private fun aNewAccount(accountName: String) = Account(Clock.aNew(), accountName)
 
     private fun depositRequest(accountId: UUID, jsonPayload: String): Request {
         return post("accounts/$accountId/operations", jsonPayload)

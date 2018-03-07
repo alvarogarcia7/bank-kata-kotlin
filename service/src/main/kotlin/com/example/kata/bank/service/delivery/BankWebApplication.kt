@@ -1,8 +1,6 @@
 package com.example.kata.bank.service.delivery
 
-import arrow.core.Either
-import arrow.core.Option
-import arrow.core.flatMap
+import arrow.core.*
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
@@ -48,6 +46,7 @@ class BankWebApplication(
         //accounts
         http.get("/accounts", function = accountsHandler.list)
         http.post("/accounts", function = accountsHandler.add)
+        http.get("/accounts/:accountId", function = accountsHandler.detail)
 
         //operations
         http.get("/accounts/:accountId/operations/:operationId", function = operationsHandler.get)
@@ -94,6 +93,22 @@ class AccountsHandler(private val accountRepository: AccountRepository) {
             is Either.Left -> {
                 response.status(400)
                 objectMapper.writeValueAsString("")
+            }
+        }
+    }
+
+    val detail: RouteHandler.() -> String = {
+        val accountId: String = request.params(":accountId") ?: throw RuntimeException("null account") //TODO AGB
+        val result = accountRepository.findBy(AccountId(accountId))
+                .map { Pair(it.id, toDTO(it.value)) }
+                .map { (id, account) -> MyResponse(account, listOf(Link("/accounts/$id", rel = "self", method = "GET"))) }
+        when (result) {
+            is None -> {
+                response.status(400)
+                objectMapper.writeValueAsString("")
+            }
+            is Some -> {
+                objectMapper.writeValueAsString(result.t)
             }
         }
     }
@@ -203,14 +218,14 @@ class OperationsHandler(private val operationService: OperationService, private 
 
     }
 
-    private fun accountFor(accountId: String) = accountRepository.findBy(AccountId(accountId))
+    private fun accountFor(accountId: String) = accountRepository.findBy(AccountId(accountId)).map { it.value }
 }
 
 class AccountRepository {
     private val accounts = mutableListOf<Persisted<Account>>()
 
-    fun findBy(accountId: AccountId): Option<Account> {
-        return Option.fromNullable(accounts.find { it.id == UUID.fromString(accountId.value) }).map { it.value }
+    fun findBy(accountId: AccountId): Option<Persisted<Account>> {
+        return Option.fromNullable(accounts.find { it.id == UUID.fromString(accountId.value) })
     }
 
     fun save(entity: Persisted<Account>) {
