@@ -36,7 +36,7 @@ class AcceptanceFeature {
             }
         }
 
-        val account = Account(clock)
+        val account = Account(clock, "savings account #1")
 
 
         account.deposit(Amount.of("1000"), "from friend 1")

@@ -1,11 +1,14 @@
 package com.example.kata.bank.service.delivery
 
+import arrow.core.Either
 import arrow.core.Option
+import arrow.core.flatMap
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.delivery.json.hateoas.Link
 import com.example.kata.bank.service.domain.Account
+import com.example.kata.bank.service.domain.Clock
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.User
 import com.example.kata.bank.service.infrastructure.HelloRequest
@@ -44,6 +47,7 @@ class BankWebApplication(
 
         //accounts
         http.get("/accounts", function = accountsHandler.list)
+        http.post("/accounts", function = accountsHandler.add)
 
         //operations
         http.get("/accounts/:accountId/operations/:operationId", function = operationsHandler.get)
@@ -71,10 +75,56 @@ class AccountsHandler(private val accountRepository: AccountRepository) {
         objectMapper.writeValueAsString(x)
     }
 
+    val add: RouteHandler.() -> String = {
+        val openAccountRequestDTO = objectMapper.readValue<OpenAccountRequestDTO>(request.body())
+        val result = openAccountRequestDTO
+                .validate()
+                .flatMap { OpenAccountRequest.parse(it.name!!) }
+                .map { Persisted.`for`(it, UUID.randomUUID()) }
+                .map {
+                    accountRepository.save(it)
+                    it
+                }
+                .map { Pair(it.id, toDTO(it.value)) }
+                .map { (id, account) -> MyResponse(account, listOf(Link("/accounts/$id", rel = "self", method = "GET"))) }
+        when (result) {
+            is Either.Right -> {
+                objectMapper.writeValueAsString(result.b)
+            }
+            is Either.Left -> {
+                response.status(400)
+                objectMapper.writeValueAsString("")
+            }
+        }
+    }
+
     private fun toDTO(account: Account): AccountDTO {
         return mapper.toDTO(account)
     }
 }
+
+data class OpenAccountRequest private constructor(val name: String) {
+    companion object {
+        fun parse(name: String): Either<List<Error>, Account> {
+            return Either.right(Account(Clock.aNew(), name))
+        }
+    }
+}
+
+data class OpenAccountRequestDTO(val name: String?) {
+    fun validate(): Either<List<Exception>, OpenAccountRequestDTO> {
+        var errors = mutableListOf<Exception>()
+        if (name == null || name == "") {
+            errors.add(IllegalArgumentException("empty/blank account name"))
+        }
+        return if (errors.isEmpty()) {
+            Either.right(this)
+        } else {
+            Either.left(errors)
+        }
+    }
+}
+
 
 class UsersHandler(private val usersRepository: UsersRepository) {
     private val mapper = Mapper()

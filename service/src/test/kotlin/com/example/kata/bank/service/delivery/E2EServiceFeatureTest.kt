@@ -64,9 +64,9 @@ class E2EServiceFeatureTest {
 
     @Test
     fun `list accounts`() {
-        accountRepository.save(Persisted.`for`(Account(Clock.aNew()), UUID.randomUUID()))
-        accountRepository.save(Persisted.`for`(Account(Clock.aNew()), UUID.randomUUID()))
-        accountRepository.save(Persisted.`for`(Account(Clock.aNew()), UUID.randomUUID()))
+        accountRepository.save(Persisted.`for`(aNewAccount(), UUID.randomUUID()))
+        accountRepository.save(Persisted.`for`(aNewAccount(), UUID.randomUUID()))
+        accountRepository.save(Persisted.`for`(aNewAccount(), UUID.randomUUID()))
 
 
         get("/accounts")
@@ -78,12 +78,31 @@ class E2EServiceFeatureTest {
                 }
     }
 
+    @Test
+    fun `create account`() {
+        val accountName = "savings account for maria"
+        openAccount(name = accountName)
+                .let(this::request)
+                .let { (response, result) ->
+                    println(result.value)
+                    assertThat(response.statusCode).isEqualTo(200)
+                    val r = JSONMapper.aNew().readValue<MyResponse<AccountDTO>>(result.value)
+                    assertThat(r.response.name).isEqualTo(accountName)
+                }
+    }
+
+    private fun openAccount(name: String): Request {
+        return post("accounts", """
+            {"name": "$name"}
+            """)
+    }
+
 
     @Test
     fun `deposit - a correct request`() {
 
         val accountId = UUID.randomUUID()
-        accountRepository.save(Persisted.`for`(Account(Clock.aNew()), accountId))
+        accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
         depositRequest(accountId, """
         {
             "type": "deposit",
@@ -113,9 +132,13 @@ class E2EServiceFeatureTest {
                 }
     }
 
+    private fun aNewAccount() = Account(Clock.aNew(), "savings account #" + Random().nextInt(10))
+
     private fun depositRequest(accountId: UUID, jsonPayload: String): Request {
-        return "accounts/$accountId/operations".httpPost().header("Content-Type" to "application/json").body(jsonPayload, Charsets.UTF_8)
+        return post("accounts/$accountId/operations", jsonPayload)
     }
+
+    private fun post(url: String, body: String) = url.httpPost().header("Content-Type" to "application/json").body(body, Charsets.UTF_8)
 
     private fun get(url: String): Request {
         return url.httpGet()

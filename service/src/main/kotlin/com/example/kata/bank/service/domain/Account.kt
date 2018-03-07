@@ -6,9 +6,8 @@ import com.example.kata.bank.service.infrastructure.statement.StatementPrinter
 import com.fasterxml.jackson.annotation.ObjectIdGenerators
 import java.util.*
 
-class Account(private val clock: Clock) {
+class Account(private val clock: Clock, val name: String) {
     private val transactionRepository: TransactionRepository = TransactionRepository()
-    val name = "name"
 
     fun deposit(amount: Amount, description: String): UUID {
         val transaction = createIdentityFor(Transaction.Deposit(amount, clock.getTime(), description))
