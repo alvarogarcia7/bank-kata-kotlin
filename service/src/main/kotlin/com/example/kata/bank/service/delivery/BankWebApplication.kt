@@ -41,9 +41,15 @@ class BankWebApplication(
 
     private fun configurePaths(http: Http) {
         http.get("/", function = helloHandler)
-        http.post("/accounts/:accountId/operations", function = operationsHandler.add)
-        http.get("/accounts/:accountId/operations/:operationId", function = operationsHandler.get)
+
+        //accounts
         http.get("/accounts", function = accountsHandler.list)
+
+        //operations
+        http.get("/accounts/:accountId/operations/:operationId", function = operationsHandler.get)
+        http.post("/accounts/:accountId/operations", function = operationsHandler.add)
+
+        //users
         http.get("/users", function = usersHandler.list)
 //        http.post("/users/:userId/operations", function = { req: spark.Request, res: spark.Response -> }) // send the userId parameter explicitly here
     }
