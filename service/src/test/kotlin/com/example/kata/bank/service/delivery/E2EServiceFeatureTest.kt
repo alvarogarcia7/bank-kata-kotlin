@@ -1,5 +1,7 @@
 package com.example.kata.bank.service.delivery
 
+import arrow.core.Option
+import arrow.core.andThen
 import arrow.core.getOrElse
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.JSONMapper
@@ -130,9 +132,7 @@ class E2EServiceFeatureTest {
 
         val accountId = Id(UUID.randomUUID().toString())
         accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
-        val existingOperations = accountRepository.findBy(accountId)
-                .map { account -> account.value.findAll() }
-                .map { it -> it }
+        val existingOperations = operationsFo(accountId)
                 .getOrElse { fail("this account must exist") } as List<Persisted<Transaction>>
 
         depositRequest(accountId, """
@@ -154,13 +154,29 @@ class E2EServiceFeatureTest {
                     assertThat(x.links).filteredOn { it.rel == "list" }.isNotEmpty()
                     assertThat(x.response).isEqualTo("")
                 }
-        val newOperations = accountRepository.findBy(accountId)
-                .map { account -> account.value.findAll() }
-                .map { it -> it }
-                .getOrElse { fail("this account must exist") } as List<Persisted<Transaction>>
+        val operationsForr = this::operationsFo andThen this::forceGet
+        val newOperations = operationsForr(accountId)
         this.bIsSupersetOfA(a = existingOperations, b = newOperations)
         assertThat(newOperations.size).isGreaterThan(existingOperations.size)
         TransactionAssert.assertThat(newOperations.last().value).isEqualToIgnoringDate(Transaction.Deposit(Amount.Companion.of("1234.56"), anyDate(), "rent for this month"))
+    }
+
+    private fun <T> forceGet(a: Option<T>): T {
+        return a.getOrElse {
+            fail("this element must be present")
+            throw UnreachableCode()
+        }
+
+    }
+
+    private fun operationsFo(accountId: Id): Option<List<Persisted<Transaction>>> {
+        return accountRepository.findBy(accountId)
+                .map { account -> account.value.findAll() }
+    }
+
+    private fun operationsFor(accountId: Id): Any {
+        return operationsFo(accountId)
+                .getOrElse { fail("this account must exist") }
     }
 
     private fun anyDate(): LocalDateTime {
@@ -280,4 +296,12 @@ class E2EServiceFeatureTest {
 
     private fun helloRequest(parameters: List<Pair<String, String>>) = "/".httpGet(parameters)
 }
+
+/**
+ * Class to satisfy the compiler.
+ *
+ * As a programmer I'm sure that the previous code will throw a runtime exception to interrupt the execution,
+ * but the compile cannot realise about this, as they're not detectable until execution time
+ */
+class UnreachableCode : Throwable()
 
