@@ -26,7 +26,6 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import spark.kotlin.Http
 import spark.kotlin.RouteHandler
 import spark.kotlin.ignite
-import java.util.*
 
 class BankWebApplication(
         private val helloService: HelloService,
@@ -90,7 +89,7 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
         val result = openAccountRequestDTO
                 .validate()
                 .flatMap { OpenAccountRequest.parse(it.name!!) }
-                .map { Persisted.`for`(it, Id(UUID.randomUUID().toString())) }
+                .map { Persisted.`for`(it, Id.random()) }
                 .map {
                     accountRepository.save(it)
                     it
@@ -111,7 +110,7 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
 
     val detail: RouteHandler.() -> String = {
         val accountId: String = request.params(":accountId") ?: throw RuntimeException("null account") //TODO AGB
-        val result = accountRepository.findBy(Id(accountId))
+        val result = accountRepository.findBy(Id.of(accountId))
                 .map { (account, id) -> MyResponse(mapper.toDTO(account), listOf(Link("/accounts/${id.value}", rel = "self", method = "GET"))) }
         when (result) {
             is None -> {
@@ -130,7 +129,7 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
         val result: Either<List<Exception>, MyResponse<String>> = statementRequestDTO.validate()
                 .flatMap {
                     val x = accountRepository
-                            .findBy(Id(accountId))
+                            .findBy(Id.of(accountId))
                             .map { account ->
                                 val id = account.id
                                 val statementId = xApplicationService.createAndSaveOperation(account.value, StatementRequestFactory.create(it))
@@ -188,7 +187,7 @@ sealed class AccountRequest {
 class XAPPlicationService(val accountRepository: AccountRepository, val operationsRepository: OperationsRepository) {
     fun createAndSaveOperation(account: Account, create: AccountRequest): Id {
         val x = create.apply<Statement>(account)
-        val id = Id(UUID.randomUUID().toString())
+        val id = Id.random()
         operationsRepository.save(Persisted.`for`(Operation.Statement(x), id))
         return id
     }
@@ -248,7 +247,7 @@ class OperationsHandler(private val operationService: OperationService, private 
         var result = ""
         accountFor(accountId)
                 .flatMap {
-                    it.find(Id(operationId))
+                    it.find(Id.of(operationId))
                 }.map {
                     result = objectMapper.writeValueAsString(MyResponse(mapper.toDTO(it.value), listOf(Link("/accounts/$accountId/operations/$operationId", "self", "GET"))))
                 }
@@ -277,7 +276,7 @@ class OperationsHandler(private val operationService: OperationService, private 
     val list: RouteHandler.() -> String = {
         val accountId: String = request.params(":accountId") ?: throw RuntimeException("invalid request") //TODO AGB
         val result = accountRepository
-                .findBy(Id(accountId))
+                .findBy(Id.of(accountId))
                 .map {
                     it.value
                             .findAll()
@@ -295,6 +294,6 @@ class OperationsHandler(private val operationService: OperationService, private 
         }
     }
 
-    private fun accountFor(accountId: String) = accountRepository.findBy(Id(accountId)).map { it.value }
+    private fun accountFor(accountId: String) = accountRepository.findBy(Id.of(accountId)).map { it.value }
 }
 

@@ -84,9 +84,9 @@ class E2EServiceFeatureTest {
 
     @Test
     fun `list accounts`() {
-        accountRepository.save(Persisted.`for`(aNewAccount(), Id(UUID.randomUUID().toString())))
-        accountRepository.save(Persisted.`for`(aNewAccount(), Id(UUID.randomUUID().toString())))
-        accountRepository.save(Persisted.`for`(aNewAccount(), Id(UUID.randomUUID().toString())))
+        accountRepository.save(Persisted.`for`(aNewAccount(), Id.random()))
+        accountRepository.save(Persisted.`for`(aNewAccount(), Id.random()))
+        accountRepository.save(Persisted.`for`(aNewAccount(), Id.random()))
 
 
         get("/accounts")
@@ -100,7 +100,7 @@ class E2EServiceFeatureTest {
 
     @Test
     fun `detail for an account`() {
-        val accountId = Id(UUID.randomUUID().toString())
+        val accountId = Id.random()
         accountRepository.save(Persisted.`for`(aNewAccount("pepe"), accountId))
 
         get("/accounts/${accountId.value}")
@@ -136,7 +136,7 @@ class E2EServiceFeatureTest {
     @Test
     fun `deposit - a correct request`() {
 
-        val accountId = Id(UUID.randomUUID().toString())
+        val accountId = Id.random()
         accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
         val existingOperations = `operationsFor!`(accountId)
 
@@ -215,7 +215,7 @@ class E2EServiceFeatureTest {
     @Test
     fun `list the operations`() {
 
-        val accountId = Id(UUID.randomUUID().toString())
+        val accountId = Id.random()
         accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
         accountRepository.findBy(accountId)
                 .map {
@@ -237,7 +237,7 @@ class E2EServiceFeatureTest {
     @Test
     fun `create a statement, without any filter`() {
 
-        val accountId = Id(UUID.randomUUID().toString())
+        val accountId = Id.random()
         accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
         accountRepository.findBy(accountId)
                 .map {
@@ -256,14 +256,14 @@ class E2EServiceFeatureTest {
                     operationsRepository.findAll().forEach {
                         println("Found operation: $it")
                     }
-                    assertThat(operationsRepository.findBy(Id(statementId)).isDefined()).isTrue()
+                    assertThat(operationsRepository.findBy(Id.of(statementId)).isDefined()).isTrue()
                 }
     }
 
     @Test
     fun `fetch a statement`() {
 
-        val accountId = Id(UUID.randomUUID().toString())
+        val accountId = Id.random()
         accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
         val statementId = accountRepository.findBy(accountId)
                 .map {
@@ -293,7 +293,7 @@ class E2EServiceFeatureTest {
     @Test
     fun `try to create an unsupported type of request`() {
 
-        val accountId = Id(UUID.randomUUID().toString())
+        val accountId = Id.random()
         accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
         createStatement(accountId.value, StatementRequestDTO("unsupported"))
                 .let { this.assertFailedRequest(it, this::assertError) }
@@ -397,7 +397,7 @@ class E2EServiceFeatureTest {
                 throw UnreachableCode()
             }
             is Result.Failure -> {
-                return Pair(response, result)
+                Pair(response, result)
             }
             else -> {
                 fail("expected a Result.error: " + result.javaClass)

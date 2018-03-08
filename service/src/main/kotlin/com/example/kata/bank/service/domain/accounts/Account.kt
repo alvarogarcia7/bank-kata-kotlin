@@ -26,7 +26,7 @@ class Account(private val clock: Clock, val name: String) {
     }
 
     private fun createIdentityFor(transaction: Transaction): Persisted<Transaction> {
-        val id = Id(ObjectIdGenerators.UUIDGenerator().generateId(transaction).toString())
+        val id = Id.of(ObjectIdGenerators.UUIDGenerator().generateId(transaction).toString())
         return Persisted.`for`(transaction, id)
     }
 
