@@ -257,15 +257,6 @@ class E2EServiceFeatureTest {
                         println("Found operation: $it")
                     }
                     assertThat(operationsRepository.findBy(Id(statementId)).isDefined()).isTrue()
-
-
-//                    val deposits = x.response.transactions.map {
-//                        val it1 = it as Transaction.Deposit
-//                        it1.copy(time = fixedTime)
-//                    }.map { Mapper().toDTO(it) }
-//                    assertThat(deposits).contains(
-//                            TransactionDTO(AmountDTO.EUR("100"), "rent, part 1", fixedTimeDTO),
-//                            TransactionDTO(AmountDTO.EUR("200"), "rent, part 2", fixedTimeDTO))
                 }
     }
 
