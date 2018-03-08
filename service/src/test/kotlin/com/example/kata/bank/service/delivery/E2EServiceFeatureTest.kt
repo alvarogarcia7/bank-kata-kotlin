@@ -234,7 +234,7 @@ class E2EServiceFeatureTest {
 
 
     @Test
-    fun `get a statement, without any filter`() {
+    fun `create a statement, without any filter`() {
 
         val accountId = Id(UUID.randomUUID().toString())
         accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
@@ -267,6 +267,7 @@ class E2EServiceFeatureTest {
 //                            TransactionDTO(AmountDTO.EUR("200"), "rent, part 2", fixedTimeDTO))
                 }
     }
+
 
     @Test
     fun `try to create an unsupported type of request`() {
