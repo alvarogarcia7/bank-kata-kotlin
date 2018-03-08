@@ -1,5 +1,6 @@
 package com.example.kata.bank.service.delivery
 
+import arrow.core.getOrElse
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
@@ -9,6 +10,7 @@ import com.example.kata.bank.service.domain.accounts.Account
 import com.example.kata.bank.service.domain.accounts.AccountRepository
 import com.example.kata.bank.service.domain.accounts.Clock
 import com.example.kata.bank.service.domain.transactions.Amount
+import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.users.UsersRepository
 import com.example.kata.bank.service.infrastructure.HelloService
 import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
@@ -22,14 +24,18 @@ import com.github.kittinunf.fuel.core.Response
 import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.fuel.httpPost
 import com.github.kittinunf.result.Result
+import org.assertj.core.api.AbstractAssert
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
+import org.assertj.core.api.SoftAssertions
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.platform.runner.JUnitPlatform
 import org.junit.runner.RunWith
+import java.time.LocalDateTime
 import java.util.*
+
 
 @RunWith(JUnitPlatform::class)
 class E2EServiceFeatureTest {
@@ -124,6 +130,11 @@ class E2EServiceFeatureTest {
 
         val accountId = Id(UUID.randomUUID().toString())
         accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
+        val existingOperations = accountRepository.findBy(accountId)
+                .map { account -> account.value.findAll() }
+                .map { it -> it }
+                .getOrElse { fail("this account must exist") } as List<Persisted<Transaction>>
+
         depositRequest(accountId, """
         {
             "type": "deposit",
@@ -142,15 +153,46 @@ class E2EServiceFeatureTest {
                     assertThat(x.links).hasSize(1)
                     assertThat(x.links).filteredOn { it.rel == "list" }.isNotEmpty()
                     assertThat(x.response).isEqualTo("")
-                    val url = x.links.find { it.rel == "list" }?.href
-                    get(url!!)
-                            .let(this::request)
-                            .let { (response, result) ->
-                                assertThat(response.statusCode).isEqualTo(200)
-                                println(result.value)
-                            }
-                    ""
                 }
+        val newOperations = accountRepository.findBy(accountId)
+                .map { account -> account.value.findAll() }
+                .map { it -> it }
+                .getOrElse { fail("this account must exist") } as List<Persisted<Transaction>>
+        this.bIsSupersetOfA(a = existingOperations, b = newOperations)
+        assertThat(newOperations.size).isGreaterThan(existingOperations.size)
+        TransactionAssert.assertThat(newOperations.last().value).isEqualToIgnoringDate(Transaction.Deposit(Amount.Companion.of("1234.56"), anyDate(), "rent for this month"))
+    }
+
+    private fun anyDate(): LocalDateTime {
+        return LocalDateTime.now()
+    }
+
+    fun bIsSupersetOfA(a: List<Persisted<Transaction>>, b: List<Persisted<Transaction>>) {
+        a.forEach {
+            b.contains(it)
+        }
+    }
+
+    class TransactionAssert(val actualT: Transaction) : AbstractAssert<TransactionAssert, Transaction>(actualT, TransactionAssert::class.java) {
+
+        fun isEqualToIgnoringDate(transaction: Transaction): TransactionAssert {
+            assertThat(transaction).isNotNull
+
+            val softly = SoftAssertions()
+            softly.assertThat(this.actualT.amount).isEqualTo(transaction.amount)
+            softly.assertThat(this.actualT.description).isEqualTo(transaction.description)
+            softly.assertAll()
+
+            return this
+        }
+
+        companion object {
+
+            // 3 - A fluent entry point to your specific assertion class, use it with static import.
+            fun assertThat(actual: Transaction): TransactionAssert {
+                return TransactionAssert(actual)
+            }
+        }
     }
 
     @Test
