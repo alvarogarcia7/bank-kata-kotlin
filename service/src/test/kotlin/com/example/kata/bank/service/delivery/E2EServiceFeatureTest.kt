@@ -132,7 +132,7 @@ class E2EServiceFeatureTest {
 
         val accountId = Id(UUID.randomUUID().toString())
         accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
-        val existingOperations = operationsFor(accountId)
+        val existingOperations = `operationsFor!`(accountId)
 
         depositRequest(accountId, """
         {
@@ -153,7 +153,7 @@ class E2EServiceFeatureTest {
                     assertThat(x.links).filteredOn { it.rel == "list" }.isNotEmpty()
                     assertThat(x.response).isEqualTo("")
                 }
-        val newOperations = operationsFor(accountId)
+        val newOperations = `operationsFor!`(accountId)
         this.bIsSupersetOfA(a = existingOperations, b = newOperations)
         assertThat(newOperations.size).isGreaterThan(existingOperations.size)
         TransactionAssert.assertThat(newOperations.last().value).isEqualToIgnoringDate(Transaction.Deposit(Amount.Companion.of("1234.56"), anyDate(), "rent for this month"))
@@ -167,12 +167,12 @@ class E2EServiceFeatureTest {
 
     }
 
-    private fun operationsFo(accountId: Id): Option<List<Persisted<Transaction>>> {
+    private fun operationsFor(accountId: Id): Option<List<Persisted<Transaction>>> {
         return accountRepository.findBy(accountId)
                 .map { account -> account.value.findAll() }
     }
 
-    private val operationsFor = this::operationsFo andThen this::forceGet
+    private val `operationsFor!` = this::operationsFor andThen this::forceGet
 
 
     private fun anyDate(): LocalDateTime {
