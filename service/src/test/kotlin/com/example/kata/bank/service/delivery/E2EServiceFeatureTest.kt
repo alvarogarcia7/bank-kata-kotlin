@@ -154,8 +154,7 @@ class E2EServiceFeatureTest {
                     assertThat(x.links).filteredOn { it.rel == "list" }.isNotEmpty()
                     assertThat(x.response).isEqualTo("")
                 }
-        val operationsForr = this::operationsFo andThen this::forceGet
-        val newOperations = operationsForr(accountId)
+        val newOperations = operationsFor(accountId)
         this.bIsSupersetOfA(a = existingOperations, b = newOperations)
         assertThat(newOperations.size).isGreaterThan(existingOperations.size)
         TransactionAssert.assertThat(newOperations.last().value).isEqualToIgnoringDate(Transaction.Deposit(Amount.Companion.of("1234.56"), anyDate(), "rent for this month"))
@@ -174,10 +173,8 @@ class E2EServiceFeatureTest {
                 .map { account -> account.value.findAll() }
     }
 
-    private fun operationsFor(accountId: Id): Any {
-        return operationsFo(accountId)
-                .getOrElse { fail("this account must exist") }
-    }
+    private val operationsFor = this::operationsFo andThen this::forceGet
+
 
     private fun anyDate(): LocalDateTime {
         return LocalDateTime.now()
