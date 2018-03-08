@@ -78,8 +78,7 @@ class AccountsHandler(private val accountRepository: AccountRepository) {
     val list: RouteHandler.() -> String = {
         val x = accountRepository
                 .findAll()
-                .map { Pair(it.id, toDTO(it.value)) }
-                .map { (id, account) -> MyResponse(account, listOf(Link("/accounts/${id.value}", rel = "self", method = "GET"))) }
+                .map { (account, id) -> MyResponse(mapper.toDTO(account), listOf(Link("/accounts/${id.value}", rel = "self", method = "GET"))) }
         objectMapper.writeValueAsString(x)
     }
 
@@ -93,8 +92,9 @@ class AccountsHandler(private val accountRepository: AccountRepository) {
                     accountRepository.save(it)
                     it
                 }
-                .map { Pair(it.id, toDTO(it.value)) }
-                .map { (id, account) -> MyResponse(account, listOf(Link("/accounts/${id.value}", rel = "self", method = "GET"))) }
+                .map { (account, id) ->
+                    MyResponse(mapper.toDTO(account), listOf(Link("/accounts/${id.value}", rel = "self", method = "GET")))
+                }
         when (result) {
             is Either.Right -> {
                 objectMapper.writeValueAsString(result.b)
@@ -109,8 +109,7 @@ class AccountsHandler(private val accountRepository: AccountRepository) {
     val detail: RouteHandler.() -> String = {
         val accountId: String = request.params(":accountId") ?: throw RuntimeException("null account") //TODO AGB
         val result = accountRepository.findBy(Id(accountId))
-                .map { Pair(it.id, toDTO(it.value)) }
-                .map { (id, account) -> MyResponse(account, listOf(Link("/accounts/$id", rel = "self", method = "GET"))) }
+                .map { (account, id) -> MyResponse(mapper.toDTO(account), listOf(Link("/accounts/$id", rel = "self", method = "GET"))) }
         when (result) {
             is None -> {
                 response.status(400)
@@ -134,8 +133,7 @@ class UsersHandler(private val usersRepository: UsersRepository) {
     val list: RouteHandler.() -> String = {
         val x = usersRepository
                 .findAll()
-                .map { Pair(it.id, mapper.toDTO(it.value)) }
-                .map { (id, user) -> MyResponse(user, listOf(Link("/users/$id", rel = "self", method = "GET"))) }
+                .map { (user, id) -> MyResponse(user, listOf(Link("/users/$id", rel = "self", method = "GET"))) }
         objectMapper.writeValueAsString(x)
     }
 
@@ -196,11 +194,9 @@ class OperationsHandler(private val operationService: OperationService, private 
         val result = accountRepository
                 .findBy(Id(accountId))
                 .map {
-                    it.value.findAll()
-                            .map { Pair(it.id, mapper.toDTO(it.value)) }
-                            .map { (id, dto) ->
-                                MyResponse(dto, listOf(Link("/accounts/$accountId/operations/$id", rel = "self", method = "GET")))
-                            }
+                    it.value
+                            .findAll()
+                            .map { MyResponse(mapper.toDTO(it.value), listOf(Link("/accounts/$accountId/operations/${it.id}", rel = "self", method = "GET"))) }
                 }
         when (result) {
             is None -> {
