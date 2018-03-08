@@ -14,6 +14,7 @@ import com.example.kata.bank.service.domain.accounts.Clock
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.users.UsersRepository
+import com.example.kata.bank.service.infrastructure.AccountsService
 import com.example.kata.bank.service.infrastructure.HelloService
 import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
 import com.example.kata.bank.service.infrastructure.operations.OperationService
@@ -168,8 +169,7 @@ class E2EServiceFeatureTest {
     }
 
     private fun operationsFor(accountId: Id): Option<List<Persisted<Transaction>>> {
-        return accountRepository.findBy(accountId)
-                .map { account -> account.value.findAll() }
+        return AccountsService(accountRepository).operationsFor(accountId)
     }
 
     private val `operationsFor!` = this::operationsFor andThen this::forceGet
