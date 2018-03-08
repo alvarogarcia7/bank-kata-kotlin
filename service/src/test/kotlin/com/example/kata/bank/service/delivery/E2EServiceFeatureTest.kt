@@ -132,8 +132,7 @@ class E2EServiceFeatureTest {
 
         val accountId = Id(UUID.randomUUID().toString())
         accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
-        val existingOperations = operationsFo(accountId)
-                .getOrElse { fail("this account must exist") } as List<Persisted<Transaction>>
+        val existingOperations = operationsFor(accountId)
 
         depositRequest(accountId, """
         {
