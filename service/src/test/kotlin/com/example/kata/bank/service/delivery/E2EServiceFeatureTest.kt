@@ -16,8 +16,10 @@ import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.users.UsersRepository
 import com.example.kata.bank.service.infrastructure.AccountsService
 import com.example.kata.bank.service.infrastructure.HelloService
+import com.example.kata.bank.service.infrastructure.OperationsRepository
 import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
 import com.example.kata.bank.service.infrastructure.operations.OperationService
+import com.example.kata.bank.service.infrastructure.operations.TimeDTO
 import com.example.kata.bank.service.infrastructure.operations.TransactionDTO
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.github.kittinunf.fuel.core.FuelError
@@ -64,6 +66,8 @@ class E2EServiceFeatureTest {
             FuelManager.instance.basePath = "http://localhost:" + serverPort
         }
 
+        val operationsRepository = OperationsRepository()
+
         val accountRepository = AccountRepository()
         private val configuredApplication: () -> BankWebApplication = {
             BankWebApplication(
@@ -71,7 +75,7 @@ class E2EServiceFeatureTest {
                     OperationsHandler(
                             OperationService(),
                             accountRepository),
-                    AccountsHandler(accountRepository),
+                    AccountsHandler(accountRepository, XAPPlicationService(accountRepository, operationsRepository)),
                     UsersHandler(UsersRepository()))
         }
     }
@@ -228,12 +232,67 @@ class E2EServiceFeatureTest {
                 }
     }
 
+
+    @Test
+    fun `get a statement, without any filter`() {
+
+        val accountId = Id(UUID.randomUUID().toString())
+        accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
+        accountRepository.findBy(accountId)
+                .map {
+                    it.value.deposit(Amount.Companion.of("100"), "rent, part 1")
+                    it.value.deposit(Amount.Companion.of("200"), "rent, part 2")
+                }
+        createStatement(accountId.value, StatementRequestDTO("statement"))
+                .let(this::request)
+                .let { (response, result) ->
+                    assertThat(response.statusCode).isEqualTo(200)
+                    println(result.value)
+                    val objectMapper = JSONMapper.aNew()
+                    val x = objectMapper.readValue<MyResponse<String>>(result.value)
+                    val statementId = x.links.find { it.rel == "self" }?.href?.split("/")?.last()!!
+                    println("expecting statmentid = $statementId")
+                    operationsRepository.findAll().forEach {
+                        println("Found operation: $it")
+                    }
+                    assertThat(operationsRepository.findBy(Id(statementId)).isDefined()).isTrue()
+
+
+//                    val deposits = x.response.transactions.map {
+//                        val it1 = it as Transaction.Deposit
+//                        it1.copy(time = fixedTime)
+//                    }.map { Mapper().toDTO(it) }
+//                    assertThat(deposits).contains(
+//                            TransactionDTO(AmountDTO.EUR("100"), "rent, part 1", fixedTimeDTO),
+//                            TransactionDTO(AmountDTO.EUR("200"), "rent, part 2", fixedTimeDTO))
+                }
+    }
+
+    @Test
+    fun `try to create an unsupported type of request`() {
+
+        val accountId = Id(UUID.randomUUID().toString())
+        accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
+        createStatement(accountId.value, StatementRequestDTO("unsupported"))
+                .let { this.assertFailedRequest(it, this::assertError) }
+                .let { (response, _) ->
+                    assertThat(response.statusCode).isEqualTo(400)
+                    val objectMapper = JSONMapper.aNew()
+                    val errors = objectMapper.readValue<MyResponse<ErrorsDTO>>(String(response.data).replace("\\n".toRegex(), ""))
+                    assertThat(errors.response.messages).contains("This operation is not supported for now")
+                }
+    }
+
     private fun aNewAccount() = aNewAccount("savings account #" + Random().nextInt(10))
 
     private fun aNewAccount(accountName: String) = Account(Clock.aNew(), accountName)
 
     private fun depositRequest(accountId: Id, jsonPayload: String): Request {
         return post("accounts/${accountId.value}/operations", jsonPayload)
+    }
+
+    private fun createStatement(value: String, request: StatementRequestDTO): Request {
+        return post("/accounts/$value", JSONMapper.aNew().writeValueAsString(request))
     }
 
     private fun post(url: String, body: String) = url.httpPost().header("Content-Type" to "application/json").body(body, Charsets.UTF_8)
@@ -269,20 +328,7 @@ class E2EServiceFeatureTest {
     private fun request(request: Request): Pair<Response, Result.Success<String, FuelError>> {
         try {
             val (_, response, result) = request.responseString()
-
-            when (result) {
-                is Result.Success -> {
-                    return Pair(response, result)
-                }
-                is Result.Failure -> {
-                    fail("expected a Result.success: " + result.error)
-                    throw RuntimeException() // unreachable code
-                }
-                else -> {
-                    fail("expected a Result.success: " + result.javaClass)
-                    throw RuntimeException() // unreachable code
-                }
-            }
+            return assertSuccess(response, result)
         } catch (e: Exception) {
             e.printStackTrace()
             fail("exception: " + e.message)
@@ -290,7 +336,58 @@ class E2EServiceFeatureTest {
         }
     }
 
+    private fun <T> assertFailedRequest(
+            request: Request,
+            x: (Response, Result<String, FuelError>) -> T): T {
+        try {
+            val (_, response, result) = request.responseString()
+            return x.invoke(response, result)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            fail("exception: " + e.message)
+            throw RuntimeException() // unreachable code
+        }
+    }
+
+    @Throws(UnreachableCode::class)
+    private fun assertSuccess(response: Response, result: Result<String, FuelError>): Pair<Response, Result.Success<String, FuelError>> {
+        return when (result) {
+            is Result.Success -> {
+                val pair = Pair(response, result)
+                pair
+            }
+            is Result.Failure -> {
+                fail("expected a Result.success: " + result.error)
+                throw UnreachableCode()
+            }
+            else -> {
+                fail("expected a Result.success: " + result.javaClass)
+                throw UnreachableCode()
+            }
+        }
+    }
+
+    @Throws(UnreachableCode::class)
+    private fun assertError(response: Response, result: Result<String, FuelError>): Pair<Response, Result.Failure<String, FuelError>> {
+        return when (result) {
+            is Result.Success -> {
+                fail("expected a Result.error: " + result.value)
+                throw UnreachableCode()
+            }
+            is Result.Failure -> {
+                return Pair(response, result)
+            }
+            else -> {
+                fail("expected a Result.error: " + result.javaClass)
+                throw UnreachableCode()
+            }
+        }
+    }
+
     private fun helloRequest(parameters: List<Pair<String, String>>) = "/".httpGet(parameters)
+
+    val fixedTime = LocalDateTime.of(2018, 10, 12, 23, 59)
+    val fixedTimeDTO = TimeDTO("2018-10-12 23:59:00", "2018-10-12T23:59:00")
 }
 
 /**

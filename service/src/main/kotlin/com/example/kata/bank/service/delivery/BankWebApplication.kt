@@ -10,17 +10,21 @@ import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.delivery.json.hateoas.Link
 import com.example.kata.bank.service.domain.Id
+import com.example.kata.bank.service.domain.Operation
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
 import com.example.kata.bank.service.domain.accounts.AccountRepository
 import com.example.kata.bank.service.domain.accounts.OpenAccountRequest
+import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.users.UsersRepository
 import com.example.kata.bank.service.infrastructure.HelloRequest
 import com.example.kata.bank.service.infrastructure.HelloService
+import com.example.kata.bank.service.infrastructure.OperationsRepository
 import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
 import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.OperationService
+import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.fasterxml.jackson.module.kotlin.readValue
 import spark.kotlin.Http
 import spark.kotlin.RouteHandler
@@ -55,6 +59,7 @@ class BankWebApplication(
         http.get("/accounts", function = accountsHandler.list)
         http.post("/accounts", function = accountsHandler.add)
         http.get("/accounts/:accountId", function = accountsHandler.detail)
+        http.post("/accounts/:accountId", function = accountsHandler.request)
 
         //operations
         http.get("/accounts/:accountId/operations/:operationId", function = operationsHandler.get)
@@ -72,7 +77,7 @@ class BankWebApplication(
 }
 
 
-class AccountsHandler(private val accountRepository: AccountRepository) {
+class AccountsHandler(private val accountRepository: AccountRepository, private val xApplicationService: XAPPlicationService) {
     private val mapper = Mapper()
     private val objectMapper = JSONMapper.aNew()
     val list: RouteHandler.() -> String = {
@@ -109,7 +114,7 @@ class AccountsHandler(private val accountRepository: AccountRepository) {
     val detail: RouteHandler.() -> String = {
         val accountId: String = request.params(":accountId") ?: throw RuntimeException("null account") //TODO AGB
         val result = accountRepository.findBy(Id(accountId))
-                .map { (account, id) -> MyResponse(mapper.toDTO(account), listOf(Link("/accounts/$id", rel = "self", method = "GET"))) }
+                .map { (account, id) -> MyResponse(mapper.toDTO(account), listOf(Link("/accounts/${id.value}", rel = "self", method = "GET"))) }
         when (result) {
             is None -> {
                 response.status(400)
@@ -121,8 +126,74 @@ class AccountsHandler(private val accountRepository: AccountRepository) {
         }
     }
 
+    val request: RouteHandler.() -> String = {
+        val accountId: String = request.params(":accountId") ?: throw RuntimeException("null account") //TODO AGB
+        val statementRequestDTO = objectMapper.readValue<StatementRequestDTO>(request.body())
+        val result: Either<List<Exception>, MyResponse<String>> = statementRequestDTO.validate()
+                .flatMap {
+                    val x = accountRepository
+                            .findBy(Id(accountId))
+                            .map { account ->
+                                val id = account.id
+                                val statementId = xApplicationService.createAndSaveOperation(account.value, StatementRequestFactory.create(it))
+                                MyResponse("", listOf(Link("/accounts/${id.value}/statements/${statementId.value}", rel = "self", method
+                                = "GET")))
+                            }
+
+                    Either.cond(x.isDefined(), { x.get() }, { listOf(Exception("Account does not exist")) })
+                }
+        when (result) {
+            is Either.Left -> {
+                response.status(400)
+                val messages = result.a.map { it.message!! }
+                objectMapper.writeValueAsString(MyResponse(ErrorsDTO(messages), listOf()))
+            }
+            is Either.Right -> {
+                objectMapper.writeValueAsString(result.b)
+            }
+        }
+    }
+
+//    val operations = account.value.findAll().map { it.value }.map { mapper.toDTO(it) }
+//    val response1 = StatementOutDTO(operations)
+
+
     private fun toDTO(account: Account): AccountDTO {
         return mapper.toDTO(account)
+    }
+}
+
+class StatementRequestFactory {
+    companion object {
+        fun create(request: StatementRequestDTO): AccountRequest {
+            return AccountRequest.StatementRequest()
+        }
+
+    }
+
+}
+
+sealed class AccountRequest {
+
+    abstract fun <T> apply(account: Account): T
+
+    class StatementRequest : AccountRequest() {
+        override fun <T> apply(account: Account): T {
+
+            return account.createStatement() as T //TODO AGB make generic
+        }
+
+        val filter: (Transaction) -> Boolean = { transaction -> true } //TODO AGB use filter
+    }
+
+}
+
+class XAPPlicationService(val accountRepository: AccountRepository, val operationsRepository: OperationsRepository) {
+    fun createAndSaveOperation(account: Account, create: AccountRequest): Id {
+        val x = create.apply<Statement>(account)
+        val id = Id(UUID.randomUUID().toString())
+        operationsRepository.save(Persisted.`for`(Operation.Statement(x), id))
+        return id
     }
 }
 

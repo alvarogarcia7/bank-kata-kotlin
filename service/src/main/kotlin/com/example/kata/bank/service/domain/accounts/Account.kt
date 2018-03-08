@@ -36,6 +36,11 @@ class Account(private val clock: Clock, val name: String) {
         statementPrinter.print(statement)
     }
 
+    fun createStatement(): Statement {
+        val statementLines = StatementLines.parse(StatementLine.initial(), transactionRepository.findAll().map { it.value })
+        return Statement.inReverseOrder(statementLines)
+    }
+
     val find = transactionRepository::findBy
     val findAll = transactionRepository::findAll
 

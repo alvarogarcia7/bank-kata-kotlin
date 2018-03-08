@@ -5,6 +5,7 @@ import com.example.kata.bank.service.domain.accounts.AccountRepository
 import com.example.kata.bank.service.domain.users.UsersRepository
 import com.example.kata.bank.service.infrastructure.HelloRequest
 import com.example.kata.bank.service.infrastructure.HelloService
+import com.example.kata.bank.service.infrastructure.OperationsRepository
 import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.FuelManager
@@ -70,7 +71,7 @@ class ServiceIntegrationTest {
             BankWebApplication(
                     MockHelloService(),
                     OperationsHandler(OperationService(), accountRepository),
-                    AccountsHandler(accountRepository),
+                    AccountsHandler(accountRepository, XAPPlicationService(accountRepository, OperationsRepository())),
                     UsersHandler(UsersRepository())
             )
         }
