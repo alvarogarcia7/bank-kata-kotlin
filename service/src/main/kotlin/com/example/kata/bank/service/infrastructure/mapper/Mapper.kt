@@ -19,7 +19,8 @@ class Mapper {
         return TransactionDTO(
                 amount = toDTO(value.amount),
                 description = value.description,
-                time = toDTO(value.time))
+                time = toDTO(value.time),
+                type = "deposit")
     }
 
     private fun toDTO(time: LocalDateTime): TimeDTO {

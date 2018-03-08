@@ -1,9 +1,6 @@
 package com.example.kata.bank.service.delivery
 
-import arrow.core.Either
-import arrow.core.None
-import arrow.core.Some
-import arrow.core.flatMap
+import arrow.core.*
 import com.example.kata.bank.service.NotTestedOperation
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.JSONMapper
@@ -64,6 +61,7 @@ class BankWebApplication(
         //operations
         http.get("/accounts/:accountId/operations/:operationId", function = operationsHandler.get)
         http.get("/accounts/:accountId/operations", function = operationsHandler.list)
+        http.get("/accounts/:accountId/statements/:statementId", function = operationsHandler.getStatement)
         http.post("/accounts/:accountId/operations", function = operationsHandler.add)
 
         //users
@@ -154,8 +152,7 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
         }
     }
 
-//    val operations = account.value.findAll().map { it.value }.map { mapper.toDTO(it) }
-//    val response1 = StatementOutDTO(operations)
+
 
 
     private fun toDTO(account: Account): AccountDTO {
@@ -258,6 +255,23 @@ class OperationsHandler(private val operationService: OperationService, private 
 
         result
 
+    }
+
+    val getStatement: RouteHandler.() -> String = {
+        val accountId: String? = request.params(":accountId")
+        val statementId: String? = request.params(":statementId")
+        if (accountId == null || statementId == null) {
+            throw NotTestedOperation()
+        }
+        val objectMapper = JSONMapper.aNew()
+
+        val result: MyResponse<Any> = accountFor(accountId)
+                .map {
+                    val operations = it.findAll().map { it.value }.map { mapper.toDTO(it) }
+                    val response = StatementOutDTO(operations)
+                    MyResponse(response, listOf(Link("/accounts/$accountId/operations/$statementId", "self", "GET")))
+                }.getOrElse { MyResponse(ErrorsDTO(listOf(NotTestedOperation().message!!)), listOf()) }
+        objectMapper.writeValueAsString(result)
     }
 
     val list: RouteHandler.() -> String = {

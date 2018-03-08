@@ -18,6 +18,7 @@ import com.example.kata.bank.service.infrastructure.AccountsService
 import com.example.kata.bank.service.infrastructure.HelloService
 import com.example.kata.bank.service.infrastructure.OperationsRepository
 import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
+import com.example.kata.bank.service.infrastructure.operations.AmountDTO
 import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.example.kata.bank.service.infrastructure.operations.TimeDTO
 import com.example.kata.bank.service.infrastructure.operations.TransactionDTO
@@ -265,6 +266,35 @@ class E2EServiceFeatureTest {
 //                    assertThat(deposits).contains(
 //                            TransactionDTO(AmountDTO.EUR("100"), "rent, part 1", fixedTimeDTO),
 //                            TransactionDTO(AmountDTO.EUR("200"), "rent, part 2", fixedTimeDTO))
+                }
+    }
+
+    @Test
+    fun `fetch a statement`() {
+
+        val accountId = Id(UUID.randomUUID().toString())
+        accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
+        val statementId = accountRepository.findBy(accountId)
+                .map {
+                    it.value.deposit(Amount.Companion.of("100"), "rent, part 1")
+                    it.value.deposit(Amount.Companion.of("200"), "rent, part 2")
+                    XAPPlicationService(accountRepository, operationsRepository).createAndSaveOperation(it.value, AccountRequest.StatementRequest())
+                }.getOrElse { throw UnreachableCode() }
+
+        get("/accounts/${accountId.value}/statements/${statementId.value}")
+                .let(this::request)
+                .let { (response, result) ->
+                    assertThat(response.statusCode).isEqualTo(200)
+                    println(result.value)
+                    val objectMapper = JSONMapper.aNew()
+                    val x = objectMapper.readValue<MyResponse<StatementOutDTO>>(result.value)
+                    val deposits = x.response.transactions.map {
+                        val it1 = it
+                        it1.copy(time = fixedTimeDTO)
+                    }
+                    assertThat(deposits).contains(
+                            TransactionDTO(AmountDTO.EUR("100.00"), "rent, part 1", fixedTimeDTO, "deposit"),
+                            TransactionDTO(AmountDTO.EUR("200.00"), "rent, part 2", fixedTimeDTO, "deposit"))
                 }
     }
 
