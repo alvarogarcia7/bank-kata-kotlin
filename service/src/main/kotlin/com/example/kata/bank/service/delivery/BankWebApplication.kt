@@ -195,10 +195,7 @@ class OperationsHandler(private val operationService: OperationService, private 
     private val objectMapper = JSONMapper.aNew()
 
     val add: RouteHandler.() -> String = {
-        val accountId: String? = request.params(":accountId")
-        if (accountId == null) {
-            throw RuntimeException("null account") //TODO AGB
-        }
+        val accountId: String = request.params(":accountId") ?: throw NotTestedOperation()
         val result: Either<List<Exception>, MyResponse<Any>> = objectMapper.readValueOption<OperationRequest>(request.body())
                 .mapLeft { listOf(it) }
                 .flatMap { operationRequest ->
