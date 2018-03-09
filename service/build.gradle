@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.2.21'
+    ext.kotlin_version = '1.2.30'
 
     repositories {
         mavenCentral()
@@ -48,6 +48,7 @@ dependencies {
     compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
     compile "com.fasterxml.jackson.module:jackson-module-kotlin:${jacksonVersion}"
 
+
     compile "io.arrow-kt:arrow-core:0.6.1"
 
     // REST Client
@@ -85,4 +86,10 @@ kotlin {
     experimental {
         coroutines "enable"
     }
+}
+
+//https://stackoverflow.com/questions/19990716/how-to-ignore-a-specific-transitive-dependency-from-all-dependencies-in-gradle#19991364
+// Ignore the transitive dependency from com.fasterxml.jackson, that brings kotlin-reflect that uses jdk7
+configurations {
+    compile.exclude artifactId: 'kotlin-reflect'
 }
