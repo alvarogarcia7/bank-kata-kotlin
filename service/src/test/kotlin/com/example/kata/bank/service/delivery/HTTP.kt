@@ -11,7 +11,7 @@ import org.assertj.core.api.Assertions
 
 object HTTP {
 
-    private val mapper = JSONMapper.aNew()
+    val mapper = JSONMapper.aNew()
 
     private fun serialize(body: Any): String {
         return mapper.writeValueAsString(body)
@@ -87,4 +87,5 @@ object HTTP {
             }
         }
     }
+
 }

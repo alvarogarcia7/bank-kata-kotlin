@@ -180,7 +180,6 @@ class XAPPlicationService(val accountRepository: AccountRepository, val operatio
 
 
 class UsersHandler(private val usersRepository: UsersRepository) {
-    private val mapper = Mapper()
     private val objectMapper = JSONMapper.aNew()
     val list: RouteHandler.() -> String = {
         val x = usersRepository
@@ -201,7 +200,6 @@ class OperationsHandler(private val operationService: OperationService, private 
         if (accountId == null) {
             throw RuntimeException("null account") //TODO AGB
         }
-        val objectMapper = JSONMapper.aNew()
         val result: Either<List<Exception>, MyResponse<Any>> = objectMapper.readValueOption<OperationRequest>(request.body())
                 .mapLeft { listOf(it) }
                 .flatMap { operationRequest ->
@@ -249,7 +247,6 @@ class OperationsHandler(private val operationService: OperationService, private 
         if (accountId == null || operationId == null) {
             throw RuntimeException("invalid request") //TODO AGB
         }
-        val objectMapper = JSONMapper.aNew()
 
         var result = ""
         accountFor(accountId)
@@ -269,7 +266,6 @@ class OperationsHandler(private val operationService: OperationService, private 
         if (accountId == null || statementId == null) {
             throw NotTestedOperation()
         }
-        val objectMapper = JSONMapper.aNew()
 
         val result: MyResponse<Any> = accountFor(accountId)
                 .map {

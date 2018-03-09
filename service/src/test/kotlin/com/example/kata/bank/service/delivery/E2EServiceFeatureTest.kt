@@ -4,7 +4,6 @@ import arrow.core.Option
 import arrow.core.andThen
 import arrow.core.getOrElse
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
-import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
@@ -103,7 +102,7 @@ class E2EServiceFeatureTest {
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     println(result.value)
-                    val account = JSONMapper.aNew().readValue<MyResponse<AccountDTO>>(result.value)
+                    val account = http.mapper.readValue<MyResponse<AccountDTO>>(result.value)
                     assertThat(account.response.name).isEqualTo("pepe")
                 }
     }
@@ -116,7 +115,7 @@ class E2EServiceFeatureTest {
                 .let { (response, result) ->
                     println(result.value)
                     assertThat(response.statusCode).isEqualTo(200)
-                    val r = JSONMapper.aNew().readValue<MyResponse<AccountDTO>>(result.value)
+                    val r = http.mapper.readValue<MyResponse<AccountDTO>>(result.value)
                     assertThat(r.response.name).isEqualTo(accountName)
                 }
     }
@@ -147,8 +146,7 @@ class E2EServiceFeatureTest {
         """).let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
-                    val objectMapper = JSONMapper.aNew()
-                    val x = objectMapper.readValue<MyResponse<String>>(result.value)
+                    val x = http.mapper.readValue<MyResponse<String>>(result.value)
                     println(x)
                     assertThat(x.links).hasSize(1)
                     assertThat(x.links).filteredOn { it.rel == "list" }.isNotEmpty()
@@ -222,8 +220,7 @@ class E2EServiceFeatureTest {
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     println(result.value)
-                    val objectMapper = JSONMapper.aNew()
-                    val x = objectMapper.readValue<List<MyResponse<TransactionDTO>>>(result.value)
+                    val x = http.mapper.readValue<List<MyResponse<TransactionDTO>>>(result.value)
                     assertThat(x).hasSize(2)
                 }
     }
@@ -244,8 +241,7 @@ class E2EServiceFeatureTest {
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     println(result.value)
-                    val objectMapper = JSONMapper.aNew()
-                    val x = objectMapper.readValue<MyResponse<String>>(result.value)
+                    val x = http.mapper.readValue<MyResponse<String>>(result.value)
                     val statementId = x.links.find { it.rel == "self" }?.href?.split("/")?.last()!!
                     println("expecting statmentid = $statementId")
                     operationsRepository.findAll().forEach {
@@ -272,8 +268,7 @@ class E2EServiceFeatureTest {
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     println(result.value)
-                    val objectMapper = JSONMapper.aNew()
-                    val x = objectMapper.readValue<MyResponse<StatementOutDTO>>(result.value)
+                    val x = http.mapper.readValue<MyResponse<StatementOutDTO>>(result.value)
                     val deposits = setTime(x, fixedTimeDTO)
                     assertThat(deposits).contains(
                             TransactionDTO(AmountDTO.EUR("100.00"), "rent, part 1", fixedTimeDTO, "deposit"),
@@ -296,8 +291,7 @@ class E2EServiceFeatureTest {
                 .let { http.assertFailedRequest(it, http::assertError) }
                 .let { (response, _) ->
                     assertThat(response.statusCode).isEqualTo(400)
-                    val objectMapper = JSONMapper.aNew()
-                    val errors = objectMapper.readValue<MyResponse<ErrorsDTO>>(String(response.data).replace("\\n".toRegex(), ""))
+                    val errors = http.mapper.readValue<MyResponse<ErrorsDTO>>(String(response.data).replace("\\n".toRegex(), ""))
                     assertThat(errors.response.messages).contains("This operation is not supported for now")
                 }
     }
