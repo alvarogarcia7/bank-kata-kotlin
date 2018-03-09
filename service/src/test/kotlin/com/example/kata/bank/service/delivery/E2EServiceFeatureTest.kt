@@ -274,16 +274,18 @@ class E2EServiceFeatureTest {
                     println(result.value)
                     val objectMapper = JSONMapper.aNew()
                     val x = objectMapper.readValue<MyResponse<StatementOutDTO>>(result.value)
-                    val deposits = x.response.transactions.map {
-                        val it1 = it
-                        it1.copy(time = fixedTimeDTO)
-                    }
+                    val deposits = setTime(x, fixedTimeDTO)
                     assertThat(deposits).contains(
                             TransactionDTO(AmountDTO.EUR("100.00"), "rent, part 1", fixedTimeDTO, "deposit"),
                             TransactionDTO(AmountDTO.EUR("200.00"), "rent, part 2", fixedTimeDTO, "deposit"))
                 }
     }
 
+    private fun setTime(coll: MyResponse<StatementOutDTO>, value: TimeDTO): List<TransactionDTO> {
+        return coll.response.transactions.map {
+            it.copy(time = value)
+        }
+    }
 
     @Test
     fun `try to create an unsupported type of request`() {
