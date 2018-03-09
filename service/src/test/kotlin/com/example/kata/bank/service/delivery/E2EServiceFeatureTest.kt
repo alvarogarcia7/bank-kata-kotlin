@@ -121,9 +121,7 @@ class E2EServiceFeatureTest {
     }
 
     private fun openAccount(name: String): Request {
-        return (HTTP::post)("accounts", """
-            {"name": "$name"}
-            """)
+        return (HTTP::post)("accounts", """{"name": "$name"}""")
     }
 
 
