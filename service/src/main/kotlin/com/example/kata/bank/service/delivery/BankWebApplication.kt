@@ -57,7 +57,6 @@ class BankWebApplication(
 
         //users
         http.get("/users", function = usersHandler.list)
-//        http.post("/users/:userId/operations", function = { req: spark.Request, res: spark.Response -> }) // send the userId parameter explicitly here
     }
 
     override fun stop() {
