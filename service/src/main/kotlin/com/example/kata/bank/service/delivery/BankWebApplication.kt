@@ -17,7 +17,6 @@ import com.example.kata.bank.service.domain.users.UsersRepository
 import com.example.kata.bank.service.infrastructure.HelloRequest
 import com.example.kata.bank.service.infrastructure.HelloService
 import com.example.kata.bank.service.infrastructure.OperationsRepository
-import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
 import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.OperationService
@@ -150,13 +149,6 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
                 objectMapper.writeValueAsString(result.b)
             }
         }
-    }
-
-
-
-
-    private fun toDTO(account: Account): AccountDTO {
-        return mapper.toDTO(account)
     }
 }
 
