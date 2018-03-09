@@ -86,7 +86,7 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
                     it
                 }
                 .map { (account, id) ->
-                    MyResponse(mapper.toDTO(account), listOf(Link("/accounts/${id.value}", rel = "self", method = "GET")))
+                    MyResponse(mapper.toDTO(account), listOf(Link.self("accounts" to id)))
                 }
         when (result) {
             is Either.Right -> {
