@@ -312,7 +312,6 @@ class E2EServiceFeatureTest {
         return http.post("/accounts/$value", request)
     }
 
-    val fixedTime = LocalDateTime.of(2018, 10, 12, 23, 59)
     val fixedTimeDTO = TimeDTO("2018-10-12 23:59:00", "2018-10-12T23:59:00")
 }
 
