@@ -6,6 +6,7 @@ import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.delivery.json.hateoas.Link
+import com.example.kata.bank.service.delivery.json.readValueOption
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Operation
 import com.example.kata.bank.service.domain.Persisted
@@ -14,8 +15,6 @@ import com.example.kata.bank.service.domain.accounts.AccountRepository
 import com.example.kata.bank.service.domain.accounts.OpenAccountRequest
 import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.users.UsersRepository
-import com.example.kata.bank.service.infrastructure.HelloRequest
-import com.example.kata.bank.service.infrastructure.HelloService
 import com.example.kata.bank.service.infrastructure.OperationsRepository
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
 import com.example.kata.bank.service.infrastructure.operations.OperationRequest
@@ -28,16 +27,11 @@ import spark.kotlin.RouteHandler
 import spark.kotlin.ignite
 
 class BankWebApplication(
-        private val helloService: HelloService,
         private val operationsHandler: OperationsHandler,
         private val accountsHandler: AccountsHandler,
         private val usersHandler: UsersHandler) :
         ApplicationEngine {
     private var http: Http = ignite()
-    private val helloHandler: RouteHandler.() -> String = {
-        HelloRequest(request.queryParamOrDefault("name", null))
-                .let { helloService.salute(it) }
-    }
 
     override fun start(port: Int): BankWebApplication {
         val http = http
@@ -49,8 +43,6 @@ class BankWebApplication(
     }
 
     private fun configurePaths(http: Http) {
-        http.get("/", function = helloHandler)
-
         //accounts
         http.get("/accounts", function = accountsHandler.list)
         http.post("/accounts", function = accountsHandler.add)
@@ -210,23 +202,45 @@ class OperationsHandler(private val operationService: OperationService, private 
             throw RuntimeException("null account") //TODO AGB
         }
         val objectMapper = JSONMapper.aNew()
-        val operationRequest = objectMapper.readValue<OperationRequest>(request.body())
-        var result = ""
-        when (operationRequest) {
-            is OperationRequest.DepositRequest -> {
-                operationRequest.let {
-                    accountFor(accountId)
-                            .flatMap { account ->
-                                operationService.deposit(account, it)
-                            }.map {
-                                val operationId = it.toString()
-                                result = objectMapper.writeValueAsString(MyResponse("", listOf(Link("/accounts/$accountId/operations/$operationId", "list", "GET"))))
+        val result: Either<List<Exception>, MyResponse<Any>> = objectMapper.readValueOption<OperationRequest>(request.body())
+                .mapLeft { listOf(it) }
+                .flatMap { operationRequest ->
+                    when (operationRequest) {
+                        is OperationRequest.DepositRequest -> {
+
+                            val depositId = operationRequest.let {
+                                accountFor(accountId)
+                                        .flatMap { account ->
+                                            operationService.deposit(account, it)
+                                        }
                             }
+                            val x = when (depositId) {
+                                is Some -> {
+                                    Either.right(depositId.t)
+                                }
+                                is None -> {
+                                    Either.left(listOf(Exception("No result")))
+                                }
+                            }
+                            x.map {
+                                val operationId = it.value
+                                MyResponse("", listOf(Link("/accounts/$accountId/operations/$operationId", "list", "GET")))
+                            }
+
+                        }
+                    }
                 }
+        when (result) {
+            is Either.Left -> {
+                response.status(400)
+                val messages = result.a.map { it.message!! }
+                objectMapper.writeValueAsString(MyResponse(ErrorsDTO(messages), listOf()))
+            }
+            is Either.Right -> {
+                response.status(200)
+                objectMapper.writeValueAsString(result.b)
             }
         }
-        response.status(200)
-        result
     }
 
     val get: RouteHandler.() -> String = {
@@ -273,7 +287,7 @@ class OperationsHandler(private val operationService: OperationService, private 
                 .map {
                     it.value
                             .findAll()
-                            .map { MyResponse(mapper.toDTO(it.value), listOf(Link("/accounts/$accountId/operations/${it.id}", rel = "self", method = "GET"))) }
+                            .map { MyResponse(mapper.toDTO(it.value), listOf(Link("/accounts/$accountId/operations/${it.id.value}", rel = "self", method = "GET"))) }
                 }
         when (result) {
             is None -> {

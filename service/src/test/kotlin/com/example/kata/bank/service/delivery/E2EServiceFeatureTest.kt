@@ -15,7 +15,6 @@ import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.users.UsersRepository
 import com.example.kata.bank.service.infrastructure.AccountsService
-import com.example.kata.bank.service.infrastructure.HelloService
 import com.example.kata.bank.service.infrastructure.OperationsRepository
 import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
@@ -46,6 +45,8 @@ import java.util.*
 @RunWith(JUnitPlatform::class)
 class E2EServiceFeatureTest {
 
+    val http = HTTP
+
     companion object {
         private var application: ApplicationEngine? = null
 
@@ -72,7 +73,6 @@ class E2EServiceFeatureTest {
         val accountRepository = AccountRepository()
         private val configuredApplication: () -> BankWebApplication = {
             BankWebApplication(
-                    HelloService(),
                     OperationsHandler(
                             OperationService(),
                             accountRepository),
@@ -90,7 +90,7 @@ class E2EServiceFeatureTest {
 
 
         get("/accounts")
-                .let(this::request)
+                .let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     println(result.value)
@@ -104,7 +104,7 @@ class E2EServiceFeatureTest {
         accountRepository.save(Persisted.`for`(aNewAccount("pepe"), accountId))
 
         get("/accounts/${accountId.value}")
-                .let(this::request)
+                .let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     println(result.value)
@@ -117,7 +117,7 @@ class E2EServiceFeatureTest {
     fun `create account`() {
         val accountName = "savings aNewAccount for maria"
         openAccount(name = accountName)
-                .let(this::request)
+                .let(http::request)
                 .let { (response, result) ->
                     println(result.value)
                     assertThat(response.statusCode).isEqualTo(200)
@@ -149,7 +149,7 @@ class E2EServiceFeatureTest {
         },
             "description": "rent for this month"
         }
-        """).let(this::request)
+        """).let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     val objectMapper = JSONMapper.aNew()
@@ -223,7 +223,7 @@ class E2EServiceFeatureTest {
                     it.value.deposit(Amount.Companion.of("200"), "rent, part 2")
                 }
         get("/accounts/${accountId.value}/operations")
-                .let(this::request)
+                .let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     println(result.value)
@@ -245,7 +245,7 @@ class E2EServiceFeatureTest {
                     it.value.deposit(Amount.Companion.of("200"), "rent, part 2")
                 }
         createStatement(accountId.value, StatementRequestDTO("statement"))
-                .let(this::request)
+                .let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     println(result.value)
@@ -273,7 +273,7 @@ class E2EServiceFeatureTest {
                 }.getOrElse { throw UnreachableCode() }
 
         get("/accounts/${accountId.value}/statements/${statementId.value}")
-                .let(this::request)
+                .let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     println(result.value)
@@ -296,7 +296,7 @@ class E2EServiceFeatureTest {
         val accountId = Id.random()
         accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
         createStatement(accountId.value, StatementRequestDTO("unsupported"))
-                .let { this.assertFailedRequest(it, this::assertError) }
+                .let { http.assertFailedRequest(it, http::assertError) }
                 .let { (response, _) ->
                     assertThat(response.statusCode).isEqualTo(400)
                     val objectMapper = JSONMapper.aNew()
@@ -314,40 +314,47 @@ class E2EServiceFeatureTest {
     }
 
     private fun createStatement(value: String, request: StatementRequestDTO): Request {
-        return post("/accounts/$value", JSONMapper.aNew().writeValueAsString(request))
+        return post("/accounts/$value", request)
     }
 
-    private fun post(url: String, body: String) = url.httpPost().header("Content-Type" to "application/json").body(body, Charsets.UTF_8)
+    val post = HTTP::post
 
-    private fun get(url: String): Request {
+    val get = HTTP::get
+
+
+    val fixedTime = LocalDateTime.of(2018, 10, 12, 23, 59)
+    val fixedTimeDTO = TimeDTO("2018-10-12 23:59:00", "2018-10-12T23:59:00")
+}
+
+/**
+ * Class to satisfy the compiler.
+ *
+ * As a programmer I'm sure that the previous code will throw a runtime exception to interrupt the execution,
+ * but the compile cannot realise about this, as they're not detectable until execution time
+ */
+class UnreachableCode : Throwable()
+
+object HTTP {
+
+    private val mapper = JSONMapper.aNew()
+
+    private fun serialize(body: Any): String {
+        return mapper.writeValueAsString(body)
+    }
+
+    fun post(url: String, body: Any): Request {
+        val serializedBody = when (body) {
+            is String -> body
+            else -> serialize(body)
+        }
+        return url.httpPost().header("Content-Type" to "application/json").body(serializedBody, Charsets.UTF_8)
+    }
+
+    fun get(url: String): Request {
         return url.httpGet()
     }
 
-    @Test
-    fun `salute - with a name`() {
-
-        helloRequest(listOf(Pair("name", "me")))
-                .let(this::request)
-                .let { (response, result) ->
-                    println(result)
-                    assertThat(response.statusCode).isEqualTo(200)
-                    assertThat(result.value).isEqualToIgnoringCase("Hello me!")
-                }
-    }
-
-    @Test
-    fun `salute - no name`() {
-
-        helloRequest(emptyList())
-                .let(this::request)
-                .let { (response, result) ->
-                    println(result)
-                    assertThat(response.statusCode).isEqualTo(200)
-                    assertThat(result.value).isEqualToIgnoringCase("Hello, world!")
-                }
-    }
-
-    private fun request(request: Request): Pair<Response, Result.Success<String, FuelError>> {
+    fun request(request: Request): Pair<Response, Result.Success<String, FuelError>> {
         try {
             val (_, response, result) = request.responseString()
             return assertSuccess(response, result)
@@ -358,7 +365,7 @@ class E2EServiceFeatureTest {
         }
     }
 
-    private fun <T> assertFailedRequest(
+    fun <T> assertFailedRequest(
             request: Request,
             x: (Response, Result<String, FuelError>) -> T): T {
         try {
@@ -372,7 +379,7 @@ class E2EServiceFeatureTest {
     }
 
     @Throws(UnreachableCode::class)
-    private fun assertSuccess(response: Response, result: Result<String, FuelError>): Pair<Response, Result.Success<String, FuelError>> {
+    fun assertSuccess(response: Response, result: Result<String, FuelError>): Pair<Response, Result.Success<String, FuelError>> {
         return when (result) {
             is Result.Success -> {
                 val pair = Pair(response, result)
@@ -390,7 +397,7 @@ class E2EServiceFeatureTest {
     }
 
     @Throws(UnreachableCode::class)
-    private fun assertError(response: Response, result: Result<String, FuelError>): Pair<Response, Result.Failure<String, FuelError>> {
+    fun assertError(response: Response, result: Result<String, FuelError>): Pair<Response, Result.Failure<String, FuelError>> {
         return when (result) {
             is Result.Success -> {
                 fail("expected a Result.error: " + result.value)
@@ -405,18 +412,4 @@ class E2EServiceFeatureTest {
             }
         }
     }
-
-    private fun helloRequest(parameters: List<Pair<String, String>>) = "/".httpGet(parameters)
-
-    val fixedTime = LocalDateTime.of(2018, 10, 12, 23, 59)
-    val fixedTimeDTO = TimeDTO("2018-10-12 23:59:00", "2018-10-12T23:59:00")
 }
-
-/**
- * Class to satisfy the compiler.
- *
- * As a programmer I'm sure that the previous code will throw a runtime exception to interrupt the execution,
- * but the compile cannot realise about this, as they're not detectable until execution time
- */
-class UnreachableCode : Throwable()
-

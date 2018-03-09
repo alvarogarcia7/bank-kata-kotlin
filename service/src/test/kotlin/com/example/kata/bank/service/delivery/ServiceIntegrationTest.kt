@@ -1,21 +1,22 @@
 package com.example.kata.bank.service.delivery
 
+import arrow.core.Option
+import arrow.core.getOrElse
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
+import com.example.kata.bank.service.domain.Id
+import com.example.kata.bank.service.domain.Persisted
+import com.example.kata.bank.service.domain.accounts.Account
 import com.example.kata.bank.service.domain.accounts.AccountRepository
+import com.example.kata.bank.service.domain.accounts.Clock
 import com.example.kata.bank.service.domain.users.UsersRepository
-import com.example.kata.bank.service.infrastructure.HelloRequest
-import com.example.kata.bank.service.infrastructure.HelloService
 import com.example.kata.bank.service.infrastructure.OperationsRepository
+import com.example.kata.bank.service.infrastructure.operations.AmountDTO
+import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.OperationService
-import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.FuelManager
-import com.github.kittinunf.fuel.core.Request
-import com.github.kittinunf.fuel.core.Response
-import com.github.kittinunf.fuel.httpGet
-import com.github.kittinunf.result.Result
 import com.nhaarman.mockito_kotlin.verify
+import com.nhaarman.mockito_kotlin.verifyZeroInteractions
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.fail
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
@@ -29,12 +30,12 @@ class ServiceIntegrationTest {
 
     object Mocks {
         @JvmStatic
-        val helloService = Mockito.mock(HelloService::class.java)
+        val operationService = Mockito.mock(OperationService::class.java)
     }
 
     @BeforeEach
     fun resetMocks() {
-        Mockito.reset(Mocks.helloService)
+        Mockito.reset(Mocks.operationService)
     }
 
     companion object {
@@ -59,18 +60,17 @@ class ServiceIntegrationTest {
             FuelManager.instance.basePath = "http://localhost:" + serverPort
         }
 
-        class MockHelloService : HelloService() {
-            override fun salute(request: HelloRequest): String {
-                Mocks.helloService.salute(request)
-                return super.salute(request)
+        class MockOperationService : OperationService() {
+            override fun deposit(account: Account?, depositRequest: OperationRequest.DepositRequest): Option<Id> {
+                Mocks.operationService.deposit(account, depositRequest)
+                return super.deposit(account, depositRequest)
             }
         }
 
+        val accountRepository = AccountRepository()
         private val configuredApplication: () -> BankWebApplication = {
-            val accountRepository = AccountRepository()
             BankWebApplication(
-                    MockHelloService(),
-                    OperationsHandler(OperationService(), accountRepository),
+                    OperationsHandler(MockOperationService(), accountRepository),
                     AccountsHandler(accountRepository, XAPPlicationService(accountRepository, OperationsRepository())),
                     UsersHandler(UsersRepository())
             )
@@ -79,54 +79,56 @@ class ServiceIntegrationTest {
 
 
     @Test
-    fun `salute - with a name`() {
+    fun `deposit into an existing account`() {
 
-        helloRequest(listOf(Pair("name", "me")))
-                .let(this::request)
+        val accountId = Id.random()
+        accountRepository.save(Persisted.`for`(Account(Clock.aNew(), "account name"), accountId))
+
+        val description = "first deposit into account"
+        deposit(accountId, """
+{
+    "type": "deposit",
+    "amount": {
+        "value": "100.00",
+        "currency": "EUR"
+    },
+    "description": "$description"
+}
+            """)
+                .let(http::request)
                 .let { (response, result) ->
                     println(result)
                     assertThat(response.statusCode).isEqualTo(200)
 
-                    verify(Mocks.helloService).salute(HelloRequest("me"))
+                    val account = accountRepository.findBy(accountId).map { it.value }.getOrElse { throw UnreachableCode() }
+                    verify(Mocks.operationService).deposit(account, OperationRequest.DepositRequest(AmountDTO.EUR("100.00"), description))
                 }
     }
 
     @Test
-    fun `salute - no name`() {
+    fun `deposit - invalid request`() {
+        val accountId = Id.random()
+        accountRepository.save(Persisted.`for`(Account(Clock.aNew(), "account name"), accountId))
 
-        helloRequest(emptyList())
-                .let(this::request)
+        deposit(accountId, """
+            {
+            "amount": {
+            "value": "1234.56",
+            "currency": "EUR"
+        },
+            "description": "rent for this month"
+        }
+            """) //missing the type
+                .let { http.assertFailedRequest(it, http::assertError) }
                 .let { (response, result) ->
                     println(result)
-                    assertThat(response.statusCode).isEqualTo(200)
+                    assertThat(response.statusCode).isEqualTo(400)
 
-                    verify(Mocks.helloService).salute(HelloRequest(null))
+                    verifyZeroInteractions(Mocks.operationService)
                 }
     }
 
-    private fun request(request: Request): Pair<Response, Result.Success<String, FuelError>> {
-        try {
-            val (_, response, result) = request.responseString()
+    val http = HTTP
 
-            when (result) {
-                is Result.Success -> {
-                    return Pair(response, result)
-                }
-                is Result.Failure -> {
-                    fail("expected a Result.success: " + result.error)
-                    throw RuntimeException() // unreachable code
-                }
-                else -> {
-                    fail("expected a Result.success: " + result.javaClass)
-                    throw RuntimeException() // unreachable code
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            fail("exception: " + e.message)
-            throw RuntimeException() // unreachable code
-        }
-    }
-
-    private fun helloRequest(parameters: List<Pair<String, String>>) = "/".httpGet(parameters)
+    private fun deposit(toAccount: Id, request: String) = HTTP.post("/accounts/${toAccount.value}/operations", request)
 }
