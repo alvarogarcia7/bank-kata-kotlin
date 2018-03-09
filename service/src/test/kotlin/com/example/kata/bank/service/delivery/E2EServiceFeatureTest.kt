@@ -133,14 +133,14 @@ class E2EServiceFeatureTest {
         val existingOperations = `operationsFor!`(accountId)
 
         depositRequest(accountId, """
-        {
-            "type": "deposit",
-            "amount": {
-            "value": "1234.56",
-            "currency": "EUR"
-        },
-            "description": "rent for this month"
-        }
+{
+    "type": "deposit",
+    "amount": {
+    "value": "1234.56",
+    "currency": "EUR"
+},
+    "description": "rent for this month"
+}
         """).let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
