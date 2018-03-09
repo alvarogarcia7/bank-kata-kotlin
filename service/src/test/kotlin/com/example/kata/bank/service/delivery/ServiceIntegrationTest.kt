@@ -111,13 +111,13 @@ class ServiceIntegrationTest {
         accountRepository.save(Persisted.`for`(Account(Clock.aNew(), "account name"), accountId))
 
         deposit(accountId, """
-            {
-            "amount": {
-            "value": "1234.56",
-            "currency": "EUR"
-        },
-            "description": "rent for this month"
-        }
+{
+    "amount": {
+        "value": "1234.56",
+        "currency": "EUR"
+    },
+    "description": "rent for this month"
+}
             """) //missing the type
                 .let { http.assertFailedRequest(it, http::assertError) }
                 .let { (response, result) ->
