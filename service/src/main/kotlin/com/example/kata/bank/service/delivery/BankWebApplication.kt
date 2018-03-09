@@ -53,10 +53,29 @@ class BankWebApplication(
         http.get("/accounts/:accountId/operations/:operationId", function = operationsHandler.get)
         http.get("/accounts/:accountId/operations", function = operationsHandler.list)
         http.get("/accounts/:accountId/statements/:statementId", function = operationsHandler.getStatement)
-        http.post("/accounts/:accountId/operations", function = operationsHandler.add)
+        http.post("/accounts/:accountId/operations", function = (operationsHandler.add) andThen x)
 
         //users
         http.get("/users", function = usersHandler.list)
+    }
+
+    val x: X.() -> RouteHandler.() -> String = {
+        val result = f
+        when (result) {
+            is Either.Left -> {
+                response.status(400)
+                val messages = result.a.map { it.message!! }
+                objectMapper.writeValueAsString(MyResponse(ErrorsDTO(messages), listOf()))
+            }
+            is Either.Right -> {
+                response.status(200)
+                objectMapper.writeValueAsString(result.b)
+            }
+        }
+    }
+
+    class X(val f: RouteHandler.() -> Either<List<Exception>, MyResponse<Any>>) {
+
     }
 
     override fun stop() {
@@ -194,9 +213,9 @@ class OperationsHandler(private val operationService: OperationService, private 
     private val mapper = Mapper()
     private val objectMapper = JSONMapper.aNew()
 
-    val add: RouteHandler.() -> String = {
+    val add: RouteHandler.() -> Either<List<Exception>, MyResponse<Any>> = {
         val accountId: String = request.params(":accountId") ?: throw NotTestedOperation()
-        val result: Either<List<Exception>, MyResponse<Any>> = objectMapper.readValueOption<OperationRequest>(request.body())
+        objectMapper.readValueOption<OperationRequest>(request.body())
                 .mapLeft { listOf(it) }
                 .flatMap { operationRequest ->
                     when (operationRequest) {
@@ -224,17 +243,6 @@ class OperationsHandler(private val operationService: OperationService, private 
                         }
                     }
                 }
-        when (result) {
-            is Either.Left -> {
-                response.status(400)
-                val messages = result.a.map { it.message!! }
-                objectMapper.writeValueAsString(MyResponse(ErrorsDTO(messages), listOf()))
-            }
-            is Either.Right -> {
-                response.status(200)
-                objectMapper.writeValueAsString(result.b)
-            }
-        }
     }
 
     val get: RouteHandler.() -> String = {
