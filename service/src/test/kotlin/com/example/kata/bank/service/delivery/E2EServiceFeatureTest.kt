@@ -84,7 +84,7 @@ class E2EServiceFeatureTest {
         accountRepository.save(Persisted.`for`(aNewAccount(), Id.random()))
 
 
-        get("/accounts")
+        (HTTP::get)("/accounts")
                 .let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
@@ -98,7 +98,7 @@ class E2EServiceFeatureTest {
         val accountId = Id.random()
         accountRepository.save(Persisted.`for`(aNewAccount("pepe"), accountId))
 
-        get("/accounts/${accountId.value}")
+        (HTTP::get)("/accounts/${accountId.value}")
                 .let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
@@ -122,7 +122,7 @@ class E2EServiceFeatureTest {
     }
 
     private fun openAccount(name: String): Request {
-        return post("accounts", """
+        return (HTTP::post)("accounts", """
             {"name": "$name"}
             """)
     }
@@ -217,7 +217,7 @@ class E2EServiceFeatureTest {
                     it.value.deposit(Amount.Companion.of("100"), "rent, part 1")
                     it.value.deposit(Amount.Companion.of("200"), "rent, part 2")
                 }
-        get("/accounts/${accountId.value}/operations")
+        (HTTP::get)("/accounts/${accountId.value}/operations")
                 .let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
@@ -267,7 +267,7 @@ class E2EServiceFeatureTest {
                     XAPPlicationService(accountRepository, operationsRepository).createAndSaveOperation(it.value, AccountRequest.StatementRequest())
                 }.getOrElse { throw UnreachableCode() }
 
-        get("/accounts/${accountId.value}/statements/${statementId.value}")
+        (HTTP::get)("/accounts/${accountId.value}/statements/${statementId.value}")
                 .let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
@@ -305,17 +305,12 @@ class E2EServiceFeatureTest {
     private fun aNewAccount(accountName: String) = Account(Clock.aNew(), accountName)
 
     private fun depositRequest(accountId: Id, jsonPayload: String): Request {
-        return post("accounts/${accountId.value}/operations", jsonPayload)
+        return http.post("accounts/${accountId.value}/operations", jsonPayload)
     }
 
     private fun createStatement(value: String, request: StatementRequestDTO): Request {
-        return post("/accounts/$value", request)
+        return http.post("/accounts/$value", request)
     }
-
-    val post = HTTP::post
-
-    val get = HTTP::get
-
 
     val fixedTime = LocalDateTime.of(2018, 10, 12, 23, 59)
     val fixedTimeDTO = TimeDTO("2018-10-12 23:59:00", "2018-10-12T23:59:00")
