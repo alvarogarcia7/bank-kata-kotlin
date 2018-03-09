@@ -22,6 +22,7 @@ import com.example.kata.bank.service.infrastructure.mapper.Mapper
 import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.example.kata.bank.service.infrastructure.statement.Statement
+import com.example.kata.bank.service.infrastructure.statement.StatementLine
 import com.fasterxml.jackson.module.kotlin.readValue
 import spark.kotlin.Http
 import spark.kotlin.RouteHandler
@@ -175,11 +176,11 @@ sealed class AccountRequest {
 
     class StatementRequest : AccountRequest() {
         override fun <T> apply(account: Account): T {
-
-            return account.createStatement() as T //TODO AGB make generic
+            val statementLines = Account.StatementLines.parse(StatementLine.initial(), account.findAll().apply { filter }.map { it.value })
+            return Statement.inReverseOrder(statementLines) as T
         }
 
-        val filter: (Transaction) -> Boolean = { transaction -> true } //TODO AGB use filter
+        private val filter: (Transaction) -> Boolean = { _ -> true }
     }
 
 }
