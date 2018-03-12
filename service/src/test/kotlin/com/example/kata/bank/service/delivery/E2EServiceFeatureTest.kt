@@ -245,7 +245,6 @@ class E2EServiceFeatureTest {
                     statementPair.map {
                         val (_, statementId) = it
                         assertThat(operationsRepository.findBy(Id.of(statementId)).isDefined()).isTrue()
-                        val transactions = transactionsFor(accountId)
                         val newCosts = forceGet(transactionsFor(accountId)).filter { it is Transaction.Cost }.size
                         assertThat(newCosts).isEqualTo(previousCosts + 1)
                     }
