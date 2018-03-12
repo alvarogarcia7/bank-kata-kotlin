@@ -7,13 +7,13 @@ import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.delivery.json.hateoas.Link
 import com.example.kata.bank.service.delivery.json.readValueOption
+import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Operation
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
 import com.example.kata.bank.service.domain.accounts.AccountRepository
 import com.example.kata.bank.service.domain.accounts.OpenAccountRequest
-import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.users.UsersRepository
 import com.example.kata.bank.service.infrastructure.OperationsRepository
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
@@ -148,20 +148,6 @@ class StatementRequestFactory {
             return AccountRequest.StatementRequest()
         }
 
-    }
-
-}
-
-sealed class AccountRequest {
-
-    abstract fun <T> apply(account: Account): T
-
-    class StatementRequest : AccountRequest() {
-        override fun <T> apply(account: Account): T {
-            return account.createStatement() as T
-        }
-
-        private val filter: (Transaction) -> Boolean = { _ -> true }
     }
 
 }
