@@ -32,10 +32,10 @@ class Account(private val clock: Clock, val name: String) {
 
     fun createStatement(statementRequest: AccountRequest.StatementRequest): Statement {
         addCost(Amount.of("1"), "Statement creation")
-        val x = transactionRepository.findAll()
+        val transactions = transactionRepository.findAll()
                 .map { it.value }
                 .filter(statementRequest.filter)
-        val statementLines = StatementLines.parse(StatementLine.initial(), x)
+        val statementLines = StatementLines.parse(StatementLine.initial(), transactions)
 
         return Statement.inReverseOrder(statementLines)
     }
