@@ -37,7 +37,8 @@ class Account(private val clock: Clock, val name: String) {
     }
 
     fun createStatement(): Statement {
-        this.withdraw(Amount.Companion.of("1"), "Statement creation")
+        val transaction = this.createIdentityFor(Transaction.Cost(Amount.Companion.of("1"), this.clock.getTime(), "Statement creation"))
+        this.transactionRepository.save(transaction)
         val statementLines = StatementLines.parse(StatementLine.initial(), transactionRepository.findAll().map { it.value })
         return Statement.inReverseOrder(statementLines)
     }
