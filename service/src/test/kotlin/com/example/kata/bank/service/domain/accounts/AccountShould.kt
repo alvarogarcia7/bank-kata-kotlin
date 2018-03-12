@@ -66,6 +66,15 @@ class AccountShould {
         assertThat(account.findAll().map { it.value }.filter { it is Transaction.Cost }).hasSize(0)
     }
 
+    @Test
+    fun `create a filtered statement --without results-- does not cost the premium user a dime`() {
+        val account = accountWithMovements(Account.AccountType.Premium)
+
+        account.createStatement(AccountRequest.StatementRequest.filter { it -> false })
+
+        assertThat(account.findAll().map { it.value }.filter { it is Transaction.Cost }).hasSize(0)
+    }
+
     private fun accountWithMovements(type: Account.AccountType): Account {
         val account = Account(Clock.aNew(), "test account", type)
         account.deposit(Amount.of("100"), "first movement")
