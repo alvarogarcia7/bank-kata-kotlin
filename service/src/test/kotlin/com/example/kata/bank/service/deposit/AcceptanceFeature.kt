@@ -42,10 +42,13 @@ class AcceptanceFeature {
         account.deposit(Amount.of("1000"), "from friend 1")
         account.deposit(Amount.of("2000"), "from friend 2")
         account.withdraw(Amount.of("500"), "for friend 3")
-        account.printStatement(StatementPrinter(decoratedLinePrinter))
+        val statement = account.createStatement()
+
+        StatementPrinter(decoratedLinePrinter).print(statement)
 
         verifyPrintedLines(mockLinePrinter,
                 "date || message || credit || debit || balance",
+                "14/01/2012 ||  ||  || 1.00 || 2499.00",
                 "14/01/2012 ||  ||  || 500.00 || 2500.00",
                 "13/01/2012 ||  || 2000.00 ||  || 3000.00",
                 "10/01/2012 ||  || 1000.00 ||  || 1000.00",
