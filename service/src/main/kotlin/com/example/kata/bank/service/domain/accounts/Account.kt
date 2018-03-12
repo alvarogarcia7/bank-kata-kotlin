@@ -54,6 +54,9 @@ class Account(private val clock: Clock, val name: String) {
                         is Transaction.Deposit -> {
                             acc.add(ele.amount)
                         }
+                        is Transaction.Cost -> {
+                            acc.subtract(ele.amount)
+                        }
                     }
                 })
         return result

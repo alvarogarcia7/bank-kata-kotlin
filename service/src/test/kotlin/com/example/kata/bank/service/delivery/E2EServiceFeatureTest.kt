@@ -245,7 +245,7 @@ class E2EServiceFeatureTest {
     }
 
     @Test
-    fun `create a statement, without any filter - costs the user one euro`() {
+    fun `create a statement, without any filter - creates a new Cost`() {
 
         val accountId = Id.random()
         accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
@@ -254,7 +254,6 @@ class E2EServiceFeatureTest {
                     it.value.deposit(Amount.Companion.of("100"), "rent, part 1")
                     it.value.deposit(Amount.Companion.of("200"), "rent, part 2")
                 }
-        val previousBalance = balanceFor(accountId)
         createStatement(accountId.value, StatementRequestDTO("statement"))
                 .let(http::request)
                 .let { (response, result) ->
@@ -263,7 +262,8 @@ class E2EServiceFeatureTest {
                     val x = http.mapper.readValue<MyResponse<String>>(result.value)
                     val statementId = x.links.find { it.rel == "self" }?.href?.split("/")?.last()!!
                     assertThat(operationsRepository.findBy(Id.of(statementId)).isDefined()).isTrue()
-                    assertThat(balanceFor(accountId)).isEqualTo(previousBalance.map { it.subtract(Amount.of("1")) })
+                    val transactions = accountRepository.findBy(accountId).map { it.value.findAll().map { it.value } }
+                    assertThat(forceGet(transactions)).filteredOn { it.description == "Statement creation" }.hasSize(1)
                 }
     }
 
