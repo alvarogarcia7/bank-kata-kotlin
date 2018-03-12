@@ -233,6 +233,8 @@ class E2EServiceFeatureTest {
                     it.value.deposit(Amount.Companion.of("100"), "rent, part 1")
                     it.value.deposit(Amount.Companion.of("200"), "rent, part 2")
                 }
+        val previousCosts = forceGet(transactionsFor(accountId)).filter { it is Transaction.Cost }.size
+
         createStatement(accountId.value, StatementRequestDTO("statement"))
                 .let(http::request)
                 .let { (response, result) ->
@@ -244,7 +246,8 @@ class E2EServiceFeatureTest {
                         val (_, statementId) = it
                         assertThat(operationsRepository.findBy(Id.of(statementId)).isDefined()).isTrue()
                         val transactions = transactionsFor(accountId)
-                        assertThat(forceGet(transactions)).filteredOn { it.description == "Statement creation" }.hasSize(1)
+                        val newCosts = forceGet(transactionsFor(accountId)).filter { it is Transaction.Cost }.size
+                        assertThat(newCosts).isEqualTo(previousCosts + 1)
                     }
                 }
     }
