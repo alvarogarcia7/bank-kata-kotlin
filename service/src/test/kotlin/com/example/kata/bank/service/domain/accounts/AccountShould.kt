@@ -47,4 +47,16 @@ class AccountShould {
 
         assertThat(statement.lines).hasSize(3) //1 (initial) + 2 (above)
     }
+
+    @Test
+    fun `create a filtered statement, just the Withdrawals`() {
+        val account = Account(Clock.aNew(), "test account")
+        account.deposit(Amount.Companion.of("100"), "first movement")
+        account.deposit(Amount.Companion.of("200"), "second movement")
+        account.withdraw(Amount.Companion.of("99"), "third movement")
+
+        val statement = account.createStatement(AccountRequest.StatementRequest.filter { it is Transaction.Withdrawal })
+
+        assertThat(statement.lines).hasSize(2) //1 (initial) + 1 (above)
+    }
 }
