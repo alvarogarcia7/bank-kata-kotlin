@@ -223,27 +223,6 @@ class E2EServiceFeatureTest {
                 }
     }
 
-
-    @Test
-    fun `create a statement, without any filter`() {
-
-        val accountId = Id.random()
-        accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
-        accountRepository.findBy(accountId)
-                .map {
-                    it.value.deposit(Amount.Companion.of("100"), "rent, part 1")
-                    it.value.deposit(Amount.Companion.of("200"), "rent, part 2")
-                }
-        createStatement(accountId.value, StatementRequestDTO("statement"))
-                .let(http::request)
-                .let { (response, result) ->
-                    assertThat(response.statusCode).isEqualTo(200)
-                    val response1 = http.mapper.readValue<MyResponse<String>>(result.value)
-                    val statementId = response1.links.find { it.rel == "self" }?.href?.split("/")?.last()!!
-                    assertThat(operationsRepository.findBy(Id.of(statementId)).isDefined()).isTrue()
-                }
-    }
-
     @Test
     fun `create a statement, without any filter - creates a new Cost`() {
 
