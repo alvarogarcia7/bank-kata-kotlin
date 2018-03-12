@@ -54,7 +54,7 @@ class AccountShould {
 
         account.createStatement(AccountRequest.StatementRequest.filter { it -> false })
 
-        assertThat(account.findAll().map { it.value }.filter { it is Transaction.Cost }).hasSize(0)
+        assertThat(costsFor(account)).hasSize(0)
     }
 
     @Test
@@ -63,7 +63,7 @@ class AccountShould {
 
         account.createStatement(AccountRequest.StatementRequest.all())
 
-        assertThat(account.findAll().map { it.value }.filter { it is Transaction.Cost }).hasSize(0)
+        assertThat(costsFor(account)).hasSize(0)
     }
 
     @Test
@@ -74,6 +74,8 @@ class AccountShould {
 
         assertThat(account.findAll().map { it.value }.filter { it is Transaction.Cost }).hasSize(0)
     }
+
+    private fun costsFor(account: Account) = account.findAll().map { it.value }.filter { it is Transaction.Cost }
 
     private fun accountWithMovements(type: Account.AccountType): Account {
         val account = Account(Clock.aNew(), "test account", type)
