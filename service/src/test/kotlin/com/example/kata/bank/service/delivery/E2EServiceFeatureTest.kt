@@ -249,14 +249,6 @@ class E2EServiceFeatureTest {
                 }
     }
 
-    private fun balanceFor(accountId: Id): Option<Amount> {
-        return accountRepository
-                .findBy(accountId)
-                .map {
-                    it.value.balance()
-                }
-    }
-
     @Test
     fun `fetch a statement`() {
 
