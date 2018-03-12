@@ -39,20 +39,7 @@ class Account(private val clock: Clock, val name: String) {
     fun balance(): Amount {
         val transactions = this.findAll()
         val result = transactions.map { it.value }
-                .foldRight(Amount.of("0"), { ele, acc ->
-
-                    when (ele) {
-                        is Transaction.Withdrawal -> {
-                            acc.subtract(ele.amount)
-                        }
-                        is Transaction.Deposit -> {
-                            acc.add(ele.amount)
-                        }
-                        is Transaction.Cost -> {
-                            acc.subtract(ele.amount)
-                        }
-                    }
-                })
+                .foldRight(Amount.of("0"), { transaction, acc -> transaction.subtotal(acc) })
         return result
     }
 
