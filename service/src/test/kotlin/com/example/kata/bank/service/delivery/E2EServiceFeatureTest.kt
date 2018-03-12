@@ -243,7 +243,7 @@ class E2EServiceFeatureTest {
                     statementPair.map {
                         val (_, statementId) = it
                         assertThat(operationsRepository.findBy(Id.of(statementId)).isDefined()).isTrue()
-                        val transactions = accountRepository.findBy(accountId).map { it.value.findAll().map { it.value } }
+                        val transactions = transactionsFor(accountId)
                         assertThat(forceGet(transactions)).filteredOn { it.description == "Statement creation" }.hasSize(1)
                     }
                 }
@@ -305,6 +305,8 @@ class E2EServiceFeatureTest {
     private fun createStatement(value: String, request: StatementRequestDTO): Request {
         return http.post("/accounts/$value", request)
     }
+
+    private fun transactionsFor(accountId: Id) = accountRepository.findBy(accountId).map { it.value.findAll().map { it.value } }
 
     val fixedTimeDTO = TimeDTO("2018-10-12 23:59:00", "2018-10-12T23:59:00")
 }
