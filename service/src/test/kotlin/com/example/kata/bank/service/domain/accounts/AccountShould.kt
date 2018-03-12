@@ -16,20 +16,14 @@ class AccountShould {
 
     @Test
     fun `calculate the balance for an account with some movements`() {
-        val account = Account(Clock.aNew(), "test account")
-        account.deposit(Amount.Companion.of("100"), "first movement")
-        account.deposit(Amount.Companion.of("200"), "second movement")
-        account.withdraw(Amount.Companion.of("99"), "third movement")
+        val account = accountWithMovements()
 
         Assertions.assertThat(account.balance()).isEqualTo(Amount.of("201"))
     }
 
     @Test
     fun `create an unfiltered statement`() {
-        val account = Account(Clock.aNew(), "test account")
-        account.deposit(Amount.Companion.of("100"), "first movement")
-        account.deposit(Amount.Companion.of("200"), "second movement")
-        account.withdraw(Amount.Companion.of("99"), "third movement")
+        val account = accountWithMovements()
         val statement = account.createStatement(AccountRequest.StatementRequest.all())
 
         assertThat(statement.lines).hasSize(5) //1 (initial) + 3 (above) + 1 for the cost
@@ -38,10 +32,7 @@ class AccountShould {
 
     @Test
     fun `create a filtered statement, just the Deposits`() {
-        val account = Account(Clock.aNew(), "test account")
-        account.deposit(Amount.Companion.of("100"), "first movement")
-        account.deposit(Amount.Companion.of("200"), "second movement")
-        account.withdraw(Amount.Companion.of("99"), "third movement")
+        val account = accountWithMovements()
 
         val statement = account.createStatement(AccountRequest.StatementRequest.filter { it is Transaction.Deposit })
 
@@ -50,13 +41,18 @@ class AccountShould {
 
     @Test
     fun `create a filtered statement, just the Withdrawals`() {
-        val account = Account(Clock.aNew(), "test account")
-        account.deposit(Amount.Companion.of("100"), "first movement")
-        account.deposit(Amount.Companion.of("200"), "second movement")
-        account.withdraw(Amount.Companion.of("99"), "third movement")
+        val account = accountWithMovements()
 
         val statement = account.createStatement(AccountRequest.StatementRequest.filter { it is Transaction.Withdrawal })
 
         assertThat(statement.lines).hasSize(2) //1 (initial) + 1 (above)
+    }
+
+    private fun accountWithMovements(): Account {
+        val account = Account(Clock.aNew(), "test account")
+        account.deposit(Amount.of("100"), "first movement")
+        account.deposit(Amount.of("200"), "second movement")
+        account.withdraw(Amount.of("99"), "third movement")
+        return account
     }
 }
