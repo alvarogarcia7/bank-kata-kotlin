@@ -30,11 +30,19 @@ class Account(private val clock: Clock, val name: String) {
         return Persisted.`for`(transaction, id)
     }
 
-    fun createStatement(filter: AccountRequest.StatementRequest): Statement {
-        val transaction = this.createIdentityFor(Transaction.Cost(Amount.Companion.of("1"), this.clock.getTime(), "Statement creation"))
-        this.transactionRepository.save(transaction)
-        val statementLines = StatementLines.parse(StatementLine.initial(), transactionRepository.findAll().map { it.value })
+    fun createStatement(statementRequest: AccountRequest.StatementRequest): Statement {
+        addCost(Amount.of("1"), "Statement creation")
+        val x = transactionRepository.findAll()
+                .map { it.value }
+                .filter(statementRequest.filter)
+        val statementLines = StatementLines.parse(StatementLine.initial(), x)
+
         return Statement.inReverseOrder(statementLines)
+    }
+
+    private fun addCost(cost: Amount, description: String) {
+        val transaction = this.createIdentityFor(Transaction.Cost(cost, this.clock.getTime(), description))
+        this.transactionRepository.save(transaction)
     }
 
     fun balance(): Amount {

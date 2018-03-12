@@ -2,6 +2,7 @@ package com.example.kata.bank.service.domain.accounts
 
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.transactions.Amount
+import com.example.kata.bank.service.domain.transactions.Transaction
 import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
@@ -32,5 +33,18 @@ class AccountShould {
         val statement = account.createStatement(AccountRequest.StatementRequest.all())
 
         assertThat(statement.lines).hasSize(5) //1 (initial) + 3 (above) + 1 for the cost
+    }
+
+
+    @Test
+    fun `create a filtered statement, just the Deposits`() {
+        val account = Account(Clock.aNew(), "test account")
+        account.deposit(Amount.Companion.of("100"), "first movement")
+        account.deposit(Amount.Companion.of("200"), "second movement")
+        account.withdraw(Amount.Companion.of("99"), "third movement")
+
+        val statement = account.createStatement(AccountRequest.StatementRequest.filter { it is Transaction.Deposit })
+
+        assertThat(statement.lines).hasSize(3) //1 (initial) + 2 (above)
     }
 }
