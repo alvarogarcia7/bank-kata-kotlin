@@ -239,10 +239,13 @@ class E2EServiceFeatureTest {
                     assertThat(response.statusCode).isEqualTo(200)
                     println(result.value)
                     val x = http.mapper.readValue<MyResponse<String>>(result.value)
-                    val statementId = x.links.find { it.rel == "self" }?.href?.split("/")?.last()!!
-                    assertThat(operationsRepository.findBy(Id.of(statementId)).isDefined()).isTrue()
-                    val transactions = accountRepository.findBy(accountId).map { it.value.findAll().map { it.value } }
-                    assertThat(forceGet(transactions)).filteredOn { it.description == "Statement creation" }.hasSize(1)
+                    val statementPair = x.links.find { it.rel == "self" }?.resource("statements")!!
+                    statementPair.map {
+                        val (_, statementId) = it
+                        assertThat(operationsRepository.findBy(Id.of(statementId)).isDefined()).isTrue()
+                        val transactions = accountRepository.findBy(accountId).map { it.value.findAll().map { it.value } }
+                        assertThat(forceGet(transactions)).filteredOn { it.description == "Statement creation" }.hasSize(1)
+                    }
                 }
     }
 
