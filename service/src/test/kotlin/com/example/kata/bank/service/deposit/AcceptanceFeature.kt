@@ -1,5 +1,6 @@
 package com.example.kata.bank.service.deposit
 
+import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.accounts.Account
 import com.example.kata.bank.service.domain.accounts.Clock
 import com.example.kata.bank.service.domain.transactions.Amount
@@ -42,7 +43,7 @@ class AcceptanceFeature {
         account.deposit(Amount.of("1000"), "from friend 1")
         account.deposit(Amount.of("2000"), "from friend 2")
         account.withdraw(Amount.of("500"), "for friend 3")
-        val statement = account.createStatement()
+        val statement = account.createStatement(AccountRequest.StatementRequest.all())
 
         StatementPrinter(decoratedLinePrinter).print(statement)
 

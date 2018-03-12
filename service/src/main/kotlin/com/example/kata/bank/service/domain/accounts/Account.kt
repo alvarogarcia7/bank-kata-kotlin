@@ -1,5 +1,6 @@
 package com.example.kata.bank.service.domain.accounts
 
+import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.transactions.Amount
@@ -29,7 +30,7 @@ class Account(private val clock: Clock, val name: String) {
         return Persisted.`for`(transaction, id)
     }
 
-    fun createStatement(): Statement {
+    fun createStatement(filter: AccountRequest.StatementRequest): Statement {
         val transaction = this.createIdentityFor(Transaction.Cost(Amount.Companion.of("1"), this.clock.getTime(), "Statement creation"))
         this.transactionRepository.save(transaction)
         val statementLines = StatementLines.parse(StatementLine.initial(), transactionRepository.findAll().map { it.value })

@@ -7,12 +7,19 @@ sealed class AccountRequest {
 
     abstract fun <T> apply(account: Account): T
 
-    class StatementRequest : AccountRequest() {
-        override fun <T> apply(account: Account): T {
-            return account.createStatement() as T
-        }
+    class StatementRequest private constructor(val filter: (Transaction) -> Boolean) : AccountRequest() {
+        companion object {
+            fun filter(filter: (Transaction) -> Boolean): StatementRequest {
+                return StatementRequest(filter)
+            }
 
-        private val filter: (Transaction) -> Boolean = { _ -> true }
+            fun all(): StatementRequest {
+                return StatementRequest { _ -> true }
+            }
+        }
+        override fun <T> apply(account: Account): T {
+            return account.createStatement(this) as T
+        }
     }
 
 }

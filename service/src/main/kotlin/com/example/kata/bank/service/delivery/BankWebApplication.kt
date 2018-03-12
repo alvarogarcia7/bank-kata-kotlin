@@ -145,11 +145,9 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
 class StatementRequestFactory {
     companion object {
         fun create(request: StatementRequestDTO): AccountRequest {
-            return AccountRequest.StatementRequest()
+            return AccountRequest.StatementRequest.all()
         }
-
     }
-
 }
 
 class XAPPlicationService(val accountRepository: AccountRepository, val operationsRepository: OperationsRepository) {

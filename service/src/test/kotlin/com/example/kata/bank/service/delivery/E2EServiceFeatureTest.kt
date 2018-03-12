@@ -263,7 +263,7 @@ class E2EServiceFeatureTest {
                 .map {
                     it.value.deposit(Amount.Companion.of("100"), "rent, part 1")
                     it.value.deposit(Amount.Companion.of("200"), "rent, part 2")
-                    XAPPlicationService(accountRepository, operationsRepository).createAndSaveOperation(it.value, AccountRequest.StatementRequest())
+                    XAPPlicationService(accountRepository, operationsRepository).createAndSaveOperation(it.value, AccountRequest.StatementRequest.all())
                 }.getOrElse { throw UnreachableCode() }
 
         (HTTP::get)("/accounts/${accountId.value}/statements/${statementId.value}")
