@@ -1,4 +1,4 @@
-package com.example.kata.bank.service.delivery
+package com.example.kata.bank.service
 
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import java.net.BindException

@@ -1,5 +1,6 @@
-package com.example.kata.bank.service.delivery
+package com.example.kata.bank.service
 
+import com.example.kata.bank.service.delivery.UnreachableCode
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Request
