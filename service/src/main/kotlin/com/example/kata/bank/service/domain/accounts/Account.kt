@@ -31,7 +31,12 @@ class Account(private val clock: Clock, val name: String) {
     }
 
     fun createStatement(statementRequest: AccountRequest.StatementRequest): Statement {
-        addCost(Amount.of("1"), "Statement creation")
+        if (transactionRepository.findAll()
+                        .map { it.value }
+                        .filter(statementRequest.filter)
+                        .isNotEmpty()) {
+            addCost(Amount.of("1"), "Statement creation")
+        }
         val transactions = transactionRepository.findAll()
                 .map { it.value }
                 .filter(statementRequest.filter)
