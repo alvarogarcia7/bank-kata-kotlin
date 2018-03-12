@@ -37,8 +37,26 @@ class Account(private val clock: Clock, val name: String) {
     }
 
     fun createStatement(): Statement {
+        this.withdraw(Amount.Companion.of("1"), "Statement creation")
         val statementLines = StatementLines.parse(StatementLine.initial(), transactionRepository.findAll().map { it.value })
         return Statement.inReverseOrder(statementLines)
+    }
+
+    fun balance(): Amount {
+        val transactions = this.findAll()
+        val result = transactions.map { it.value }
+                .foldRight(Amount.of("0"), { ele, acc ->
+
+                    when (ele) {
+                        is Transaction.Withdrawal -> {
+                            acc.subtract(ele.amount)
+                        }
+                        is Transaction.Deposit -> {
+                            acc.add(ele.amount)
+                        }
+                    }
+                })
+        return result
     }
 
     val find = transactionRepository::findBy
