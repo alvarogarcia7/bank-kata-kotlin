@@ -91,5 +91,12 @@ kotlin {
 //https://stackoverflow.com/questions/19990716/how-to-ignore-a-specific-transitive-dependency-from-all-dependencies-in-gradle#19991364
 // Ignore the transitive dependency from com.fasterxml.jackson, that brings kotlin-reflect that uses jdk7
 configurations {
-    compile.exclude artifactId: 'kotlin-reflect'
+//    compile.exclude group: 'org.jetbrains.kotlin', module: 'kotlin-reflect'
 }
+
+tasks.create(name: 'gitExecutableHooks') << {
+    Runtime.getRuntime().exec("cp -R bin/hooks .git")
+    Runtime.getRuntime().exec("chmod -R +x .git/hooks/")
+}
+
+build.dependsOn gitExecutableHooks
