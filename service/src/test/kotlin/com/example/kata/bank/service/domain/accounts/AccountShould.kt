@@ -87,6 +87,18 @@ class AccountShould {
         assertThat(account.findAll()).hasSize(0)
     }
 
+    @Test
+    fun `can withdraw even if it would empty the account`() {
+        val account = Account(Clock.aNew(), "test account", Account.AccountType.Premium)
+        account.deposit(Amount.of("100"), "initial deposit")
+        assertThat(account.findAll()).hasSize(1)
+
+        val result = account.withdraw(Amount.Companion.of("100"), "overdraft")
+
+        assertThat(result.isRight()).isTrue()
+        assertThat(account.findAll()).hasSize(2)
+    }
+
     private fun costsFor(account: Account) = account.findAll().map { it.value }.filter { it is Transaction.Cost }
 
     private fun accountWithMovements(type: Account.AccountType): Account {
