@@ -4,7 +4,8 @@ set -euxo pipefail
 
 # https://gist.github.com/tonilopezmr/88f651827a924993a6692b3bde2ca755
 # https://github.com/shyiko/ktlint pre-commit hook
-git diff --name-only --cached --relative | grep '\.kt[s"]\?$' | xargs ./bin/ktlint -F --relative .
+git diff --name-only --relative | grep '\.kt[s"]\?$' | xargs ./bin/ktlint -F --relative .
+#git diff --name-only --cached --relative | grep '\.kt[s"]\?$' | xargs ./bin/ktlint -F --relative .
 if [ $? -ne 0 ]; then
   exit 1
 fi
