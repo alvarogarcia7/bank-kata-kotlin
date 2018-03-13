@@ -36,8 +36,13 @@ abstract class AccountShould {
     }
 
     @Test
-    fun `can withdraw even if it would empty the account`() {
+    fun `can withdraw even if it would empty the account `() {
+
+
+
+
         val account = account()
+
         account.deposit(Amount.of("100"), "initial deposit")
         Assertions.assertThat(account.findAll()).hasSize(1)
 
