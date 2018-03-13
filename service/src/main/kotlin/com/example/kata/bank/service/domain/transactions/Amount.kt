@@ -25,4 +25,8 @@ data class Amount private constructor(private val value: BigDecimal) {
     fun formatted(): String {
         return DecimalFormat("0.00").format(this.value)
     }
+
+    fun greaterThan(other: Amount): Boolean {
+        return this.value > other.value
+    }
 }

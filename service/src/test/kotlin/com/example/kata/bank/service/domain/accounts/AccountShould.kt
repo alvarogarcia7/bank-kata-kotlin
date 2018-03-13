@@ -1,5 +1,6 @@
 package com.example.kata.bank.service.domain.accounts
 
+import arrow.core.Either
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
@@ -73,6 +74,17 @@ class AccountShould {
         account.createStatement(AccountRequest.StatementRequest.filter { it -> false })
 
         assertThat(account.findAll().map { it.value }.filter { it is Transaction.Cost }).hasSize(0)
+    }
+
+    @Test
+    fun `cannot withdraw if it would go into overdraft --as a personal account--`() {
+        val account = Account(Clock.aNew(), "test account", Account.AccountType.Premium)
+        assertThat(account.findAll()).hasSize(0)
+
+        val result = account.withdraw(Amount.Companion.of("1"), "overdraft")
+
+        assertThat(result.mapLeft { it.map { it.message } }).isEqualTo(Either.left(listOf("Cannot go overdraft")))
+        assertThat(account.findAll()).hasSize(0)
     }
 
     private fun costsFor(account: Account) = account.findAll().map { it.value }.filter { it is Transaction.Cost }
