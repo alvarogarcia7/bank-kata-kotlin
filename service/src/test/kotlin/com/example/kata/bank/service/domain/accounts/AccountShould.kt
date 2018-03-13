@@ -30,7 +30,7 @@ abstract class AccountShould {
     fun `create a filtered statement --that produces no results-- does not cost the personal user a dime`() {
         val account = accountWithMovements()
 
-        account.createStatement(AccountRequest.StatementRequest.filter { it -> false })
+        account.createStatement(AccountRequest.StatementRequest.filter { its -> false })
 
         Assertions.assertThat(costsFor(account)).hasSize(0)
     }
@@ -46,7 +46,6 @@ abstract class AccountShould {
         Assertions.assertThat(result.isRight()).isTrue()
         Assertions.assertThat(account.findAll()).hasSize(2)
     }
-
 
     @Test
     fun `cannot withdraw if it would go into overdraft`() {
