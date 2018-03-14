@@ -55,7 +55,7 @@ class BankWebApplication(
 
 //        operations
         http.get("/accounts/:accountId/operations/:operationId", function = mayBeMissing(operationsHandler::get))
-        http.get("/accounts/:accountId/operations", function = operationsHandler.list)
+        http.get("/accounts/:accountId/operations", function = list(operationsHandler::list))
         http.get("/accounts/:accountId/statements/:statementId", function = operationsHandler.getStatement)
         http.post("/accounts/:accountId/operations", function = operationsHandler.add)
 
@@ -67,9 +67,9 @@ class BankWebApplication(
     private fun <T : Any> list(kFunction2: KFunction2<Request, Response, X.ResponseEntity<T>>): RouteHandler.() -> Any = {
         val result = kFunction2.invoke(request, response)
         response.status(result.statusCode)
-        result.payload.map {
-            response.body(objectMapper.writeValueAsString(it))
-        }
+        result.payload
+                .orElse { Some("") }
+                .map { objectMapper.writeValueAsString(it) }.get()
     }
 
     private fun <T : Any, S : Any> canFail(fn: KFunction2<Request, Response, Either<X.ResponseEntity<T>, X.ResponseEntity<S>>>): RouteHandler.() -> Any = {
@@ -306,25 +306,14 @@ class OperationsHandler(private val operationService: OperationService, private 
         objectMapper.writeValueAsString(result)
     }
 
-    val list: RouteHandler.() -> String = {
+    fun list(request: spark.Request, response: spark.Response): X.ResponseEntity<List<MyResponse<TransactionDTO>>> {
         val accountId: String = request.params(":accountId") ?: throw RuntimeException("invalid request") //TODO AGB
-        val result = accountRepository
+        val payload = accountRepository
                 .findBy(Id.of(accountId))
                 .map {
-                    it.value
-                            .findAll()
-                            .map { MyResponse(mapper.toDTO(it.value), listOf(Link("/accounts/$accountId/operations/${it.id.value}", rel = "self", method = "GET"))) }
-                }
-        when (result) {
-            is None -> {
-                throw NotTestedOperation()
-                response.status(400)
-                objectMapper.writeValueAsString("")
-            }
-            is Some -> {
-                objectMapper.writeValueAsString(result.t)
-            }
-        }
+                    it.value.findAll().map { MyResponse(mapper.toDTO(it.value), listOf(Link("/accounts/$accountId/operations/${it.id.value}", rel = "self", method = "GET"))) }
+                }.get()
+        return X.ok(payload)
     }
 
     private fun accountFor(accountId: String) = accountRepository.findBy(Id.of(accountId)).map { it.value }
