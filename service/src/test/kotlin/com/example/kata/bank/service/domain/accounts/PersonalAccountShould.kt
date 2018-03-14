@@ -1,6 +1,7 @@
 package com.example.kata.bank.service.domain.accounts
 
 import arrow.core.Either
+import arrow.core.Option
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.transactions.Amount
 import org.assertj.core.api.Assertions.assertThat
@@ -36,7 +37,7 @@ internal class PersonalAccountShould : AccountShould() {
 
     private fun account() = account(Clock.aNew())
 
-    override fun account(clock: Clock): Account {
-        return Account(clock, "test account", Account.AccountType.Personal)
+    override fun account(clock: Clock, securityProvider: Option<Security>): Account {
+        return Account(clock, "test account", Account.AccountType.Personal, securityProvider)
     }
 }

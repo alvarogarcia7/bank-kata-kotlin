@@ -1,12 +1,17 @@
 package com.example.kata.bank.service.domain.accounts
 
 import arrow.core.Either
+import arrow.core.None
+import arrow.core.Option
+import arrow.core.Some
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.FakeClock
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
+import com.nhaarman.mockito_kotlin.mock
+import com.nhaarman.mockito_kotlin.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 
@@ -96,6 +101,30 @@ abstract class AccountShould {
                 { ("same balance2" to origin.value.balance().add(destination.value.balance())) })
     }
 
+
+    @Test
+    fun `be protected with an OTP code to confirm a transfer`() {
+        val date1 = FakeClock.date("14/03/2018")
+        val clock = FakeClock.reading(date1)
+        val securityProvider = mock<Security>()
+        val account = account(clock, Some(securityProvider))
+        account.deposit(Amount.of("100"), "first movement")
+        account.deposit(Amount.of("200"), "second movement")
+        account.withdraw(Amount.of("99"), "third movement")
+        val origin = Persisted.`for`(account, Id.of("origin"))
+        val destination = Persisted.`for`(account(clock), Id.of("destination"))
+
+
+        val operationAmount = Amount.of("100")
+        val description = "paying rent"
+
+        val result = Account.transfer(operationAmount, description, origin, destination)
+
+        verify(securityProvider).generate()
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer(operationAmount, date1, description, origin.id, destination.id)))
+    }
+
+
     private fun invariant(sideEffect: () -> Any, vararg functions: () -> Pair<String, Any>) {
         val before = functions.map { it.invoke() }
 
@@ -125,5 +154,5 @@ abstract class AccountShould {
 
     private fun account() = account(Clock.aNew())
 
-    protected abstract fun account(clock: Clock): Account
+    protected abstract fun account(clock: Clock, securityProvider: Option<Security> = None): Account
 }

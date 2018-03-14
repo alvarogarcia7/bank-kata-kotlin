@@ -1,6 +1,7 @@
 package com.example.kata.bank.service.domain.accounts
 
 import arrow.core.Either
+import arrow.core.None
 import arrow.core.Option
 import arrow.core.flatMap
 import com.example.kata.bank.service.domain.AccountRequest
@@ -12,7 +13,7 @@ import com.example.kata.bank.service.domain.transactions.TransactionRepository
 import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.example.kata.bank.service.infrastructure.statement.StatementLine
 
-class Account(private val clock: Clock, val name: String, val type: AccountType = AccountType.Personal) {
+class Account(private val clock: Clock, val name: String, val type: AccountType = AccountType.Personal, private val securityProvider: Option<Security> = None) {
     private val transactionRepository: TransactionRepository = TransactionRepository()
 
     fun deposit(amount: Amount, description: String): Id {
@@ -105,6 +106,7 @@ class Account(private val clock: Clock, val name: String, val type: AccountType 
                 Transaction.Transfer> {
             return originAccount.value.emitTransfer(operationAmount, description, destinationAccount.id).flatMap {
                 destinationAccount.value.receiveTransfer(operationAmount, description, originAccount.id)
+
                 Either.right(Transaction.Transfer(operationAmount, it.time, description, originAccount.id, destinationAccount.id))
             }
         }
@@ -121,6 +123,7 @@ class Account(private val clock: Clock, val name: String, val type: AccountType 
         val transfer = Transaction.TransferEmitted(operationAmount, clock.getTime(), description, to)
         val persistedTransfer = createIdentityFor(transfer)
         transactionRepository.save(persistedTransfer)
+        securityProvider.map { it.generate() }
         return Either.right(transfer)
     }
 

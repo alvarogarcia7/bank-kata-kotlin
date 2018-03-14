@@ -1,5 +1,6 @@
 package com.example.kata.bank.service.domain.accounts
 
+import arrow.core.Option
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
@@ -68,5 +69,5 @@ class PremiumAccountShould : AccountShould() {
 
     private fun account() = account(Clock.aNew())
 
-    override fun account(clock: Clock) = Account(clock, "premium account", Account.AccountType.Premium)
+    override fun account(clock: Clock, securityProvider: Option<Security>): Account = Account(clock, "premium account", Account.AccountType.Premium, securityProvider)
 }
