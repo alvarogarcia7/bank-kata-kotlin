@@ -48,7 +48,7 @@ class BankWebApplication(
     private fun configurePaths(http: Http) {
         //accounts
         http.get("/accounts", function = x(accountsHandler::list))
-        http.post("/accounts", function = x(accountsHandler::add))
+        http.post("/accounts", function = canFail(accountsHandler::add))
         http.get("/accounts/:accountId", function = accountsHandler.detail)
         http.post("/accounts/:accountId", function = accountsHandler.request)
 
@@ -71,6 +71,30 @@ class BankWebApplication(
         }
     }
 
+    private fun <T : Any, S : Any> canFail(fn: KFunction2<Request, Response, Either<X.ResponseEntity<T>, X.ResponseEntity<S>>>): RouteHandler.() -> Any = {
+        val result = fn.invoke(request, response)
+        val payload = when (result) {
+            is Either.Left -> {
+                response.status(result.a.statusCode)
+                result.a.payload
+            }
+            is Either.Right -> {
+                response.status(result.b.statusCode)
+                result.b.payload
+            }
+        }
+        val body = when (payload) {
+            is Some -> serialize(payload.t)
+            is None -> ""
+        }
+        body
+
+    }
+
+    private fun <T> serialize(it: T): String {
+        return objectMapper.writeValueAsString(it)
+    }
+
     override fun stop() {
         httpService.stop()
     }
@@ -87,9 +111,9 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
         return X.ok(x)
     }
 
-    fun add(request: spark.Request, response: spark.Response): Either<List<Exception>, MyResponse<AccountDTO>> {
+    fun add(request: spark.Request, response: spark.Response): Either<X.ResponseEntity<MyResponse<List<String>>>, X.ResponseEntity<MyResponse<AccountDTO>>> {
         val openAccountRequestDTO = objectMapper.readValue<OpenAccountRequestDTO>(request.body())
-        return X.either(openAccountRequestDTO
+        val x = (openAccountRequestDTO
                 .validate()
                 .flatMap { OpenAccountRequest.parse(it.name!!) }
                 .map { Persisted.`for`(it, Id.random()) }
@@ -100,7 +124,10 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
                 .map { (account, id) ->
                     MyResponse(mapper.toDTO(account), listOf(Link.self("accounts" to id)))
                 })
-
+                .mapLeft { it -> MyResponse(it.map { it.message!! }, listOf()) }
+                .mapLeft { it -> X.notFound(it) }
+                .map { it -> X.ok(it) }
+        return x
     }
 
     val detail: RouteHandler.() -> String = {
@@ -159,6 +186,10 @@ class X {
 
         private fun error(it: List<Exception>): ResponseEntity<List<String>> {
             return ResponseEntity(400, Some(it.map { it.message!! }))
+        }
+
+        fun <T> notFound(it: T): ResponseEntity<T> {
+            return ResponseEntity(400, Some(it))
         }
     }
 
