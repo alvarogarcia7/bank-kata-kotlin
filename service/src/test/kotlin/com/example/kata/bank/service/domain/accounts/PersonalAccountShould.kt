@@ -16,7 +16,7 @@ internal class PersonalAccountShould : AccountShould() {
     }
 
     @Test
-    fun `cannot withdraw if it would go into overdraft`() {
+    fun `cannot go overdraft`() {
         val account = account()
         Assertions.assertThat(account.findAll()).hasSize(0)
 
