@@ -87,18 +87,14 @@ abstract class AccountShould {
 
         val date1 = FakeClock.date("14/03/2018")
         val clock = FakeClock.reading(date1)
-        val (origin, originTransactionCount) = account_(clock, "origin")
-        val (destination, destinationTransactionCount) = account_(clock, "destination")
+        val (origin, _) = account_(clock, "origin")
+        val (destination, _) = account_(clock, "destination")
         val sumOfBalances = origin.value.balance().add(destination.value.balance())
 
         val operationAmount = Amount.of("100")
         val description = "paying rent"
 
         val result = Account.transfer(operationAmount, description, origin, destination)
-
-        assertThat(origin.value.findAll().size).isEqualTo(originTransactionCount + 1)
-        assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer(operationAmount, date1, description, origin.id, destination.id)))
 
         assertThat(origin.value.balance().add(destination.value.balance())).isEqualTo(sumOfBalances)
     }
