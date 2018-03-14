@@ -245,13 +245,11 @@ class OperationsHandler(private val operationService: OperationService, private 
                     when (operationRequest) {
                         is OperationRequest.DepositRequest -> {
                             val depositId = accountFor(accountId)
-                            val x = Either.cond(depositId.isDefined(), { depositId.get() }, { listOf(Exception("No account")) })
+                            Either.cond(depositId.isDefined(), { depositId.get() }, { listOf(Exception("No account")) })
                                     .flatMap { account ->
                                         val x = operationService.deposit(account, operationRequest)
-                                        val y = Either.cond(x.isDefined(), { x.get() }, { listOf(Exception("Deposit failed")) })
-                                        y
+                                        Either.cond(x.isDefined(), { x.get() }, { listOf(Exception("Deposit failed")) })
                                     }
-                            x
                         }
                     }
                 }
