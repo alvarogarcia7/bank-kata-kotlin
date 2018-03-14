@@ -10,8 +10,6 @@ import com.example.kata.bank.service.domain.transactions.Transaction
 import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 abstract class AccountShould {
     @Test
@@ -70,7 +68,7 @@ abstract class AccountShould {
 
     @Test
     fun `transfer between two accounts`() {
-        val date1 = date("14/03/2018")
+        val date1 = FakeClock.date("14/03/2018")
         val clock = FakeClock.reading(date1)
         val origin = accountWithMovements(clock)
         val originTransactionCount = origin.findAll().size
@@ -86,11 +84,6 @@ abstract class AccountShould {
         assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
         Assertions.assertThat(result.isRight()).isTrue()
         assertThat(result).isEqualTo(Either.right(Transaction.Transfer(operationAmount, date1, description, destination.id)))
-    }
-
-    private fun date(value: String): LocalDateTime {
-        val dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/uuuu" + " " + "HH:mm:ss")
-        return LocalDateTime.parse(value + " " + "00:00:00", dateTimeFormatter)
     }
 
 
