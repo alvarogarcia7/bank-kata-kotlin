@@ -61,7 +61,7 @@ class BankWebApplication(
         http.get("/users", function = usersHandler.list)
     }
 
-    private fun x(kFunction2: KFunction2<@ParameterName(name = "request") Request, @ParameterName(name = "response") Response, String>): RouteHandler.() -> Any = {
+    private fun x(kFunction2: KFunction2<Request, Response, String>): RouteHandler.() -> Any = {
         kFunction2.invoke(request, response)
     }
 
