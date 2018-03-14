@@ -69,10 +69,8 @@ abstract class AccountShould {
     fun `transfer between two accounts`() {
         val date1 = FakeClock.date("14/03/2018")
         val clock = FakeClock.reading(date1)
-        val origin = Persisted.`for`(accountWithMovements(clock), Id.of("origin"))
-        val originTransactionCount = origin.value.findAll().size
-        val destination = Persisted.`for`(account(clock), Id.of("destination"))
-        val destinationTransactionCount = destination.value.findAll().size
+        val (origin, originTransactionCount) = account_(clock, "origin")
+        val (destination, destinationTransactionCount) = account_(clock, "destination")
 
         val operationAmount = Amount.of("100")
         val description = "paying rent"
@@ -89,10 +87,8 @@ abstract class AccountShould {
 
         val date1 = FakeClock.date("14/03/2018")
         val clock = FakeClock.reading(date1)
-        val origin = Persisted.`for`(accountWithMovements(clock), Id.of("origin"))
-        val originTransactionCount = origin.value.findAll().size
-        val destination = Persisted.`for`(account(clock), Id.of("destination"))
-        val destinationTransactionCount = destination.value.findAll().size
+        val (origin, originTransactionCount) = account_(clock, "origin")
+        val (destination, destinationTransactionCount) = account_(clock, "destination")
         val sumOfBalances = origin.value.balance().add(destination.value.balance())
 
         val operationAmount = Amount.of("100")
@@ -105,6 +101,12 @@ abstract class AccountShould {
         assertThat(result).isEqualTo(Either.right(Transaction.Transfer(operationAmount, date1, description, origin.id, destination.id)))
 
         assertThat(origin.value.balance().add(destination.value.balance())).isEqualTo(sumOfBalances)
+    }
+
+    private fun account_(clock: Clock, accountId: String): Pair<Persisted<Account>, Int> {
+        val account = Persisted.`for`(accountWithMovements(clock), Id.of(accountId))
+        val transactionCount = account.value.findAll().size
+        return Pair(account, transactionCount)
     }
 
 
