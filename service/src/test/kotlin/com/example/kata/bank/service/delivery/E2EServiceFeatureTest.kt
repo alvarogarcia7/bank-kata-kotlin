@@ -96,6 +96,23 @@ class E2EServiceFeatureTest {
     }
 
     @Test
+    fun `create accounts`() {
+
+        HTTP.post("/accounts", "{\"name\": \"postperson savings account\"}")
+                .let(http::request)
+                .let { (response, result) ->
+                    assertThat(response.statusCode).isEqualTo(200)
+                    println(result.value)
+                    val account = http.mapper.readValue<MyResponse<AccountDTO>>(result.value)
+                    val statementPair = account.links.find { it.rel == "self" }?.resource("accounts")!!
+                    statementPair.map { (resource, idValue) ->
+                        assertThat(accountRepository.findBy(Id.of(idValue)).isDefined()).isTrue()
+                    }
+                }
+
+    }
+
+    @Test
     fun `detail for an account`() {
         val accountId = Id.random()
         accountRepository.save(Persisted.`for`(aNewAccount("pepe"), accountId))

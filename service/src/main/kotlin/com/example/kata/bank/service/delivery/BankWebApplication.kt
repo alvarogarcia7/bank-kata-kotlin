@@ -21,19 +21,19 @@ import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.fasterxml.jackson.module.kotlin.readValue
-import spark.kotlin.Http
+import spark.Route
+import spark.Service
 import spark.kotlin.RouteHandler
-import spark.kotlin.ignite
 
 class BankWebApplication(
         private val operationsHandler: OperationsHandler,
         private val accountsHandler: AccountsHandler,
         private val usersHandler: UsersHandler) :
         ApplicationEngine {
-    private var http: Http = ignite()
+    private var httpService: Service = Service.ignite()
 
     override fun start(port: Int): BankWebApplication {
-        val http = http
+        val http = httpService
                 .port(port)
 //                .threadPool(10)
 
@@ -41,25 +41,25 @@ class BankWebApplication(
         return this
     }
 
-    private fun configurePaths(http: Http) {
+    private fun configurePaths(http: Service) {
         //accounts
-        http.get("/accounts", function = accountsHandler.list)
-        http.post("/accounts", function = accountsHandler.add)
-        http.get("/accounts/:accountId", function = accountsHandler.detail)
-        http.post("/accounts/:accountId", function = accountsHandler.request)
-
-        //operations
-        http.get("/accounts/:accountId/operations/:operationId", function = operationsHandler.get)
-        http.get("/accounts/:accountId/operations", function = operationsHandler.list)
-        http.get("/accounts/:accountId/statements/:statementId", function = operationsHandler.getStatement)
-        http.post("/accounts/:accountId/operations", function = operationsHandler.add)
+        http.get("/accounts", accountsHandler.list)
+        http.post("/accounts", accountsHandler.add)
+//        httpService.get("/accounts/:accountId", function = accountsHandler.detail)
+//        httpService.post("/accounts/:accountId", function = accountsHandler.request)
+//
+//        operations
+//        httpService.get("/accounts/:accountId/operations/:operationId", function = operationsHandler.get)
+//        httpService.get("/accounts/:accountId/operations", function = operationsHandler.list)
+//        httpService.get("/accounts/:accountId/statements/:statementId", function = operationsHandler.getStatement)
+//        httpService.post("/accounts/:accountId/operations", function = operationsHandler.add)
 
         //users
-        http.get("/users", function = usersHandler.list)
+//        httpService.get("/users", function = usersHandler.list)
     }
 
     override fun stop() {
-        http.stop()
+        httpService.stop()
     }
 }
 
@@ -67,14 +67,14 @@ class BankWebApplication(
 class AccountsHandler(private val accountRepository: AccountRepository, private val xApplicationService: XAPPlicationService) {
     private val mapper = Mapper()
     private val objectMapper = JSONMapper.aNew()
-    val list: RouteHandler.() -> String = {
+    val list: Route = Route { request, response ->
         val x = accountRepository
                 .findAll()
                 .map { (account, id) -> MyResponse(mapper.toDTO(account), listOf(Link("/accounts/${id.value}", rel = "self", method = "GET"))) }
         objectMapper.writeValueAsString(x)
     }
 
-    val add: RouteHandler.() -> String = {
+    val add: Route = Route { request, response ->
         val openAccountRequestDTO = objectMapper.readValue<OpenAccountRequestDTO>(request.body())
         val result = openAccountRequestDTO
                 .validate()
