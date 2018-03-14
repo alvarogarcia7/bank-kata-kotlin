@@ -20,6 +20,7 @@ import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
 import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.OperationService
+import com.example.kata.bank.service.infrastructure.operations.TransactionDTO
 import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.fasterxml.jackson.module.kotlin.readValue
 import spark.Request
@@ -53,7 +54,7 @@ class BankWebApplication(
         http.post("/accounts/:accountId", function = canFail(accountsHandler::request))
 
 //        operations
-        http.get("/accounts/:accountId/operations/:operationId", function = operationsHandler.get)
+        http.get("/accounts/:accountId/operations/:operationId", function = mayBeMissing(operationsHandler::get))
         http.get("/accounts/:accountId/operations", function = operationsHandler.list)
         http.get("/accounts/:accountId/statements/:statementId", function = operationsHandler.getStatement)
         http.post("/accounts/:accountId/operations", function = operationsHandler.add)
@@ -274,23 +275,19 @@ class OperationsHandler(private val operationService: OperationService, private 
         }
     }
 
-    val get: RouteHandler.() -> String = {
+    fun get(request: spark.Request, response: spark.Response): Option<X.ResponseEntity<MyResponse<TransactionDTO>>> {
         val accountId: String? = request.params(":accountId")
         val operationId: String? = request.params(":operationId")
         if (accountId == null || operationId == null) {
             throw RuntimeException("invalid request") //TODO AGB
         }
 
-        var result = ""
-        accountFor(accountId)
+        return accountFor(accountId)
                 .flatMap {
                     it.find(Id.of(operationId))
                 }.map {
-                    result = objectMapper.writeValueAsString(MyResponse(mapper.toDTO(it.value), listOf(Link("/accounts/$accountId/operations/$operationId", "self", "GET"))))
+                    (X.ok(MyResponse(mapper.toDTO(it.value), listOf(Link("/accounts/$accountId/operations/$operationId", "self", "GET")))))
                 }
-
-        result
-
     }
 
     val getStatement: RouteHandler.() -> String = {
