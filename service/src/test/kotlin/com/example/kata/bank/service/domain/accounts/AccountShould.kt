@@ -13,7 +13,7 @@ import org.junit.Test
 abstract class AccountShould {
     @Test
     fun `create a filtered statement, just the Deposits`() {
-        val account = accountWithMovements(Clock.aNew())
+        val account = accountWithMovements()
 
         val statement = account.createStatement(AccountRequest.StatementRequest.filter { it is Transaction.Deposit })
 
@@ -22,7 +22,7 @@ abstract class AccountShould {
 
     @Test
     fun `create a filtered statement, just the Withdrawals`() {
-        val account = accountWithMovements(Clock.aNew())
+        val account = accountWithMovements()
 
         val statement = account.createStatement(AccountRequest.StatementRequest.filter { it is Transaction.Withdrawal })
 
@@ -31,7 +31,7 @@ abstract class AccountShould {
 
     @Test
     fun `create a filtered statement --that produces no results-- does not cost the personal user a dime`() {
-        val account = accountWithMovements(Clock.aNew())
+        val account = accountWithMovements()
 
         account.createStatement(AccountRequest.StatementRequest.filter { its -> false })
 
@@ -114,6 +114,8 @@ abstract class AccountShould {
     }
 
     private fun costsFor(account: Account) = account.findAll().map { it.value }.filter { it is Transaction.Cost }
+
+    private fun accountWithMovements() = accountWithMovements(Clock.aNew())
 
     private fun accountWithMovements(clock: Clock): Account {
         val account = account(clock)
