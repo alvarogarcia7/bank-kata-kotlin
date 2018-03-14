@@ -7,7 +7,6 @@ import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
-import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 
@@ -18,7 +17,7 @@ abstract class AccountShould {
 
         val statement = account.createStatement(AccountRequest.StatementRequest.filter { it is Transaction.Deposit })
 
-        Assertions.assertThat(statement.lines).hasSize(3) //1 (initial) + 2 (above)
+        assertThat(statement.lines).hasSize(3) //1 (initial) + 2 (above)
     }
 
     @Test
@@ -27,7 +26,7 @@ abstract class AccountShould {
 
         val statement = account.createStatement(AccountRequest.StatementRequest.filter { it is Transaction.Withdrawal })
 
-        Assertions.assertThat(statement.lines).hasSize(2) //1 (initial) + 1 (above)
+        assertThat(statement.lines).hasSize(2) //1 (initial) + 1 (above)
     }
 
     @Test
@@ -36,7 +35,7 @@ abstract class AccountShould {
 
         account.createStatement(AccountRequest.StatementRequest.filter { its -> false })
 
-        Assertions.assertThat(costsFor(account)).hasSize(0)
+        assertThat(costsFor(account)).hasSize(0)
     }
 
     @Test
@@ -44,12 +43,12 @@ abstract class AccountShould {
         val account = account(Clock.aNew())
         account.deposit(Amount.of("100"),
                 "initial deposit")
-        Assertions.assertThat(account.findAll()).hasSize(1)
+        assertThat(account.findAll()).hasSize(1)
 
         val result = account.withdraw(Amount.Companion.of("100"), "overdraft")
 
-        Assertions.assertThat(result.isRight()).isTrue()
-        Assertions.assertThat(account.findAll()).hasSize(2)
+        assertThat(result.isRight()).isTrue()
+        assertThat(account.findAll()).hasSize(2)
     }
 
     @Test
@@ -57,12 +56,12 @@ abstract class AccountShould {
         val account = account(Clock.aNew())
         account.deposit(Amount.of("100"), "initial deposit")
         account.withdraw(Amount.Companion.of("99.99"), "overdraft")
-        Assertions.assertThat(account.findAll()).hasSize(2)
+        assertThat(account.findAll()).hasSize(2)
 
         val result = account.withdraw(Amount.Companion.of("0.01"), "overdraft")
 
-        Assertions.assertThat(result.isRight()).isTrue()
-        Assertions.assertThat(account.findAll()).hasSize(3)
+        assertThat(result.isRight()).isTrue()
+        assertThat(account.findAll()).hasSize(3)
     }
 
 
@@ -82,7 +81,7 @@ abstract class AccountShould {
 
         assertThat(origin.findAll().size).isEqualTo(originTransactionCount + 1)
         assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
-        Assertions.assertThat(result.isRight()).isTrue()
+        assertThat(result.isRight()).isTrue()
         assertThat(result).isEqualTo(Either.right(Transaction.Transfer(operationAmount, date1, description, destination.id)))
     }
 
