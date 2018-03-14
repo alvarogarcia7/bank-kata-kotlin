@@ -49,7 +49,7 @@ class PremiumAccountShould : AccountShould() {
 
     @Test
     fun `can go overdraft`() {
-        val account = account(Clock.aNew())
+        val account = account()
 
         val result = account.withdraw(Amount.of("100"), "another expense")
 
@@ -60,12 +60,14 @@ class PremiumAccountShould : AccountShould() {
     private fun costsFor(account: Account) = account.findAll().map { it.value }.filter { it is Transaction.Cost }
 
     private fun accountWithMovements(): Account {
-        val account = account(Clock.aNew())
+        val account = account()
         account.deposit(Amount.of("100"), "first movement")
         account.deposit(Amount.of("200"), "second movement")
         account.withdraw(Amount.of("99"), "third movement")
         return account
     }
+
+    private fun account() = account(Clock.aNew())
 
     override fun account(clock: Clock) = Account(clock, "premium account", Account.AccountType.Premium)
 }
