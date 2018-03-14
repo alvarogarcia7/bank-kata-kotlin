@@ -71,10 +71,7 @@ abstract class AccountShould {
 
     @Test
     fun `transfer between two accounts`() {
-        val date1 = date("14/03/2018")
-        val clock = mock<Clock> {
-            on { getTime() } doReturn date1
-        }
+        val clock = clockReading(date("14/03/2018"))
         val origin = accountWithMovements(clock)
         val originTransactionCount = origin.findAll().size
         val destination = Persisted.`for`(account(clock), Id.of("destination"))
@@ -89,6 +86,12 @@ abstract class AccountShould {
         assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
         Assertions.assertThat(result.isRight()).isTrue()
         assertThat(result).isEqualTo(Either.right(Transaction.Transfer(operationAmount, date1, description, destination.id)))
+    }
+
+    private fun clockReading(vararg value: LocalDateTime): Clock {
+        return mock {
+            on { getTime() } doReturn value[0]
+        }
     }
 
     private fun date(value: String): LocalDateTime {
