@@ -83,9 +83,7 @@ abstract class AccountShould {
 
     @Test
     fun `money is not lost during transfers`() {
-
-        val date1 = FakeClock.date("14/03/2018")
-        val clock = FakeClock.reading(date1)
+        val clock = FakeClock.reading(FakeClock.date("14/03/2018"))
         val (origin, _) = account_(clock, "origin")
         val (destination, _) = account_(clock, "destination")
 
