@@ -19,7 +19,6 @@ import com.github.kittinunf.fuel.core.FuelManager
 import com.nhaarman.mockito_kotlin.verify
 import com.nhaarman.mockito_kotlin.verifyZeroInteractions
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.Ignore
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
@@ -29,7 +28,6 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito
 
 @RunWith(JUnitPlatform::class)
-@Ignore("Problems with running two servers. See #1 - https://github.com/alvarogarcia7/bank-kata-kotlin/issues/1")
 class ServiceIntegrationTest {
 
     object Mocks {

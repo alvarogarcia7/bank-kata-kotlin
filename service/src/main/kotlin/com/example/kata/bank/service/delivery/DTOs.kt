@@ -10,4 +10,10 @@ data class StatementRequestDTO(val type: String) {
     }
 }
 
-data class ErrorsDTO(val messages: List<String>)
+data class ErrorsDTO private constructor(val messages: List<String>) {
+    companion object {
+        fun from(it: List<Exception>): ErrorsDTO {
+            return ErrorsDTO(it.map { it.message!! })
+        }
+    }
+}

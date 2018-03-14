@@ -96,6 +96,23 @@ class E2EServiceFeatureTest {
     }
 
     @Test
+    fun `create accounts`() {
+
+        HTTP.post("/accounts", "{\"name\": \"postperson savings account\"}")
+                .let(http::request)
+                .let { (response, result) ->
+                    assertThat(response.statusCode).isEqualTo(200)
+                    println(result.value)
+                    val account = http.mapper.readValue<MyResponse<AccountDTO>>(result.value)
+                    val statementPair = account.links.find { it.rel == "self" }?.resource("accounts")!!
+                    statementPair.map { (resource, idValue) ->
+                        assertThat(accountRepository.findBy(Id.of(idValue)).isDefined()).isTrue()
+                    }
+                }
+
+    }
+
+    @Test
     fun `detail for an account`() {
         val accountId = Id.random()
         accountRepository.save(Persisted.`for`(aNewAccount("pepe"), accountId))
@@ -147,11 +164,10 @@ class E2EServiceFeatureTest {
         """).let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
-                    val x = http.mapper.readValue<MyResponse<String>>(result.value)
+                    val x = http.mapper.readValue<MyResponse<Unit>>(result.value)
                     println(x)
                     assertThat(x.links).hasSize(1)
                     assertThat(x.links).filteredOn { it.rel == "list" }.isNotEmpty()
-                    assertThat(x.response).isEqualTo("")
                 }
         val newOperations = `operationsFor!`(accountId)
         this.bIsSupersetOfA(a = existingOperations, b = newOperations)
