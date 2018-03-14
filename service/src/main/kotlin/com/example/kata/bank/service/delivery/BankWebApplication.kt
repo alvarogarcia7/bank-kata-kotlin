@@ -234,7 +234,11 @@ class OperationsHandler(private val operationService: OperationService, private 
     private val objectMapper = JSONMapper.aNew()
 
     fun add(request: spark.Request, response: spark.Response): Either<X.ResponseEntity<MyResponse<ErrorsDTO>>, X.ResponseEntity<MyResponse<Unit>>> {
-        val accountId: String = request.params(":accountId") ?: throw NotTestedOperation()
+        val accountId: String = request.params(":accountId")
+                ?: return Either.left(listOf(Exception("Needs an :accountId")))
+                        .mapLeft { ErrorsDTO.from(it) }
+                        .mapLeft { MyResponse.noLinks(it) }
+                        .mapLeft { X.badRequest(it) }
         val result = objectMapper.readValueOption<OperationRequest>(request.body())
                 .mapLeft { listOf(it) }
                 .flatMap { operationRequest ->
