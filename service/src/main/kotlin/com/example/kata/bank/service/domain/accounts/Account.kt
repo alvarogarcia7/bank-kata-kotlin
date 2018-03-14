@@ -11,7 +11,6 @@ import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.transactions.TransactionRepository
 import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.example.kata.bank.service.infrastructure.statement.StatementLine
-import com.fasterxml.jackson.annotation.ObjectIdGenerators
 
 class Account(private val clock: Clock, val name: String, val type: AccountType = AccountType.Personal) {
     private val transactionRepository: TransactionRepository = TransactionRepository()
@@ -35,12 +34,12 @@ class Account(private val clock: Clock, val name: String, val type: AccountType 
     }
 
     private fun createIdentityFor(transaction: Transaction): Persisted<Transaction> {
-        val id = Id.of(ObjectIdGenerators.UUIDGenerator().generateId(transaction).toString())
+        val id = Id.random()
         return Persisted.`for`(transaction, id)
     }
 
     private fun createIdentityFor(transaction: Transaction.TransferEmitted): Persisted<Transaction.TransferEmitted> {
-        val id = Id.of(ObjectIdGenerators.UUIDGenerator().generateId(transaction).toString())
+        val id = Id.random()
         return Persisted.`for`(transaction, id)
     }
 
