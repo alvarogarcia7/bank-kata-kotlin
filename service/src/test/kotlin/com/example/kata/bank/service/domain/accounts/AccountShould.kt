@@ -73,7 +73,7 @@ abstract class AccountShould {
     fun `transfer between two accounts`() {
         val date1 = date("14/03/2018")
         val clock = mock<Clock> {
-            on { getTime() } doReturn listOf(date1, date1, date1, date1, date1)
+            on { getTime() } doReturn date1
         }
         val origin = accountWithMovements(clock)
         val originTransactionCount = origin.findAll().size
