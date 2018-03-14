@@ -15,7 +15,7 @@ class FakeClock(private val clock: Clock) : Clock {
         private val dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/uuuu" + " " + "HH:mm:ss")
         fun reading(vararg value: LocalDateTime): Clock {
             val clock = mock<Clock> {
-                on { getTime() } doReturn value[0]
+                on { getTime() } doReturn value.toList()
             }
             return FakeClock(clock)
         }

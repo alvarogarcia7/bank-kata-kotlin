@@ -3,12 +3,10 @@ package com.example.kata.bank.service.deposit
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.FakeClock
 import com.example.kata.bank.service.domain.accounts.Account
-import com.example.kata.bank.service.domain.accounts.Clock
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.infrastructure.statement.ConsoleLinePrinter
 import com.example.kata.bank.service.infrastructure.statement.LinePrinter
 import com.example.kata.bank.service.infrastructure.statement.StatementPrinter
-import com.nhaarman.mockito_kotlin.doReturn
 import com.nhaarman.mockito_kotlin.mock
 import org.junit.jupiter.api.Test
 import org.junit.platform.runner.JUnitPlatform
@@ -22,13 +20,12 @@ class AcceptanceFeature {
 
     @Test
     fun `operate with the account, then print statement`() {
-        val clock = mock<Clock> {
-            on { getTime() } doReturn listOf(
+        val clock = FakeClock.reading(
                     date("10/01/2012"),
                     date("13/01/2012"),
                     date("14/01/2012")
-            )
-        }
+
+        )
         val mockLinePrinter = mock<LinePrinter> {}
         val decoratedLinePrinter = object : ConsoleLinePrinter() {
             override fun println(line: String) {
