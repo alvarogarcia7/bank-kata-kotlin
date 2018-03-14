@@ -24,10 +24,26 @@ sealed class Transaction(open val amount: Amount, open val time: LocalDateTime, 
         }
     }
 
-    data class Transfer(override val amount: Amount, override val time: LocalDateTime, override val description: String, val destinationAccount: Id) : Transaction(amount, time,
+    data class TransferReceived(override val amount: Amount, override val time: LocalDateTime, override val description: String, val originAccount: Id) : Transaction(amount, time,
             description) {
         override fun subtotal(amount: Amount): Amount {
+            return amount.add(this.amount)
+        }
+    }
+
+    data class TransferEmitted(override val amount: Amount, override val time: LocalDateTime, override val description: String, val destinationAccount: Id) : Transaction(amount,
+            time, description) {
+        override fun subtotal(amount: Amount): Amount {
             return amount.subtract(this.amount)
+        }
+    }
+
+    data class Transfer(override val amount: Amount, override val time: LocalDateTime, override val description: String,
+                        val originAccount: Id,
+                        val destinationAccount: Id) : Transaction(amount,
+            time, description) {
+        override fun subtotal(amount: Amount): Amount {
+            return amount
         }
     }
 }

@@ -69,19 +69,42 @@ abstract class AccountShould {
     fun `transfer between two accounts`() {
         val date1 = FakeClock.date("14/03/2018")
         val clock = FakeClock.reading(date1)
-        val origin = accountWithMovements(clock)
-        val originTransactionCount = origin.findAll().size
+        val origin = Persisted.`for`(accountWithMovements(clock), Id.of("origin"))
+        val originTransactionCount = origin.value.findAll().size
         val destination = Persisted.`for`(account(clock), Id.of("destination"))
         val destinationTransactionCount = destination.value.findAll().size
 
         val operationAmount = Amount.of("100")
         val description = "paying rent"
 
-        val result = origin.transfer(operationAmount, description, destination)
+        val result = Account.transfer(operationAmount, description, origin, destination)
 
-        assertThat(origin.findAll().size).isEqualTo(originTransactionCount + 1)
+        assertThat(origin.value.findAll().size).isEqualTo(originTransactionCount + 1)
         assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer(operationAmount, date1, description, destination.id)))
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer(operationAmount, date1, description, origin.id, destination.id)))
+    }
+
+    @Test
+    fun `money is not lost during transfers`() {
+
+        val date1 = FakeClock.date("14/03/2018")
+        val clock = FakeClock.reading(date1)
+        val origin = Persisted.`for`(accountWithMovements(clock), Id.of("origin"))
+        val originTransactionCount = origin.value.findAll().size
+        val destination = Persisted.`for`(account(clock), Id.of("destination"))
+        val destinationTransactionCount = destination.value.findAll().size
+        val sumOfBalances = origin.value.balance().add(destination.value.balance())
+
+        val operationAmount = Amount.of("100")
+        val description = "paying rent"
+
+        val result = Account.transfer(operationAmount, description, origin, destination)
+
+        assertThat(origin.value.findAll().size).isEqualTo(originTransactionCount + 1)
+        assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer(operationAmount, date1, description, origin.id, destination.id)))
+
+        assertThat(origin.value.balance().add(destination.value.balance())).isEqualTo(sumOfBalances)
     }
 
 

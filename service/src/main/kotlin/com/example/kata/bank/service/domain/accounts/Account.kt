@@ -2,6 +2,7 @@ package com.example.kata.bank.service.domain.accounts
 
 import arrow.core.Either
 import arrow.core.Option
+import arrow.core.flatMap
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
@@ -33,19 +34,12 @@ class Account(private val clock: Clock, val name: String, val type: AccountType 
         return Either.right(transaction.id)
     }
 
-    fun transfer(operationAmount: Amount, description: String, destinationAccount: Persisted<Account>): Either<List<Exception>, Transaction.Transfer> {
-        val transfer = Transaction.Transfer(operationAmount, clock.getTime(), description, destinationAccount.id)
-        val persistedTransfer = createIdentityFor(transfer)
-        transactionRepository.save(persistedTransfer)
-        destinationAccount.value.receivedTransfer(persistedTransfer)
-        return Either.right(transfer)
-    }
-
-    private fun receivedTransfer(transfer: Persisted<Transaction>) {
-        this.transactionRepository.save(transfer)
-    }
-
     private fun createIdentityFor(transaction: Transaction): Persisted<Transaction> {
+        val id = Id.of(ObjectIdGenerators.UUIDGenerator().generateId(transaction).toString())
+        return Persisted.`for`(transaction, id)
+    }
+
+    private fun createIdentityFor(transaction: Transaction.TransferEmitted): Persisted<Transaction.TransferEmitted> {
         val id = Id.of(ObjectIdGenerators.UUIDGenerator().generateId(transaction).toString())
         return Persisted.`for`(transaction, id)
     }
@@ -111,6 +105,30 @@ class Account(private val clock: Clock, val name: String, val type: AccountType 
         };
 
         abstract fun determineStatementCost(map: List<Transaction>, statementRequest: AccountRequest.StatementRequest): Option<Pair<Amount, String>>
+    }
+
+    companion object {
+        fun transfer(operationAmount: Amount, description: String, originAccount: Persisted<Account>, destinationAccount: Persisted<Account>): Either<List<Exception>,
+                Transaction.Transfer> {
+            return originAccount.value.emitTransfer(operationAmount, description, destinationAccount.id).flatMap {
+                destinationAccount.value.receiveTransfer(operationAmount, description, originAccount.id)
+                Either.right(Transaction.Transfer(operationAmount, it.time, description, originAccount.id, destinationAccount.id))
+            }
+        }
+    }
+
+    private fun receiveTransfer(operationAmount: Amount, description: String, from: Id): Either<List<Exception>, Transaction.TransferReceived> {
+        val transfer = Transaction.TransferReceived(operationAmount, clock.getTime(), description, from)
+        val persistedTransfer = createIdentityFor(transfer)
+        transactionRepository.save(persistedTransfer)
+        return Either.right(transfer)
+    }
+
+    private fun emitTransfer(operationAmount: Amount, description: String, to: Id): Either<List<Exception>, Transaction.TransferEmitted> {
+        val transfer = Transaction.TransferEmitted(operationAmount, clock.getTime(), description, to)
+        val persistedTransfer = createIdentityFor(transfer)
+        transactionRepository.save(persistedTransfer)
+        return Either.right(transfer)
     }
 
 }
