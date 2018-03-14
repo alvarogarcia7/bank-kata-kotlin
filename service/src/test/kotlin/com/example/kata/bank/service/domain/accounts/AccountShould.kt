@@ -89,14 +89,22 @@ abstract class AccountShould {
         val clock = FakeClock.reading(date1)
         val (origin, _) = account_(clock, "origin")
         val (destination, _) = account_(clock, "destination")
-        val sumOfBalances = origin.value.balance().add(destination.value.balance())
+
 
         val operationAmount = Amount.of("100")
         val description = "paying rent"
 
-        val result = Account.transfer(operationAmount, description, origin, destination)
+        invariant({ Account.transfer(operationAmount, description, origin, destination) },
+                { ("same balance" to origin.value.balance().add(destination.value.balance())) })
+    }
 
-        assertThat(origin.value.balance().add(destination.value.balance())).isEqualTo(sumOfBalances)
+    private fun invariant(sideEffect: () -> Any, function: () -> Pair<String, Any>) {
+        val before = function.invoke()
+
+        sideEffect.invoke()
+
+        val after = function.invoke()
+        assertThat(after).isEqualTo(before)
     }
 
     private fun account_(clock: Clock, accountId: String): Pair<Persisted<Account>, Int> {
