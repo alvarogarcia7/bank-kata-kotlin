@@ -81,7 +81,6 @@ abstract class AccountShould {
 
         assertThat(origin.findAll().size).isEqualTo(originTransactionCount + 1)
         assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
-        assertThat(result.isRight()).isTrue()
         assertThat(result).isEqualTo(Either.right(Transaction.Transfer(operationAmount, date1, description, destination.id)))
     }
 
