@@ -33,14 +33,8 @@ class Account(private val clock: Clock, val name: String, val type: AccountType 
         return Either.right(transaction.id)
     }
 
-    private fun createIdentityFor(transaction: Transaction): Persisted<Transaction> {
-        val id = Id.random()
-        return Persisted.`for`(transaction, id)
-    }
-
-    private fun createIdentityFor(transaction: Transaction.TransferEmitted): Persisted<Transaction.TransferEmitted> {
-        val id = Id.random()
-        return Persisted.`for`(transaction, id)
+    private fun <T> createIdentityFor(value: T): Persisted<T> {
+        return Persisted.`for`(value, Id.random())
     }
 
     fun createStatement(statementRequest: AccountRequest.StatementRequest): Statement {
