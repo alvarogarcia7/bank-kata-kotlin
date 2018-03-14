@@ -2,12 +2,11 @@ package com.example.kata.bank.service.domain.accounts
 
 import arrow.core.Either
 import com.example.kata.bank.service.domain.AccountRequest
+import com.example.kata.bank.service.domain.FakeClock
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
-import com.nhaarman.mockito_kotlin.doReturn
-import com.nhaarman.mockito_kotlin.mock
 import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
@@ -71,7 +70,8 @@ abstract class AccountShould {
 
     @Test
     fun `transfer between two accounts`() {
-        val clock = clockReading(date("14/03/2018"))
+        val date1 = date("14/03/2018")
+        val clock = FakeClock.reading(date1)
         val origin = accountWithMovements(clock)
         val originTransactionCount = origin.findAll().size
         val destination = Persisted.`for`(account(clock), Id.of("destination"))
@@ -86,12 +86,6 @@ abstract class AccountShould {
         assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
         Assertions.assertThat(result.isRight()).isTrue()
         assertThat(result).isEqualTo(Either.right(Transaction.Transfer(operationAmount, date1, description, destination.id)))
-    }
-
-    private fun clockReading(vararg value: LocalDateTime): Clock {
-        return mock {
-            on { getTime() } doReturn value[0]
-        }
     }
 
     private fun date(value: String): LocalDateTime {
