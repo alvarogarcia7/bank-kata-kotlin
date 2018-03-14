@@ -265,8 +265,7 @@ class OperationsHandler(private val operationService: OperationService, private 
         when (result) {
             is Either.Left -> {
                 response.status(400)
-                val messages = result.a.map { it.message!! }
-                objectMapper.writeValueAsString(MyResponse(ErrorsDTO(messages), listOf()))
+                objectMapper.writeValueAsString(MyResponse(ErrorsDTO.from(result.a), listOf()))
             }
             is Either.Right -> {
                 response.status(200)
@@ -306,7 +305,7 @@ class OperationsHandler(private val operationService: OperationService, private 
                     val operations = it.findAll().map { it.value }.map { mapper.toDTO(it) }
                     val response = StatementOutDTO(operations)
                     MyResponse(response, listOf(Link("/accounts/$accountId/operations/$statementId", "self", "GET")))
-                }.getOrElse { MyResponse(ErrorsDTO(listOf(NotTestedOperation().message!!)), listOf()) }
+                }.getOrElse { MyResponse(ErrorsDTO.from(listOf(NotTestedOperation())), listOf()) }
         objectMapper.writeValueAsString(result)
     }
 
