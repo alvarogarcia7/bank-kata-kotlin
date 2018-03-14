@@ -47,10 +47,10 @@ class BankWebApplication(
 
     private fun configurePaths(http: Http) {
         //accounts
-        http.get("/accounts", function = x(accountsHandler::list))
+        http.get("/accounts", function = list(accountsHandler::list))
         http.post("/accounts", function = canFail(accountsHandler::add))
         http.get("/accounts/:accountId", function = mayBeMissing(accountsHandler::detail))
-        http.post("/accounts/:accountId", function = accountsHandler.request)
+        http.post("/accounts/:accountId", function = canFail(accountsHandler::request))
 
 //        operations
         http.get("/accounts/:accountId/operations/:operationId", function = operationsHandler.get)
@@ -63,7 +63,7 @@ class BankWebApplication(
     }
 
     private val objectMapper = JSONMapper.aNew()
-    private fun <T : Any> x(kFunction2: KFunction2<Request, Response, X.ResponseEntity<T>>): RouteHandler.() -> Any = {
+    private fun <T : Any> list(kFunction2: KFunction2<Request, Response, X.ResponseEntity<T>>): RouteHandler.() -> Any = {
         val result = kFunction2.invoke(request, response)
         response.status(result.statusCode)
         result.payload.map {
@@ -142,7 +142,7 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
                     MyResponse(mapper.toDTO(account), listOf(Link.self("accounts" to id)))
                 })
                 .mapLeft { it -> MyResponse(it.map { it.message!! }, listOf()) }
-                .mapLeft { it -> X.notFound(it) }
+                .mapLeft { it -> X.badRequest(it) }
                 .map { it -> X.ok(it) }
         return x
     }
@@ -154,10 +154,11 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
                 .map { it -> X.ok(it) }
     }
 
-    val request: RouteHandler.() -> String = {
+    fun request(request: spark.Request, response: spark.Response): Either<X.ResponseEntity<MyResponse<ErrorsDTO>>, X.ResponseEntity<MyResponse<String>>> {
+
         val accountId: String = request.params(":accountId") ?: throw RuntimeException("null account") //TODO AGB
         val statementRequestDTO = objectMapper.readValue<StatementRequestDTO>(request.body())
-        val result: Either<List<Exception>, MyResponse<String>> = statementRequestDTO.validate()
+        return statementRequestDTO.validate()
                 .flatMap {
                     val x = accountRepository
                             .findBy(Id.of(accountId))
@@ -170,16 +171,8 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
 
                     Either.cond(x.isDefined(), { x.get() }, { listOf(Exception("Account does not exist")) })
                 }
-        when (result) {
-            is Either.Left -> {
-                response.status(400)
-                val messages = result.a.map { it.message!! }
-                objectMapper.writeValueAsString(MyResponse(ErrorsDTO(messages), listOf()))
-            }
-            is Either.Right -> {
-                objectMapper.writeValueAsString(result.b)
-            }
-        }
+                .mapLeft { X.badRequest(MyResponse(ErrorsDTO(it.map { it.message!! }), listOf())) }
+                .map { X.ok(it) }
     }
 }
 
@@ -197,7 +190,7 @@ class X {
             return ResponseEntity(400, Some(it.map { it.message!! }))
         }
 
-        fun <T> notFound(it: T): ResponseEntity<T> {
+        fun <T> badRequest(it: T): ResponseEntity<T> {
             return ResponseEntity(400, Some(it))
         }
     }
