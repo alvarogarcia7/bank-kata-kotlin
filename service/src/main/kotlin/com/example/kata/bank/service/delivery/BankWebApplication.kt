@@ -237,16 +237,17 @@ class OperationsHandler(private val operationService: OperationService, private 
         val accountId: String = request.params(":accountId") ?: throw NotTestedOperation()
         val result = objectMapper.readValueOption<OperationRequest>(request.body())
                 .mapLeft { listOf(it) }
-                .map { operationRequest ->
+                .flatMap { operationRequest ->
                     when (operationRequest) {
                         is OperationRequest.DepositRequest -> {
-                            val depositId = operationRequest.let {
-                                accountFor(accountId)
-                                        .flatMap { account ->
-                                            operationService.deposit(account, it)
-                                        }.get()
-                            }
-                            depositId
+                            val depositId = accountFor(accountId)
+                            val x = Either.cond(depositId.isDefined(), { depositId.get() }, { listOf(Exception("No account")) })
+                                    .flatMap { account ->
+                                        val x = operationService.deposit(account, operationRequest)
+                                        val y = Either.cond(x.isDefined(), { x.get() }, { listOf(Exception("Deposit failed")) })
+                                        y
+                                    }
+                            x
                         }
                     }
                 }
