@@ -21,9 +21,12 @@ import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.fasterxml.jackson.module.kotlin.readValue
+import spark.Request
+import spark.Response
 import spark.Service
 import spark.kotlin.Http
 import spark.kotlin.RouteHandler
+import kotlin.reflect.KFunction2
 
 class BankWebApplication(
         private val operationsHandler: OperationsHandler,
@@ -43,7 +46,7 @@ class BankWebApplication(
 
     private fun configurePaths(http: Http) {
         //accounts
-        http.get("/accounts", function = accountsHandler.list)
+        http.get("/accounts", function = x(accountsHandler::list2))
         http.post("/accounts", function = accountsHandler.add)
         http.get("/accounts/:accountId", function = accountsHandler.detail)
         http.post("/accounts/:accountId", function = accountsHandler.request)
@@ -58,6 +61,10 @@ class BankWebApplication(
         http.get("/users", function = usersHandler.list)
     }
 
+    private fun x(kFunction2: KFunction2<@ParameterName(name = "request") Request, @ParameterName(name = "response") Response, String>): RouteHandler.() -> Any = {
+        kFunction2.invoke(request, response)
+    }
+
     override fun stop() {
         httpService.stop()
     }
@@ -67,11 +74,11 @@ class BankWebApplication(
 class AccountsHandler(private val accountRepository: AccountRepository, private val xApplicationService: XAPPlicationService) {
     private val mapper = Mapper()
     private val objectMapper = JSONMapper.aNew()
-    val list: RouteHandler.() -> String = {
+    fun list2(request: spark.Request, response: spark.Response): String {
         val x = accountRepository
                 .findAll()
                 .map { (account, id) -> MyResponse(mapper.toDTO(account), listOf(Link("/accounts/${id.value}", rel = "self", method = "GET"))) }
-        objectMapper.writeValueAsString(x)
+        return objectMapper.writeValueAsString(x)
     }
 
     val add: RouteHandler.() -> String = {
