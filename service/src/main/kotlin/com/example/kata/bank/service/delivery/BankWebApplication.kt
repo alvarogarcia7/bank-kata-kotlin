@@ -48,7 +48,7 @@ class BankWebApplication(
     private fun configurePaths(http: Http) {
         //accounts
         http.get("/accounts", function = x(accountsHandler::list))
-        http.post("/accounts", function = accountsHandler.add)
+        http.post("/accounts", function = x(accountsHandler::add))
         http.get("/accounts/:accountId", function = accountsHandler.detail)
         http.post("/accounts/:accountId", function = accountsHandler.request)
 
@@ -87,9 +87,9 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
         return X.ok(x)
     }
 
-    val add: RouteHandler.() -> String = {
+    fun add(request: spark.Request, response: spark.Response): Either<List<Exception>, MyResponse<AccountDTO>> {
         val openAccountRequestDTO = objectMapper.readValue<OpenAccountRequestDTO>(request.body())
-        val result = openAccountRequestDTO
+        return X.either(openAccountRequestDTO
                 .validate()
                 .flatMap { OpenAccountRequest.parse(it.name!!) }
                 .map { Persisted.`for`(it, Id.random()) }
@@ -99,16 +99,8 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
                 }
                 .map { (account, id) ->
                     MyResponse(mapper.toDTO(account), listOf(Link.self("accounts" to id)))
-                }
-        when (result) {
-            is Either.Right -> {
-                objectMapper.writeValueAsString(result.b)
-            }
-            is Either.Left -> {
-                response.status(400)
-                objectMapper.writeValueAsString("")
-            }
-        }
+                })
+
     }
 
     val detail: RouteHandler.() -> String = {
@@ -160,9 +152,17 @@ class X {
         fun <T> ok(payload: T): ResponseEntity<T> {
             return ResponseEntity(200, Some(payload))
         }
+
+        fun <T> either(map: Either<List<Exception>, MyResponse<T>>): Either<ResponseEntity<List<String>>, ResponseEntity<MyResponse<T>>> {
+            return map.bimap({ X.error(it) }, { X.ok(it) })
+        }
+
+        private fun error(it: List<Exception>): ResponseEntity<List<String>> {
+            return ResponseEntity(400, Some(it.map { it.message!! }))
+        }
     }
 
-    data class ResponseEntity<T>(val statusCode: Int, val payload: Option<T>)
+    data class ResponseEntity<out T>(val statusCode: Int, val payload: Option<T>)
 }
 
 class StatementRequestFactory {
