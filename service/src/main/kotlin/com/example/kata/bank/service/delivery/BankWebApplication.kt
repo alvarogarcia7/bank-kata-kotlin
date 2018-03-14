@@ -56,7 +56,7 @@ class BankWebApplication(
 //        operations
         http.get("/accounts/:accountId/operations/:operationId", function = mayBeMissing(operationsHandler::get))
         http.get("/accounts/:accountId/operations", function = list(operationsHandler::list))
-        http.get("/accounts/:accountId/statements/:statementId", function = operationsHandler.getStatement)
+        http.get("/accounts/:accountId/statements/:statementId", function = canFail(operationsHandler::getStatement))
         http.post("/accounts/:accountId/operations", function = operationsHandler.add)
 
         //users
@@ -290,20 +290,22 @@ class OperationsHandler(private val operationService: OperationService, private 
                 }
     }
 
-    val getStatement: RouteHandler.() -> String = {
+    fun getStatement(request: spark.Request, response: spark.Response): Either<X.ResponseEntity<MyResponse<ErrorsDTO>>, X.ResponseEntity<MyResponse<StatementOutDTO>>> {
         val accountId: String? = request.params(":accountId")
         val statementId: String? = request.params(":statementId")
         if (accountId == null || statementId == null) {
             throw NotTestedOperation()
         }
 
-        val result: MyResponse<Any> = accountFor(accountId)
+        val result = accountFor(accountId)
                 .map {
                     val operations = it.findAll().map { it.value }.map { mapper.toDTO(it) }
                     val response = StatementOutDTO(operations)
                     MyResponse(response, listOf(Link("/accounts/$accountId/operations/$statementId", "self", "GET")))
-                }.getOrElse { MyResponse(ErrorsDTO.from(listOf(NotTestedOperation())), listOf()) }
-        objectMapper.writeValueAsString(result)
+                }
+        return Either.cond(result.isDefined(), { result.get() }, { MyResponse(ErrorsDTO.from(listOf(NotTestedOperation())), listOf()) })
+                .map { X.ok(it) }
+                .mapLeft { X.badRequest(it) }
     }
 
     fun list(request: spark.Request, response: spark.Response): X.ResponseEntity<List<MyResponse<TransactionDTO>>> {
