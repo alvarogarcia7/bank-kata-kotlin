@@ -47,6 +47,16 @@ class PremiumAccountShould : AccountShould() {
         assertThat(account.findAll().map { it.value }.filter { it is Transaction.Cost }).hasSize(0)
     }
 
+    @Test
+    fun `can go overdraft`() {
+        val account = account()
+
+        val result = account.withdraw(Amount.of("100"), "another expense")
+
+        assertThat(result.isRight()).isTrue()
+    }
+
+
     private fun costsFor(account: Account) = account.findAll().map { it.value }.filter { it is Transaction.Cost }
 
     private fun accountWithMovements(): Account {

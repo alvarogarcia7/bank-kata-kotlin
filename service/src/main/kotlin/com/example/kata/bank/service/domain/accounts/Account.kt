@@ -23,9 +23,11 @@ class Account(private val clock: Clock, val name: String, val type: AccountType 
 
     @Synchronized
     fun withdraw(operationAmount: Amount, description: String): Either<List<Exception>, Id> {
-        val total = transactionRepository.findAll().foldRight(Amount.of("0"), { ele, acc -> acc.add(ele.value.amount) })
-        if (operationAmount.greaterThan(total)) {
-            return Either.left(listOf(Exception("Cannot go overdraft")))
+        if (type == AccountType.Personal) {
+            val total = transactionRepository.findAll().foldRight(Amount.of("0"), { ele, acc -> acc.add(ele.value.amount) })
+            if (operationAmount.greaterThan(total)) {
+                return Either.left(listOf(Exception("Cannot go overdraft")))
+            }
         }
         val transaction = createIdentityFor(Transaction.Withdrawal(operationAmount, clock.getTime(), description))
         this.transactionRepository.save(transaction)

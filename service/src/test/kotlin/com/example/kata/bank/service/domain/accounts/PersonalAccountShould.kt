@@ -1,5 +1,6 @@
 package com.example.kata.bank.service.domain.accounts
 
+import arrow.core.Either
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.transactions.Amount
 import org.assertj.core.api.Assertions
@@ -12,6 +13,17 @@ internal class PersonalAccountShould : AccountShould() {
         val statement = account.createStatement(AccountRequest.StatementRequest.all())
 
         Assertions.assertThat(statement.lines).hasSize(5) //1 (initial) + 3 (above) + 1 for the cost
+    }
+
+    @Test
+    fun `cannot withdraw if it would go into overdraft`() {
+        val account = account()
+        Assertions.assertThat(account.findAll()).hasSize(0)
+
+        val result = account.withdraw(Amount.Companion.of("1"), "overdraft")
+
+        Assertions.assertThat(result.mapLeft { it.map { it.message } }).isEqualTo(Either.left(listOf("Cannot go overdraft")))
+        Assertions.assertThat(account.findAll()).hasSize(0)
     }
 
     private fun accountWithMovements(): Account {
