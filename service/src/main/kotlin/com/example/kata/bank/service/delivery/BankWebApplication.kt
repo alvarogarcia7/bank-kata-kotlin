@@ -171,7 +171,7 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
 
                     Either.cond(x.isDefined(), { x.get() }, { listOf(Exception("Account does not exist")) })
                 }
-                .mapLeft { X.badRequest(MyResponse(ErrorsDTO(it.map { it.message!! }), listOf())) }
+                .mapLeft { X.badRequest(MyResponse(ErrorsDTO.from(it), listOf())) }
                 .map { X.ok(it) }
     }
 }
