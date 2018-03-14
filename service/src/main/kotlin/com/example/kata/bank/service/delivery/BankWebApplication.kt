@@ -57,7 +57,7 @@ class BankWebApplication(
         http.get("/accounts/:accountId/operations/:operationId", function = mayBeMissing(operationsHandler::get))
         http.get("/accounts/:accountId/operations", function = list(operationsHandler::list))
         http.get("/accounts/:accountId/statements/:statementId", function = canFail(operationsHandler::getStatement))
-        http.post("/accounts/:accountId/operations", function = operationsHandler.add)
+        http.post("/accounts/:accountId/operations", function = canFail(operationsHandler::add))
 
         //users
         http.get("/users", function = usersHandler.list)
@@ -233,46 +233,31 @@ class OperationsHandler(private val operationService: OperationService, private 
     private val mapper = Mapper()
     private val objectMapper = JSONMapper.aNew()
 
-    val add: RouteHandler.() -> String = {
+    fun add(request: spark.Request, response: spark.Response): Either<X.ResponseEntity<MyResponse<ErrorsDTO>>, X.ResponseEntity<MyResponse<Unit>>> {
         val accountId: String = request.params(":accountId") ?: throw NotTestedOperation()
-        val result: Either<List<Exception>, MyResponse<Any>> = objectMapper.readValueOption<OperationRequest>(request.body())
+        val result = objectMapper.readValueOption<OperationRequest>(request.body())
                 .mapLeft { listOf(it) }
-                .flatMap { operationRequest ->
+                .map { operationRequest ->
                     when (operationRequest) {
                         is OperationRequest.DepositRequest -> {
-
                             val depositId = operationRequest.let {
                                 accountFor(accountId)
                                         .flatMap { account ->
                                             operationService.deposit(account, it)
-                                        }
+                                        }.get()
                             }
-                            val x = when (depositId) {
-                                is Some -> {
-                                    Either.right(depositId.t)
-                                }
-                                is None -> {
-                                    Either.left(listOf(Exception("No result")))
-                                }
-                            }
-                            x.map {
-                                val operationId = it.value
-                                MyResponse("", listOf(Link("/accounts/$accountId/operations/$operationId", "list", "GET")))
-                            }
-
+                            depositId
                         }
                     }
                 }
-        when (result) {
-            is Either.Left -> {
-                response.status(400)
-                objectMapper.writeValueAsString(MyResponse(ErrorsDTO.from(result.a), listOf()))
-            }
-            is Either.Right -> {
-                response.status(200)
-                objectMapper.writeValueAsString(result.b)
-            }
-        }
+                .mapLeft { listOf(Exception("No result")) }
+                .mapLeft { ErrorsDTO.from(it) }
+                .mapLeft { MyResponse.noLinks(it) }
+                .mapLeft { X.badRequest(it) }
+                .map { MyResponse(Unit, listOf(Link("/accounts/$accountId/operations/${it.value}", "list", "GET"))) }
+                .map { X.ok(it) }
+
+        return result
     }
 
     fun get(request: spark.Request, response: spark.Response): Option<X.ResponseEntity<MyResponse<TransactionDTO>>> {

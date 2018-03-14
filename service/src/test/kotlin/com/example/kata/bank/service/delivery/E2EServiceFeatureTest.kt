@@ -164,11 +164,10 @@ class E2EServiceFeatureTest {
         """).let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
-                    val x = http.mapper.readValue<MyResponse<String>>(result.value)
+                    val x = http.mapper.readValue<MyResponse<Unit>>(result.value)
                     println(x)
                     assertThat(x.links).hasSize(1)
                     assertThat(x.links).filteredOn { it.rel == "list" }.isNotEmpty()
-                    assertThat(x.response).isEqualTo("")
                 }
         val newOperations = `operationsFor!`(accountId)
         this.bIsSupersetOfA(a = existingOperations, b = newOperations)
