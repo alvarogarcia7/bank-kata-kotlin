@@ -95,15 +95,16 @@ abstract class AccountShould {
         val description = "paying rent"
 
         invariant({ Account.transfer(operationAmount, description, origin, destination) },
-                { ("same balance" to origin.value.balance().add(destination.value.balance())) })
+                { ("same balance" to origin.value.balance().add(destination.value.balance())) },
+                { ("same balance2" to origin.value.balance().add(destination.value.balance())) })
     }
 
-    private fun invariant(sideEffect: () -> Any, function: () -> Pair<String, Any>) {
-        val before = function.invoke()
+    private fun invariant(sideEffect: () -> Any, vararg functions: () -> Pair<String, Any>) {
+        val before = functions.map { it.invoke() }
 
         sideEffect.invoke()
 
-        val after = function.invoke()
+        val after = functions.map { it.invoke() }
         assertThat(after).isEqualTo(before)
     }
 
