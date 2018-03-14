@@ -47,7 +47,7 @@ class BankWebApplication(
 
     private fun configurePaths(http: Http) {
         //accounts
-        http.get("/accounts", function = x(accountsHandler::list2))
+        http.get("/accounts", function = x(accountsHandler::list))
         http.post("/accounts", function = accountsHandler.add)
         http.get("/accounts/:accountId", function = accountsHandler.detail)
         http.post("/accounts/:accountId", function = accountsHandler.request)
@@ -80,7 +80,7 @@ class BankWebApplication(
 class AccountsHandler(private val accountRepository: AccountRepository, private val xApplicationService: XAPPlicationService) {
     private val mapper = Mapper()
     private val objectMapper = JSONMapper.aNew()
-    fun list2(request: spark.Request, response: spark.Response): X.ResponseEntity<List<MyResponse<AccountDTO>>> {
+    fun list(request: spark.Request, response: spark.Response): X.ResponseEntity<List<MyResponse<AccountDTO>>> {
         val x = accountRepository
                 .findAll()
                 .map { (account, id) -> MyResponse(mapper.toDTO(account), listOf(Link("/accounts/${id.value}", rel = "self", method = "GET"))) }
