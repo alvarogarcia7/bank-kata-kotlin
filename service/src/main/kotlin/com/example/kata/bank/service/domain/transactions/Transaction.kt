@@ -1,5 +1,6 @@
 package com.example.kata.bank.service.domain.transactions
 
+import com.example.kata.bank.service.domain.Id
 import java.time.LocalDateTime
 
 sealed class Transaction(open val amount: Amount, open val time: LocalDateTime, open val description: String) {
@@ -18,6 +19,13 @@ sealed class Transaction(open val amount: Amount, open val time: LocalDateTime, 
     }
 
     data class Cost(override val amount: Amount, override val time: LocalDateTime, override val description: String) : Transaction(amount, time, description) {
+        override fun subtotal(amount: Amount): Amount {
+            return amount.subtract(this.amount)
+        }
+    }
+
+    data class Transfer(override val amount: Amount, override val time: LocalDateTime, override val description: String, val destinationAccount: Id) : Transaction(amount, time,
+            description) {
         override fun subtotal(amount: Amount): Amount {
             return amount.subtract(this.amount)
         }

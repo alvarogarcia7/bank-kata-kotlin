@@ -17,7 +17,7 @@ internal class PersonalAccountShould : AccountShould() {
 
     @Test
     fun `cannot go overdraft`() {
-        val account = account()
+        val account = account(Clock.aNew())
         Assertions.assertThat(account.findAll()).hasSize(0)
 
         val result = account.withdraw(Amount.Companion.of("1"), "overdraft")
@@ -27,14 +27,14 @@ internal class PersonalAccountShould : AccountShould() {
     }
 
     private fun accountWithMovements(): Account {
-        val account = account()
+        val account = account(Clock.aNew())
         account.deposit(Amount.of("100"), "first movement")
         account.deposit(Amount.of("200"), "second movement")
         account.withdraw(Amount.of("99"), "third movement")
         return account
     }
 
-    override fun account(): Account {
-        return Account(Clock.aNew(), "test account", Account.AccountType.Personal)
+    override fun account(clock: Clock): Account {
+        return Account(clock, "test account", Account.AccountType.Personal)
     }
 }

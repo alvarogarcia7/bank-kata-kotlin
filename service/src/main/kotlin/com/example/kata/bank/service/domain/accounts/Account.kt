@@ -33,6 +33,18 @@ class Account(private val clock: Clock, val name: String, val type: AccountType 
         return Either.right(transaction.id)
     }
 
+    fun transfer(operationAmount: Amount, description: String, destinationAccount: Persisted<Account>): Either<List<Exception>, Transaction.Transfer> {
+        val transfer = Transaction.Transfer(operationAmount, clock.getTime(), description, destinationAccount.id)
+        val persistedTransfer = createIdentityFor(transfer)
+        transactionRepository.save(persistedTransfer)
+        destinationAccount.value.receivedTransfer(persistedTransfer)
+        return Either.right(transfer)
+    }
+
+    private fun receivedTransfer(transfer: Persisted<Transaction>) {
+        this.transactionRepository.save(transfer)
+    }
+
     private fun createIdentityFor(transaction: Transaction): Persisted<Transaction> {
         val id = Id.of(ObjectIdGenerators.UUIDGenerator().generateId(transaction).toString())
         return Persisted.`for`(transaction, id)
