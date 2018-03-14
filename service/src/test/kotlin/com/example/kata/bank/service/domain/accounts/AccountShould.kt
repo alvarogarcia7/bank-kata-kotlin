@@ -40,7 +40,7 @@ abstract class AccountShould {
 
     @Test
     fun `can withdraw even if it would empty the account `() {
-        val account = account(Clock.aNew())
+        val account = account()
         account.deposit(Amount.of("100"),
                 "initial deposit")
         assertThat(account.findAll()).hasSize(1)
@@ -53,7 +53,7 @@ abstract class AccountShould {
 
     @Test
     fun `can perform multiple withdraws even if it would empty the account`() {
-        val account = account(Clock.aNew())
+        val account = account()
         account.deposit(Amount.of("100"), "initial deposit")
         account.withdraw(Amount.Companion.of("99.99"), "overdraft")
         assertThat(account.findAll()).hasSize(2)
@@ -63,7 +63,6 @@ abstract class AccountShould {
         assertThat(result.isRight()).isTrue()
         assertThat(account.findAll()).hasSize(3)
     }
-
 
     @Test
     fun `transfer between two accounts`() {
@@ -114,7 +113,6 @@ abstract class AccountShould {
         return Pair(account, transactionCount)
     }
 
-
     private fun costsFor(account: Account) = account.findAll().map { it.value }.filter { it is Transaction.Cost }
 
     private fun accountWithMovements(clock: Clock): Account {
@@ -124,6 +122,8 @@ abstract class AccountShould {
         account.withdraw(Amount.of("99"), "third movement")
         return account
     }
+
+    private fun account() = account(Clock.aNew())
 
     protected abstract fun account(clock: Clock): Account
 }
