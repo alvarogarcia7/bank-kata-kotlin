@@ -16,6 +16,7 @@ import com.example.kata.bank.service.domain.accounts.AccountRepository
 import com.example.kata.bank.service.domain.accounts.OpenAccountRequest
 import com.example.kata.bank.service.domain.users.UsersRepository
 import com.example.kata.bank.service.infrastructure.OperationsRepository
+import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
 import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.OperationService
@@ -61,8 +62,13 @@ class BankWebApplication(
         http.get("/users", function = usersHandler.list)
     }
 
-    private fun x(kFunction2: KFunction2<Request, Response, String>): RouteHandler.() -> Any = {
-        kFunction2.invoke(request, response)
+    private val objectMapper = JSONMapper.aNew()
+    private fun <T : Any> x(kFunction2: KFunction2<Request, Response, X.ResponseEntity<T>>): RouteHandler.() -> Any = {
+        val result = kFunction2.invoke(request, response)
+        response.status(result.statusCode)
+        result.payload.map {
+            response.body(objectMapper.writeValueAsString(it))
+        }
     }
 
     override fun stop() {
@@ -74,11 +80,11 @@ class BankWebApplication(
 class AccountsHandler(private val accountRepository: AccountRepository, private val xApplicationService: XAPPlicationService) {
     private val mapper = Mapper()
     private val objectMapper = JSONMapper.aNew()
-    fun list2(request: spark.Request, response: spark.Response): String {
+    fun list2(request: spark.Request, response: spark.Response): X.ResponseEntity<List<MyResponse<AccountDTO>>> {
         val x = accountRepository
                 .findAll()
                 .map { (account, id) -> MyResponse(mapper.toDTO(account), listOf(Link("/accounts/${id.value}", rel = "self", method = "GET"))) }
-        return objectMapper.writeValueAsString(x)
+        return X.ok(x)
     }
 
     val add: RouteHandler.() -> String = {
@@ -147,6 +153,16 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
             }
         }
     }
+}
+
+class X {
+    companion object {
+        fun <T> ok(payload: T): ResponseEntity<T> {
+            return ResponseEntity(200, Some(payload))
+        }
+    }
+
+    data class ResponseEntity<T>(val statusCode: Int, val payload: Option<T>)
 }
 
 class StatementRequestFactory {
