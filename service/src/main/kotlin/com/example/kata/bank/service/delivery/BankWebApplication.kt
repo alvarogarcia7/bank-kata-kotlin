@@ -49,7 +49,7 @@ class BankWebApplication(
         //accounts
         http.get("/accounts", function = x(accountsHandler::list))
         http.post("/accounts", function = canFail(accountsHandler::add))
-        http.get("/accounts/:accountId", function = accountsHandler.detail)
+        http.get("/accounts/:accountId", function = mayBeMissing(accountsHandler::detail))
         http.post("/accounts/:accountId", function = accountsHandler.request)
 
 //        operations
@@ -88,7 +88,24 @@ class BankWebApplication(
             is None -> ""
         }
         body
+    }
 
+    private fun <T : Any> mayBeMissing(fn: KFunction2<Request, Response, Option<X.ResponseEntity<T>>>): RouteHandler.() -> Any = {
+        val result = fn.invoke(request, response)
+        when (result) {
+            is Some -> {
+                response.status(result.t.statusCode)
+                val nP = result.t.payload
+                when (nP) {
+                    is Some -> serialize(nP.t)
+                    is None -> NotTestedOperation()
+                }
+            }
+            is None -> {
+                response.status(404)
+                ""
+            }
+        }
     }
 
     private fun <T> serialize(it: T): String {
@@ -130,19 +147,11 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
         return x
     }
 
-    val detail: RouteHandler.() -> String = {
+    fun detail(request: spark.Request, response: spark.Response): Option<X.ResponseEntity<MyResponse<AccountDTO>>> {
         val accountId: String = request.params(":accountId") ?: throw RuntimeException("null account") //TODO AGB
-        val result = accountRepository.findBy(Id.of(accountId))
+        return accountRepository.findBy(Id.of(accountId))
                 .map { (account, id) -> MyResponse(mapper.toDTO(account), listOf(Link("/accounts/${id.value}", rel = "self", method = "GET"))) }
-        when (result) {
-            is None -> {
-                response.status(400)
-                objectMapper.writeValueAsString("")
-            }
-            is Some -> {
-                objectMapper.writeValueAsString(result.t)
-            }
-        }
+                .map { it -> X.ok(it) }
     }
 
     val request: RouteHandler.() -> String = {
