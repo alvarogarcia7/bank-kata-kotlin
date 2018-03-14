@@ -27,7 +27,7 @@ internal class OperationsHandlerShould {
 
         val result = operationsHandler.add(fakeRequest, fakeResponse)
 
-        assertThat(result).isEqualTo(Either.left(X.badRequest(MyResponse.noLinks(ErrorsDTO.from(listOf(Exception("needs an accountId")))))))
+        assertThat(result).isEqualTo(Either.left(X.badRequest(MyResponse.noLinks(ErrorsDTO.from(listOf(Exception("Needs an :accountId")))))))
     }
 
     private fun serialize(depositRequest: OperationRequest.DepositRequest): String {
