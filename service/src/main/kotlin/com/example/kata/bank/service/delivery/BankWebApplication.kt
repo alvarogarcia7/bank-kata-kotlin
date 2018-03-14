@@ -54,7 +54,7 @@ class BankWebApplication(
         http.post("/accounts/:accountId", function = canFail(accountsHandler::request))
 
 //        operations
-        http.get("/accounts/:accountId/operations/:operationId", function = mayBeMissing(operationsHandler::get))
+        http.get("/accounts/:accountId/operations/:operationId", function = mayBeMissing(operationsHandler::detail))
         http.get("/accounts/:accountId/operations", function = list(operationsHandler::list))
         http.get("/accounts/:accountId/statements/:statementId", function = canFail(operationsHandler::getStatement))
         http.post("/accounts/:accountId/operations", function = canFail(operationsHandler::add))
@@ -260,7 +260,7 @@ class OperationsHandler(private val operationService: OperationService, private 
         return result
     }
 
-    fun get(request: spark.Request, response: spark.Response): Option<X.ResponseEntity<MyResponse<TransactionDTO>>> {
+    fun detail(request: spark.Request, response: spark.Response): Option<X.ResponseEntity<MyResponse<TransactionDTO>>> {
         val accountId: String? = request.params(":accountId")
         val operationId: String? = request.params(":operationId")
         if (accountId == null || operationId == null) {
