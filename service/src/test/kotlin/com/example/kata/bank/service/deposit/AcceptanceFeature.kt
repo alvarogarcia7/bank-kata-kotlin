@@ -1,6 +1,7 @@
 package com.example.kata.bank.service.deposit
 
 import com.example.kata.bank.service.domain.AccountRequest
+import com.example.kata.bank.service.domain.FakeClock
 import com.example.kata.bank.service.domain.accounts.Account
 import com.example.kata.bank.service.domain.accounts.Clock
 import com.example.kata.bank.service.domain.transactions.Amount
@@ -14,7 +15,6 @@ import org.junit.platform.runner.JUnitPlatform
 import org.junit.runner.RunWith
 import org.mockito.Mockito
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 
 @RunWith(JUnitPlatform::class) // need to use this with infinitest
@@ -57,8 +57,7 @@ class AcceptanceFeature {
     }
 
     private fun date(value: String): LocalDateTime {
-        val dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/uuuu" + " " + "HH:mm:ss")
-        return LocalDateTime.parse(value + " " + "00:00:00", dateTimeFormatter)
+        return FakeClock.date(value)
     }
 
     private fun verifyPrintedLines(linePrinter: LinePrinter, vararg lines: String) {
