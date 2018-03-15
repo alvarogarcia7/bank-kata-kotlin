@@ -188,42 +188,42 @@ abstract class AccountShould {
         on { generate() } doReturn "123456"
     }
 
-    class AccountBuilder private constructor(private val accountType: () -> Account.AccountType) {
-        companion object {
-            fun aNew(param: () -> Account.AccountType): AccountBuilder {
-                return AccountBuilder(param)
-            }
-        }
+}
 
-        private var securityProvider: Option<Security> = None
-        private var clock: Clock = Clock.aNew()
-        private var movements: (Account) -> Unit = { _ -> Unit }
-
-
-        fun security(securityProvider: Security): AccountBuilder {
-            this.securityProvider = Some(securityProvider)
-            return this
-        }
-
-        fun clock(clock: Clock): AccountBuilder {
-            this.clock = clock
-            return this
-        }
-
-        fun movements(): AccountBuilder {
-            this.movements = {
-                it.deposit(Amount.of("100"), "first movement")
-                it.deposit(Amount.of("200"), "second movement")
-                it.withdraw(Amount.of("99"), "third movement")
-            }
-            return this
-        }
-
-        fun build(): Account {
-            val account = Account(clock, "account name", this.accountType.invoke(), securityProvider)
-            this.movements(account)
-            return account
+class AccountBuilder private constructor(private val accountType: () -> Account.AccountType) {
+    companion object {
+        fun aNew(param: () -> Account.AccountType): AccountBuilder {
+            return AccountBuilder(param)
         }
     }
 
+    private var securityProvider: Option<Security> = None
+    private var clock: Clock = Clock.aNew()
+    private var movements: (Account) -> Unit = { _ -> Unit }
+
+
+    fun security(securityProvider: Security): AccountBuilder {
+        this.securityProvider = Some(securityProvider)
+        return this
+    }
+
+    fun clock(clock: Clock): AccountBuilder {
+        this.clock = clock
+        return this
+    }
+
+    fun movements(): AccountBuilder {
+        this.movements = {
+            it.deposit(Amount.of("100"), "first movement")
+            it.deposit(Amount.of("200"), "second movement")
+            it.withdraw(Amount.of("99"), "third movement")
+        }
+        return this
+    }
+
+    fun build(): Account {
+        val account = Account(clock, "account name", this.accountType.invoke(), securityProvider)
+        this.movements(account)
+        return account
+    }
 }
