@@ -1,6 +1,5 @@
 package com.example.kata.bank.service.domain.accounts
 
-import arrow.core.Option
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
@@ -18,7 +17,7 @@ class PremiumAccountShould : AccountShould() {
 
     @Test
     fun `calculate the balance for an account without movements`() {
-        val account = Account(Clock.aNew(), "test account")
+        val account = AccountBuilder.aNew(this::account).build()
         assertThat(account.balance()).isEqualTo(Amount.of("0"))
     }
 
@@ -49,7 +48,7 @@ class PremiumAccountShould : AccountShould() {
 
     @Test
     fun `can go overdraft`() {
-        val account = account()
+        val account = AccountBuilder.aNew(this::account).build()
 
         val result = account.withdraw(Amount.of("100"), "another expense")
 
@@ -60,14 +59,10 @@ class PremiumAccountShould : AccountShould() {
     private fun costsFor(account: Account) = account.findAll().map { it.value }.filter { it is Transaction.Cost }
 
     private fun accountWithMovements(): Account {
-        val account = account()
-        account.deposit(Amount.of("100"), "first movement")
-        account.deposit(Amount.of("200"), "second movement")
-        account.withdraw(Amount.of("99"), "third movement")
-        return account
+        return AccountBuilder.aNew(this::account).movements().build()
     }
 
-    private fun account() = account(Clock.aNew())
-
-    override fun account(clock: Clock, securityProvider: Option<Security>): Account = Account(clock, "premium account", Account.AccountType.Premium, securityProvider)
+    override fun account(): Account.AccountType {
+        return Account.AccountType.Premium
+    }
 }

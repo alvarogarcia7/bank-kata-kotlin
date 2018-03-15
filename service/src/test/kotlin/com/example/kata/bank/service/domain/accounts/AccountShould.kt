@@ -46,9 +46,8 @@ abstract class AccountShould {
 
     @Test
     fun `can withdraw even if it would empty the account `() {
-        val account = account()
-        account.deposit(Amount.of("100"),
-                "initial deposit")
+        val account = AccountBuilder.aNew(this::account).build()
+        account.deposit(Amount.of("100"), "initial deposit")
         assertThat(account.findAll()).hasSize(1)
 
         val result = account.withdraw(Amount.Companion.of("100"), "overdraft")
@@ -59,7 +58,7 @@ abstract class AccountShould {
 
     @Test
     fun `can perform multiple withdraws even if it would empty the account`() {
-        val account = account()
+        val account = AccountBuilder.aNew(this::account).build()
         account.deposit(Amount.of("100"), "initial deposit")
         account.withdraw(Amount.Companion.of("99.99"), "overdraft")
         assertThat(account.findAll()).hasSize(2)
@@ -101,18 +100,29 @@ abstract class AccountShould {
                 { ("same balance" to origin.value.balance().add(destination.value.balance())) })
     }
 
+    @Test
+    fun `money is not lost during transfers with confirmation`() {
+        val clock = FakeClock.reading(FakeClock.date("14/03/2018"))
+        val (origin, _) = account_(clock, "origin")
+        val (destination, _) = account_(clock, "destination")
+
+
+        val operationAmount = Amount.of("100")
+        val description = "paying rent"
+
+        invariant({ Account.transfer(operationAmount, description, origin, destination) },
+                { ("same balance" to origin.value.balance().add(destination.value.balance())) })
+    }
+
 
     @Test
     fun `be protected with an OTP code to confirm a transfer`() {
         val date1 = FakeClock.date("14/03/2018")
         val clock = FakeClock.reading(date1)
-        val account = account(clock, Some(securityProvider))
-        account.deposit(Amount.of("100"), "first movement")
-        account.deposit(Amount.of("200"), "second movement")
-        account.withdraw(Amount.of("99"), "third movement")
+        val account = AccountBuilder.aNew(this::account).clock(clock).security(securityProvider).movements().build()
         val origin = Persisted.`for`(account, Id.of("origin"))
         val initialBalance = origin.value.balance()
-        val destination = Persisted.`for`(account(clock), Id.of("destination"))
+        val destination = Persisted.`for`(AccountBuilder.aNew(this::account).clock(clock).build(), Id.of("destination"))
 
 
         val operationAmount = Amount.of("100")
@@ -129,13 +139,9 @@ abstract class AccountShould {
     fun `transfer a security-enabled transfer after confirmation`() {
         val date1 = FakeClock.date("14/03/2018")
         val clock = FakeClock.reading(date1)
-        val account = account(clock, Some(securityProvider))
-        account.deposit(Amount.of("100"), "first movement")
-        account.deposit(Amount.of("200"), "second movement")
-        account.withdraw(Amount.of("99"), "third movement")
-        val origin = Persisted.`for`(account, Id.of("origin"))
+        val origin = Persisted.`for`(AccountBuilder.aNew(this::account).clock(clock).security(securityProvider).movements().build(), Id.of("origin"))
         val initialBalance = origin.value.balance()
-        val destination = Persisted.`for`(account(clock), Id.of("destination"))
+        val destination = Persisted.`for`(AccountBuilder.aNew(this::account).clock(clock).build(), Id.of("destination"))
         val destinationBalance = destination.value.balance()
 
         val operationAmount = Amount.of("100")
@@ -173,18 +179,51 @@ abstract class AccountShould {
     private fun accountWithMovements() = accountWithMovements(Clock.aNew())
 
     private fun accountWithMovements(clock: Clock): Account {
-        val account = account(clock)
-        account.deposit(Amount.of("100"), "first movement")
-        account.deposit(Amount.of("200"), "second movement")
-        account.withdraw(Amount.of("99"), "third movement")
-        return account
+        return AccountBuilder.aNew(this::account).clock(clock).movements().build()
     }
 
-    private fun account() = account(Clock.aNew())
-
-    protected abstract fun account(clock: Clock, securityProvider: Option<Security> = None): Account
+    protected abstract fun account(): Account.AccountType
 
     private val securityProvider = mock<Security> {
         on { generate() } doReturn "123456"
     }
+
+    class AccountBuilder private constructor(private val accountType: () -> Account.AccountType) {
+        companion object {
+            fun aNew(param: () -> Account.AccountType): AccountBuilder {
+                return AccountBuilder(param)
+            }
+        }
+
+        private var securityProvider: Option<Security> = None
+        private var clock: Clock = Clock.aNew()
+        private var movements: (Account) -> Unit = { _ -> Unit }
+
+
+        fun security(securityProvider: Security): AccountBuilder {
+            this.securityProvider = Some(securityProvider)
+            return this
+        }
+
+        fun clock(clock: Clock): AccountBuilder {
+            this.clock = clock
+            return this
+        }
+
+        fun movements(): AccountBuilder {
+            this.movements = {
+                it.deposit(Amount.of("100"), "first movement")
+                it.deposit(Amount.of("200"), "second movement")
+                it.withdraw(Amount.of("99"), "third movement")
+            }
+            return this
+        }
+
+        fun build(): Account {
+            val account = Account(clock, "account name", this.accountType.invoke(), securityProvider)
+            this.movements(account)
+            return account
+        }
+    }
+
 }
