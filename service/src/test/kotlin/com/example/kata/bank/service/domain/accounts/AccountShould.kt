@@ -96,8 +96,8 @@ abstract class AccountShould {
     @Test
     fun `money is not lost during transfers with confirmation`() {
         val clock = FakeClock.reading(FakeClock.date("14/03/2018"))
-        val (origin, _) = persistAndSize("origin", AccountBuilder.aNew(this::account).security(securityProvider).clock(clock).movements().build())
-        val (destination, _) = persistAndSize("destination", AccountBuilder.aNew(this::account).clock(clock).movements().build())
+        val origin = Persisted.`for`(AccountBuilder.aNew(this::account).security(securityProvider).clock(clock).movements().build(), Id.of("origin"))
+        val destination = Persisted.`for`(AccountBuilder.aNew(this::account).clock(clock).movements().build(), Id.of("destination"))
 
 
         invariant({
