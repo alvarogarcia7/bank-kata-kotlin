@@ -14,12 +14,13 @@ import com.nhaarman.mockito_kotlin.doReturn
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.verify
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.fail
 import org.junit.Test
 
 abstract class AccountShould {
     @Test
     fun `create a filtered statement, just the Deposits`() {
-        val account = accountWithMovements()
+        val account = AccountBuilder.aNew(this::account).movements().build()
 
         val statement = account.createStatement(AccountRequest.StatementRequest.filter { it is Transaction.Deposit })
 
@@ -28,7 +29,7 @@ abstract class AccountShould {
 
     @Test
     fun `create a filtered statement, just the Withdrawals`() {
-        val account = accountWithMovements()
+        val account = AccountBuilder.aNew(this::account).movements().build()
 
         val statement = account.createStatement(AccountRequest.StatementRequest.filter { it is Transaction.Withdrawal })
 
@@ -37,7 +38,7 @@ abstract class AccountShould {
 
     @Test
     fun `create a filtered statement --that produces no results-- does not cost the personal user a dime`() {
-        val account = accountWithMovements()
+        val account = AccountBuilder.aNew(this::account).movements().build()
 
         account.createStatement(AccountRequest.StatementRequest.filter { its -> false })
 
@@ -71,10 +72,9 @@ abstract class AccountShould {
 
     @Test
     fun `transfer between two accounts`() {
-        val date1 = FakeClock.date("14/03/2018")
-        val clock = FakeClock.reading(date1)
-        val (origin, originTransactionCount) = account_(clock, "origin")
-        val (destination, destinationTransactionCount) = account_(clock, "destination")
+        val clock = FakeClock.reading(FakeClock.date("14/03/2018"))
+        val (origin, originTransactionCount) = persistAndSize("origin", AccountBuilder.aNew(this::account).clock(clock).movements().build())
+        val (destination, destinationTransactionCount) = persistAndSize("destination", AccountBuilder.aNew(this::account).clock(clock).movements().build())
 
         val operationAmount = Amount.of("100")
         val description = "paying rent"
@@ -83,14 +83,14 @@ abstract class AccountShould {
 
         assertThat(origin.value.findAll().size).isEqualTo(originTransactionCount + 1)
         assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Received(operationAmount, date1, description, origin.id, destination.id)))
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Received(operationAmount, FakeClock.date("14/03/2018"), description, origin.id, destination.id)))
     }
 
     @Test
     fun `money is not lost during transfers`() {
         val clock = FakeClock.reading(FakeClock.date("14/03/2018"))
-        val (origin, _) = account_(clock, "origin")
-        val (destination, _) = account_(clock, "destination")
+        val (origin, _) = persistAndSize("origin", AccountBuilder.aNew(this::account).clock(clock).movements().build())
+        val (destination, _) = persistAndSize("destination", AccountBuilder.aNew(this::account).clock(clock).movements().build())
 
 
         val operationAmount = Amount.of("100")
@@ -103,14 +103,26 @@ abstract class AccountShould {
     @Test
     fun `money is not lost during transfers with confirmation`() {
         val clock = FakeClock.reading(FakeClock.date("14/03/2018"))
-        val (origin, _) = account_(clock, "origin")
-        val (destination, _) = account_(clock, "destination")
+        val (origin, _) = persistAndSize("origin", AccountBuilder.aNew(this::account).security(securityProvider).clock(clock).movements().build())
+        val (destination, _) = persistAndSize("destination", AccountBuilder.aNew(this::account).clock(clock).movements().build())
 
 
         val operationAmount = Amount.of("100")
         val description = "paying rent"
 
-        invariant({ Account.transfer(operationAmount, description, origin, destination) },
+        invariant({
+            Account.transfer(operationAmount, description, origin, destination)
+                    .map {
+                        when (it) {
+                            is Transaction.Transfer.Outgoing.Request -> {
+                                Account.confirmOperation(it)
+                            }
+                            else -> {
+                                fail("not expecting this type: ${it.javaClass.simpleName}")
+                            }
+                        }
+                    }
+        },
                 { ("same balance" to origin.value.balance().add(destination.value.balance())) })
     }
 
@@ -168,19 +180,13 @@ abstract class AccountShould {
         assertThat(after).isEqualTo(before)
     }
 
-    private fun account_(clock: Clock, accountId: String): Pair<Persisted<Account>, Int> {
-        val account = Persisted.`for`(accountWithMovements(clock), Id.of(accountId))
-        val transactionCount = account.value.findAll().size
-        return Pair(account, transactionCount)
+    private fun persistAndSize(accountId: String, account: Account): Pair<Persisted<Account>, Int> {
+        val persisted = Persisted.`for`(account, Id.of(accountId))
+        val transactionCount = persisted.value.findAll().size
+        return Pair(persisted, transactionCount)
     }
 
     private fun costsFor(account: Account) = account.findAll().map { it.value }.filter { it is Transaction.Cost }
-
-    private fun accountWithMovements() = accountWithMovements(Clock.aNew())
-
-    private fun accountWithMovements(clock: Clock): Account {
-        return AccountBuilder.aNew(this::account).clock(clock).movements().build()
-    }
 
     protected abstract fun account(): Account.AccountType
 
