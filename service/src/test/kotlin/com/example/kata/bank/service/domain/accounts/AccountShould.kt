@@ -98,8 +98,7 @@ abstract class AccountShould {
         val description = "paying rent"
 
         invariant({ Account.transfer(operationAmount, description, origin, destination) },
-                { ("same balance" to origin.value.balance().add(destination.value.balance())) },
-                { ("same balance2" to origin.value.balance().add(destination.value.balance())) })
+                { ("same balance" to origin.value.balance().add(destination.value.balance())) })
     }
 
 
