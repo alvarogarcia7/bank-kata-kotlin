@@ -14,7 +14,6 @@ import com.nhaarman.mockito_kotlin.doReturn
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.verify
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.fail
 import org.junit.Test
 
 abstract class AccountShould {
@@ -111,17 +110,8 @@ abstract class AccountShould {
         val description = "paying rent"
 
         invariant({
-            Account.transfer(operationAmount, description, origin, destination)
-                    .map {
-                        when (it) {
-                            is Transaction.Transfer.Outgoing.Request -> {
-                                Account.confirmOperation(it)
-                            }
-                            else -> {
-                                fail("not expecting this type: ${it.javaClass.simpleName}")
-                            }
-                        }
-                    }
+            val result = Account.transfer(operationAmount, description, origin, destination)
+            result.map { Account.confirmOperation(it as Transaction.Transfer.Outgoing.Request) }
         },
                 { ("same balance" to origin.value.balance().add(destination.value.balance())) })
     }
