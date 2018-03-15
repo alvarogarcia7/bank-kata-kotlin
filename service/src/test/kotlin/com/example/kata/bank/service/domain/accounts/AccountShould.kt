@@ -101,8 +101,8 @@ abstract class AccountShould {
 
 
         invariant({
-            val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
-            result.map { Account.confirmOperation(it as Transaction.Transfer.Outgoing.Request) }
+            Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
+                    .map { Account.confirmOperation(it as Transaction.Transfer.Outgoing.Request) }
         },
                 { ("same balance" to origin.value.balance().add(destination.value.balance())) })
     }
