@@ -50,7 +50,7 @@ abstract class AccountShould {
         account.deposit(Amount.of("100"), "initial deposit")
         assertThat(account.findAll()).hasSize(1)
 
-        val result = account.withdraw(Amount.Companion.of("100"), "overdraft")
+        val result = account.withdraw(Amount.of("100"), "overdraft")
 
         assertThat(result.isRight()).isTrue()
         assertThat(account.findAll()).hasSize(2)
@@ -60,10 +60,10 @@ abstract class AccountShould {
     fun `can perform multiple withdraws even if it would empty the account`() {
         val account = AccountBuilder.aNew(this::account).build()
         account.deposit(Amount.of("100"), "initial deposit")
-        account.withdraw(Amount.Companion.of("99.99"), "overdraft")
+        account.withdraw(Amount.of("99.99"), "overdraft")
         assertThat(account.findAll()).hasSize(2)
 
-        val result = account.withdraw(Amount.Companion.of("0.01"), "overdraft")
+        val result = account.withdraw(Amount.of("0.01"), "overdraft")
 
         assertThat(result.isRight()).isTrue()
         assertThat(account.findAll()).hasSize(3)
