@@ -101,24 +101,29 @@ class Account(private val clock: Clock, val name: String, val type: AccountType 
     companion object {
         fun transfer(operationAmount: Amount, description: String, originAccount: Persisted<Account>, destinationAccount: Persisted<Account>): Either<List<Exception>,
                 Transaction.Transfer> {
-            val request = originAccount.value.requestEmitTransfer(operationAmount, description, destinationAccount.id)
+            val request = originAccount.value.requestEmitTransfer(operationAmount, description, originAccount, destinationAccount)
             return when (request) {
                 is Transaction.Transfer.Outgoing.Emitted -> {
-                    destinationAccount.value.receiveTransfer(operationAmount, description, originAccount.id)
-                    Either.right(Transaction.Transfer.Completed(operationAmount, request.time, description, originAccount.id, destinationAccount.id))
+                    destinationAccount.value.receiveTransfer(operationAmount, description, originAccount.id, destinationAccount.id)
+                    Either.right(Transaction.Transfer.Received(operationAmount, request.time, description, originAccount.id, destinationAccount.id))
                 }
                 is Transaction.Transfer.Outgoing.Request -> {
                     Either.right(request)
                 }
             }
         }
+
+        fun confirmOperation(transfer: Transaction.Transfer.Outgoing.Request): Any {
+            transfer.from.value.emitTransfer(transfer.amount, transfer.description, transfer.from.id, transfer.destination.id)
+            return transfer.destination.value.receiveTransfer(transfer.amount, transfer.description, transfer.from.id, transfer.destination.id)
+        }
     }
 
-    private fun requestEmitTransfer(operationAmount: Amount, description: String, to: Id): Transaction.Transfer.Outgoing {
+    private fun requestEmitTransfer(operationAmount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer.Outgoing {
         return securityProvider.map {
-            Transaction.Transfer.Outgoing.Request(operationAmount, clock.getTime(), description, to, it.generate())
+            Transaction.Transfer.Outgoing.Request(operationAmount, clock.getTime(), description, from, to, it.generate())
         }.getOrElse {
-            Transaction.Transfer.Outgoing.Emitted(operationAmount, clock.getTime(), description, to)
+            Transaction.Transfer.Outgoing.Emitted(operationAmount, clock.getTime(), description, from.id, to.id)
         }.let {
             val persistedTransfer = createIdentityFor(it)
             transactionRepository.save(persistedTransfer)
@@ -126,8 +131,14 @@ class Account(private val clock: Clock, val name: String, val type: AccountType 
         }
     }
 
-    private fun receiveTransfer(operationAmount: Amount, description: String, from: Id): Either<List<Exception>, Transaction.Transfer.TransferReceived> {
-        val transfer = Transaction.Transfer.TransferReceived(operationAmount, clock.getTime(), description, from)
+    private fun emitTransfer(amount: Amount, description: String, from: Id, to: Id) {
+        val x = Transaction.Transfer.Outgoing.Emitted(amount, clock.getTime(), description, from, to)
+        val persistedTransfer = createIdentityFor(x)
+        transactionRepository.save(persistedTransfer)
+    }
+
+    private fun receiveTransfer(operationAmount: Amount, description: String, from: Id, destinationId: Id): Either<List<Exception>, Transaction.Transfer.Received> {
+        val transfer = Transaction.Transfer.Received(operationAmount, clock.getTime(), description, from, destinationId)
         val persistedTransfer = createIdentityFor(transfer)
         transactionRepository.save(persistedTransfer)
         return Either.right(transfer)

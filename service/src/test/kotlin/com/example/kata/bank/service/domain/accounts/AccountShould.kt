@@ -84,7 +84,7 @@ abstract class AccountShould {
 
         assertThat(origin.value.findAll().size).isEqualTo(originTransactionCount + 1)
         assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Completed(operationAmount, date1, description, origin.id, destination.id)))
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Received(operationAmount, date1, description, origin.id, destination.id)))
     }
 
     @Test
@@ -122,8 +122,36 @@ abstract class AccountShould {
         val result = Account.transfer(operationAmount, description, origin, destination)
 
         verify(securityProvider).generate()
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(operationAmount, date1, description, destination.id, securityProvider.generate())))
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(operationAmount, date1, description, origin, destination, securityProvider.generate())))
         assertThat(origin.value.balance()).isEqualTo(initialBalance)
+    }
+
+    @Test
+    fun `transfer a security-enabled transfer after confirmation`() {
+        val date1 = FakeClock.date("14/03/2018")
+        val clock = FakeClock.reading(date1)
+        val account = account(clock, Some(securityProvider))
+        account.deposit(Amount.of("100"), "first movement")
+        account.deposit(Amount.of("200"), "second movement")
+        account.withdraw(Amount.of("99"), "third movement")
+        val origin = Persisted.`for`(account, Id.of("origin"))
+        val initialBalance = origin.value.balance()
+        val destination = Persisted.`for`(account(clock), Id.of("destination"))
+        val destinationBalance = destination.value.balance()
+
+        val operationAmount = Amount.of("100")
+        val description = "paying rent"
+
+        val result = Account.transfer(operationAmount, description, origin, destination)
+        result.map { Account.confirmOperation(it as Transaction.Transfer.Outgoing.Request) }
+
+        verify(securityProvider).generate()
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(operationAmount, date1, description, origin, destination, securityProvider.generate())))
+        assertThat(origin.value.balance()).isNotEqualTo(initialBalance)
+        assertThat(destination.value.balance()).isNotEqualTo(destinationBalance)
+
+        assertThat(origin.value.balance()).isEqualTo(initialBalance.subtract(operationAmount))
+        assertThat(destination.value.balance()).isEqualTo(destinationBalance.add(operationAmount))
     }
 
     private fun invariant(sideEffect: () -> Any, vararg functions: () -> Pair<String, Any>) {
