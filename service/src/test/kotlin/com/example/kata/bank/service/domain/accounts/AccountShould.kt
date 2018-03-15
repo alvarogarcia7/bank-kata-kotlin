@@ -71,8 +71,8 @@ abstract class AccountShould {
 
     @Test
     fun `transfer between two accounts`() {
-        val (origin, originTransactionCount) = persistAndSize("origin", AccountBuilder.aNew(this::account).clock(fakeClock).movements().build())
-        val (destination, destinationTransactionCount) = persistAndSize("destination", AccountBuilder.aNew(this::account).clock(fakeClock).movements().build())
+        val (origin, originTransactionCount) = persistAndSize(AccountBuilder.aNew(this::account).clock(fakeClock).movements().build(), "origin")
+        val (destination, destinationTransactionCount) = persistAndSize(AccountBuilder.aNew(this::account).clock(fakeClock).movements().build(), "destination")
 
         val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
 
@@ -83,8 +83,8 @@ abstract class AccountShould {
 
     @Test
     fun `money is not lost during transfers`() {
-        val (origin, _) = persistAndSize("origin", AccountBuilder.aNew(this::account).clock(fakeClock).movements().build())
-        val (destination, _) = persistAndSize("destination", AccountBuilder.aNew(this::account).clock(fakeClock).movements().build())
+        val (origin, _) = persistAndSize(AccountBuilder.aNew(this::account).clock(fakeClock).movements().build(), "origin")
+        val (destination, _) = persistAndSize(AccountBuilder.aNew(this::account).clock(fakeClock).movements().build(), "destination")
 
 
         invariant({ Account.transfer(sampleTransferAmount, dummy_description, origin, destination) },
@@ -148,7 +148,7 @@ abstract class AccountShould {
         return Pair(Persisted.`for`(account, id), account.balance())
     }
 
-    private fun persistAndSize(accountId: String, account: Account): Pair<Persisted<Account>, Int> {
+    private fun persistAndSize(account: Account, accountId: String): Pair<Persisted<Account>, Int> {
         val persisted = Persisted.`for`(account, Id.of(accountId))
         val transactionCount = persisted.value.findAll().size
         return Pair(persisted, transactionCount)
