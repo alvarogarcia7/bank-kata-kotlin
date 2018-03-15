@@ -123,24 +123,16 @@ abstract class AccountShould {
 
     @Test
     fun `transfer a security-enabled transfer after confirmation`() {
-        val origin = Persisted.`for`(AccountBuilder.aNew(this::account).clock(fakeClock).security(securityProvider).movements().build(), Id.of("origin"))
-        val initialBalance = origin.value.balance()
-        val destination = Persisted.`for`(AccountBuilder.aNew(this::account).clock(fakeClock).build(), Id.of("destination"))
-        val destinationBalance = destination.value.balance()
+        val (origin, initialBalance) = withBalance(AccountBuilder.aNew(this::account).clock(fakeClock).security(securityProvider).movements().build(), Id.of("origin"))
+        val (destination, destinationBalance) = withBalance(AccountBuilder.aNew(this::account).clock(fakeClock).build(), Id.of("destination"))
 
-        val operationAmount = Amount.of("100")
-        val description = "paying rent"
-
-        val result = Account.transfer(operationAmount, description, origin, destination)
+        val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
         result.map { Account.confirmOperation(it as Transaction.Transfer.Outgoing.Request) }
 
         verify(securityProvider).generate()
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(operationAmount, fakeClock.getTime(), description, origin, destination, securityProvider.generate())))
-        assertThat(origin.value.balance()).isNotEqualTo(initialBalance)
-        assertThat(destination.value.balance()).isNotEqualTo(destinationBalance)
-
-        assertThat(origin.value.balance()).isEqualTo(initialBalance.subtract(operationAmount))
-        assertThat(destination.value.balance()).isEqualTo(destinationBalance.add(operationAmount))
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(sampleTransferAmount, fakeClock.getTime(), dummy_description, origin, destination, securityProvider.generate())))
+        assertThat(origin.value.balance()).isEqualTo(initialBalance.subtract(sampleTransferAmount))
+        assertThat(destination.value.balance()).isEqualTo(destinationBalance.add(sampleTransferAmount))
     }
 
     private fun invariant(sideEffect: () -> Any, vararg functions: () -> Pair<String, Any>) {
@@ -150,6 +142,10 @@ abstract class AccountShould {
 
         val after = functions.map { it.invoke() }
         assertThat(after).isEqualTo(before)
+    }
+
+    private fun withBalance(account: Account, id: Id): Pair<Persisted<Account>, Amount> {
+        return Pair(Persisted.`for`(account, id), account.balance())
     }
 
     private fun persistAndSize(accountId: String, account: Account): Pair<Persisted<Account>, Int> {
