@@ -1,9 +1,6 @@
 package com.example.kata.bank.service.domain.accounts
 
-import arrow.core.Either
-import arrow.core.None
-import arrow.core.Option
-import arrow.core.flatMap
+import arrow.core.*
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
@@ -104,27 +101,42 @@ class Account(private val clock: Clock, val name: String, val type: AccountType 
     companion object {
         fun transfer(operationAmount: Amount, description: String, originAccount: Persisted<Account>, destinationAccount: Persisted<Account>): Either<List<Exception>,
                 Transaction.Transfer> {
-            return originAccount.value.emitTransfer(operationAmount, description, destinationAccount.id).flatMap {
-                destinationAccount.value.receiveTransfer(operationAmount, description, originAccount.id)
-
-                Either.right(Transaction.Transfer(operationAmount, it.time, description, originAccount.id, destinationAccount.id))
+            val request = originAccount.value.requestEmitTransfer(operationAmount, description, destinationAccount.id)
+            return when (request) {
+                is Transaction.Transfer.Outgoing.Emitted -> {
+                    destinationAccount.value.receiveTransfer(operationAmount, description, originAccount.id)
+                    Either.right(Transaction.Transfer.Completed(operationAmount, request.time, description, originAccount.id, destinationAccount.id))
+                }
+                is Transaction.Transfer.Outgoing.Request -> {
+                    Either.right(request)
+                }
             }
         }
     }
 
-    private fun receiveTransfer(operationAmount: Amount, description: String, from: Id): Either<List<Exception>, Transaction.TransferReceived> {
-        val transfer = Transaction.TransferReceived(operationAmount, clock.getTime(), description, from)
+    private fun requestEmitTransfer(operationAmount: Amount, description: String, to: Id): Transaction.Transfer.Outgoing {
+        return securityProvider.map {
+            Transaction.Transfer.Outgoing.Request(operationAmount, clock.getTime(), description, to, it.generate())
+        }.getOrElse {
+            Transaction.Transfer.Outgoing.Emitted(operationAmount, clock.getTime(), description, to)
+        }.let {
+            val persistedTransfer = createIdentityFor(it)
+            transactionRepository.save(persistedTransfer)
+            it
+        }
+    }
+
+    private fun receiveTransfer(operationAmount: Amount, description: String, from: Id): Either<List<Exception>, Transaction.Transfer.TransferReceived> {
+        val transfer = Transaction.Transfer.TransferReceived(operationAmount, clock.getTime(), description, from)
         val persistedTransfer = createIdentityFor(transfer)
         transactionRepository.save(persistedTransfer)
         return Either.right(transfer)
     }
 
-    private fun emitTransfer(operationAmount: Amount, description: String, to: Id): Either<List<Exception>, Transaction.TransferEmitted> {
-        val transfer = Transaction.TransferEmitted(operationAmount, clock.getTime(), description, to)
-        val persistedTransfer = createIdentityFor(transfer)
-        transactionRepository.save(persistedTransfer)
-        securityProvider.map { it.generate() }
-        return Either.right(transfer)
+    inline fun <T, S> Option<T>.toEither(left: () -> S): Either<S, T> {
+        return when (this) {
+            is Some -> Either.right(this.t)
+            is None -> Either.left(left.invoke())
+        }
     }
-
 }

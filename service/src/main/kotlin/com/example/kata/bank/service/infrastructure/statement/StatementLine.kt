@@ -48,15 +48,8 @@ sealed class StatementLine(open val balance: Amount) {
                 is Transaction.Cost -> {
                     Debit(transaction.time, "", transaction.amount, previousBalance.subtract(transaction.amount))
                 }
-                is Transaction.TransferReceived -> {
-                    TODO()
-                }
-                is Transaction.TransferEmitted -> {
-                    TODO()
-                }
-                is Transaction.Transfer -> {
-                    TODO()
-                }
+                is Transaction.Transfer -> TODO()
+                is Transaction.Transfer.TransferReceived -> TODO()
             }
         }
     }

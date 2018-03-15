@@ -10,6 +10,7 @@ import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
+import com.nhaarman.mockito_kotlin.doReturn
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.verify
 import org.assertj.core.api.Assertions.assertThat
@@ -83,7 +84,7 @@ abstract class AccountShould {
 
         assertThat(origin.value.findAll().size).isEqualTo(originTransactionCount + 1)
         assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer(operationAmount, date1, description, origin.id, destination.id)))
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Completed(operationAmount, date1, description, origin.id, destination.id)))
     }
 
     @Test
@@ -106,7 +107,6 @@ abstract class AccountShould {
     fun `be protected with an OTP code to confirm a transfer`() {
         val date1 = FakeClock.date("14/03/2018")
         val clock = FakeClock.reading(date1)
-        val securityProvider = mock<Security>()
         val account = account(clock, Some(securityProvider))
         account.deposit(Amount.of("100"), "first movement")
         account.deposit(Amount.of("200"), "second movement")
@@ -121,7 +121,26 @@ abstract class AccountShould {
         val result = Account.transfer(operationAmount, description, origin, destination)
 
         verify(securityProvider).generate()
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer(operationAmount, date1, description, origin.id, destination.id)))
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(operationAmount, date1, description, destination.id, securityProvider.generate())))
+    }
+
+    @Test
+    fun `transfers with security enabled do not impact the balance`() {
+        val date1 = FakeClock.date("14/03/2018")
+        val clock = FakeClock.reading(date1)
+        val account = account(clock, Some(securityProvider))
+        account.deposit(Amount.of("100"), "first movement")
+        val origin = Persisted.`for`(account, Id.of("origin"))
+        val initialBalance = origin.value.balance()
+        val destination = Persisted.`for`(account(clock), Id.of("destination"))
+
+
+        val operationAmount = Amount.of("100")
+        val description = "paying rent"
+
+        val result = Account.transfer(operationAmount, description, origin, destination)
+
+        assertThat(origin.value.balance()).isEqualTo(initialBalance)
     }
 
 
@@ -155,4 +174,8 @@ abstract class AccountShould {
     private fun account() = account(Clock.aNew())
 
     protected abstract fun account(clock: Clock, securityProvider: Option<Security> = None): Account
+
+    private val securityProvider = mock<Security> {
+        on { generate() } doReturn "123456"
+    }
 }
