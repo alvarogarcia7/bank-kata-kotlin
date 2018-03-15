@@ -148,8 +148,8 @@ abstract class AccountShould {
         return Pair(Persisted.`for`(account, id), account.balance())
     }
 
-    private fun persistAndSize(account: Account, accountId: String): Pair<Persisted<Account>, Int> {
-        val persisted = Persisted.`for`(account, Id.of(accountId))
+    private fun persistAndSize(account: Account, id: String): Pair<Persisted<Account>, Int> {
+        val persisted = Persisted.`for`(account, Id.of(id))
         val transactionCount = persisted.value.findAll().size
         return Pair(persisted, transactionCount)
     }
