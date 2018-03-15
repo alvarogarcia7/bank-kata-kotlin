@@ -75,14 +75,11 @@ abstract class AccountShould {
         val (origin, originTransactionCount) = persistAndSize("origin", AccountBuilder.aNew(this::account).clock(clock).movements().build())
         val (destination, destinationTransactionCount) = persistAndSize("destination", AccountBuilder.aNew(this::account).clock(clock).movements().build())
 
-        val operationAmount = Amount.of("100")
-        val description = "paying rent"
-
-        val result = Account.transfer(operationAmount, description, origin, destination)
+        val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
 
         assertThat(origin.value.findAll().size).isEqualTo(originTransactionCount + 1)
         assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Received(operationAmount, FakeClock.date("14/03/2018"), description, origin.id, destination.id)))
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Received(sampleTransferAmount, FakeClock.date("14/03/2018"), dummy_description, origin.id, destination.id)))
     }
 
     @Test
@@ -92,10 +89,7 @@ abstract class AccountShould {
         val (destination, _) = persistAndSize("destination", AccountBuilder.aNew(this::account).clock(clock).movements().build())
 
 
-        val operationAmount = Amount.of("100")
-        val description = "paying rent"
-
-        invariant({ Account.transfer(operationAmount, description, origin, destination) },
+        invariant({ Account.transfer(sampleTransferAmount, dummy_description, origin, destination) },
                 { ("same balance" to origin.value.balance().add(destination.value.balance())) })
     }
 
@@ -106,11 +100,8 @@ abstract class AccountShould {
         val (destination, _) = persistAndSize("destination", AccountBuilder.aNew(this::account).clock(clock).movements().build())
 
 
-        val operationAmount = Amount.of("100")
-        val description = "paying rent"
-
         invariant({
-            val result = Account.transfer(operationAmount, description, origin, destination)
+            val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
             result.map { Account.confirmOperation(it as Transaction.Transfer.Outgoing.Request) }
         },
                 { ("same balance" to origin.value.balance().add(destination.value.balance())) })
@@ -127,13 +118,10 @@ abstract class AccountShould {
         val destination = Persisted.`for`(AccountBuilder.aNew(this::account).clock(clock).build(), Id.of("destination"))
 
 
-        val operationAmount = Amount.of("100")
-        val description = "paying rent"
-
-        val result = Account.transfer(operationAmount, description, origin, destination)
+        val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
 
         verify(securityProvider).generate()
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(operationAmount, date1, description, origin, destination, securityProvider.generate())))
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(sampleTransferAmount, date1, dummy_description, origin, destination, securityProvider.generate())))
         assertThat(origin.value.balance()).isEqualTo(initialBalance)
     }
 
@@ -183,6 +171,9 @@ abstract class AccountShould {
     private val securityProvider = mock<Security> {
         on { generate() } doReturn "123456"
     }
+
+    val sampleTransferAmount = Amount.of("100")
+    val dummy_description = "paying rent"
 
 }
 
