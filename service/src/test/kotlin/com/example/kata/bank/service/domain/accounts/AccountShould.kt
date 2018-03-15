@@ -71,9 +71,8 @@ abstract class AccountShould {
 
     @Test
     fun `transfer between two accounts`() {
-        val clock = FakeClock.reading(FakeClock.date("14/03/2018"))
-        val (origin, originTransactionCount) = persistAndSize("origin", AccountBuilder.aNew(this::account).clock(clock).movements().build())
-        val (destination, destinationTransactionCount) = persistAndSize("destination", AccountBuilder.aNew(this::account).clock(clock).movements().build())
+        val (origin, originTransactionCount) = persistAndSize("origin", AccountBuilder.aNew(this::account).clock(fakeClock).movements().build())
+        val (destination, destinationTransactionCount) = persistAndSize("destination", AccountBuilder.aNew(this::account).clock(fakeClock).movements().build())
 
         val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
 
@@ -84,9 +83,8 @@ abstract class AccountShould {
 
     @Test
     fun `money is not lost during transfers`() {
-        val clock = FakeClock.reading(FakeClock.date("14/03/2018"))
-        val (origin, _) = persistAndSize("origin", AccountBuilder.aNew(this::account).clock(clock).movements().build())
-        val (destination, _) = persistAndSize("destination", AccountBuilder.aNew(this::account).clock(clock).movements().build())
+        val (origin, _) = persistAndSize("origin", AccountBuilder.aNew(this::account).clock(fakeClock).movements().build())
+        val (destination, _) = persistAndSize("destination", AccountBuilder.aNew(this::account).clock(fakeClock).movements().build())
 
 
         invariant({ Account.transfer(sampleTransferAmount, dummy_description, origin, destination) },
@@ -95,9 +93,8 @@ abstract class AccountShould {
 
     @Test
     fun `money is not lost during transfers with confirmation`() {
-        val clock = FakeClock.reading(FakeClock.date("14/03/2018"))
-        val origin = Persisted.`for`(AccountBuilder.aNew(this::account).security(securityProvider).clock(clock).movements().build(), Id.of("origin"))
-        val destination = Persisted.`for`(AccountBuilder.aNew(this::account).clock(clock).movements().build(), Id.of("destination"))
+        val origin = Persisted.`for`(AccountBuilder.aNew(this::account).security(securityProvider).clock(fakeClock).movements().build(), Id.of("origin"))
+        val destination = Persisted.`for`(AccountBuilder.aNew(this::account).clock(fakeClock).movements().build(), Id.of("destination"))
 
 
         invariant({
@@ -107,31 +104,28 @@ abstract class AccountShould {
                 { ("same balance" to origin.value.balance().add(destination.value.balance())) })
     }
 
-
     @Test
     fun `be protected with an OTP code to confirm a transfer`() {
-        val date1 = FakeClock.date("14/03/2018")
-        val clock = FakeClock.reading(date1)
-        val account = AccountBuilder.aNew(this::account).clock(clock).security(securityProvider).movements().build()
+        val account = AccountBuilder.aNew(this::account).clock(fakeClock).security(securityProvider).movements().build()
         val origin = Persisted.`for`(account, Id.of("origin"))
         val initialBalance = origin.value.balance()
-        val destination = Persisted.`for`(AccountBuilder.aNew(this::account).clock(clock).build(), Id.of("destination"))
+        val destination = Persisted.`for`(AccountBuilder.aNew(this::account).clock(fakeClock).build(), Id.of("destination"))
 
 
         val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
 
         verify(securityProvider).generate()
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(sampleTransferAmount, date1, dummy_description, origin, destination, securityProvider.generate())))
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(sampleTransferAmount, fakeClock.getTime(), dummy_description, origin, destination, securityProvider
+                .generate())))
         assertThat(origin.value.balance()).isEqualTo(initialBalance)
     }
 
+
     @Test
     fun `transfer a security-enabled transfer after confirmation`() {
-        val date1 = FakeClock.date("14/03/2018")
-        val clock = FakeClock.reading(date1)
-        val origin = Persisted.`for`(AccountBuilder.aNew(this::account).clock(clock).security(securityProvider).movements().build(), Id.of("origin"))
+        val origin = Persisted.`for`(AccountBuilder.aNew(this::account).clock(fakeClock).security(securityProvider).movements().build(), Id.of("origin"))
         val initialBalance = origin.value.balance()
-        val destination = Persisted.`for`(AccountBuilder.aNew(this::account).clock(clock).build(), Id.of("destination"))
+        val destination = Persisted.`for`(AccountBuilder.aNew(this::account).clock(fakeClock).build(), Id.of("destination"))
         val destinationBalance = destination.value.balance()
 
         val operationAmount = Amount.of("100")
@@ -141,7 +135,7 @@ abstract class AccountShould {
         result.map { Account.confirmOperation(it as Transaction.Transfer.Outgoing.Request) }
 
         verify(securityProvider).generate()
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(operationAmount, date1, description, origin, destination, securityProvider.generate())))
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(operationAmount, fakeClock.getTime(), description, origin, destination, securityProvider.generate())))
         assertThat(origin.value.balance()).isNotEqualTo(initialBalance)
         assertThat(destination.value.balance()).isNotEqualTo(destinationBalance)
 
@@ -167,6 +161,10 @@ abstract class AccountShould {
     private fun costsFor(account: Account) = account.findAll().map { it.value }.filter { it is Transaction.Cost }
 
     protected abstract fun account(): Account.AccountType
+
+    private val fakeClock: Clock by lazy {
+        FakeClock.reading(FakeClock.date("14/03/2018"))
+    }
 
     private val securityProvider = mock<Security> {
         on { generate() } doReturn "123456"
