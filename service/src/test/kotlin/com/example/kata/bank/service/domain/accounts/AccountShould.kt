@@ -112,6 +112,7 @@ abstract class AccountShould {
         account.deposit(Amount.of("200"), "second movement")
         account.withdraw(Amount.of("99"), "third movement")
         val origin = Persisted.`for`(account, Id.of("origin"))
+        val initialBalance = origin.value.balance()
         val destination = Persisted.`for`(account(clock), Id.of("destination"))
 
 
@@ -122,27 +123,8 @@ abstract class AccountShould {
 
         verify(securityProvider).generate()
         assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(operationAmount, date1, description, destination.id, securityProvider.generate())))
-    }
-
-    @Test
-    fun `transfers with security enabled do not impact the balance`() {
-        val date1 = FakeClock.date("14/03/2018")
-        val clock = FakeClock.reading(date1)
-        val account = account(clock, Some(securityProvider))
-        account.deposit(Amount.of("100"), "first movement")
-        val origin = Persisted.`for`(account, Id.of("origin"))
-        val initialBalance = origin.value.balance()
-        val destination = Persisted.`for`(account(clock), Id.of("destination"))
-
-
-        val operationAmount = Amount.of("100")
-        val description = "paying rent"
-
-        val result = Account.transfer(operationAmount, description, origin, destination)
-
         assertThat(origin.value.balance()).isEqualTo(initialBalance)
     }
-
 
     private fun invariant(sideEffect: () -> Any, vararg functions: () -> Pair<String, Any>) {
         val before = functions.map { it.invoke() }
