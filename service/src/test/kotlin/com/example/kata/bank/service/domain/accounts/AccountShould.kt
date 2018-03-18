@@ -148,7 +148,7 @@ abstract class AccountShould {
         return Pair(Persisted.`for`(account, id), account.balance())
     }
 
-    private fun persistAndSize(account: Account, id: String): Pair<Persisted<Account>, Int> {
+    protected fun persistAndSize(account: Account, id: String): Pair<Persisted<Account>, Int> {
         val persisted = Persisted.`for`(account, Id.of(id))
         val transactionCount = persisted.value.findAll().size
         return Pair(persisted, transactionCount)
@@ -162,7 +162,7 @@ abstract class AccountShould {
         FakeClock.reading(FakeClock.date("14/03/2018"))
     }
 
-    private val securityProvider = mock<Security> {
+    protected val securityProvider = mock<Security> {
         on { generate() } doReturn "123456"
     }
 
@@ -179,12 +179,18 @@ class AccountBuilder private constructor(private val accountType: () -> Account.
     }
 
     private var securityProvider: Option<Security> = None
+    private var receivingSecurity: Option<Security> = None
     private var clock: Clock = Clock.aNew()
     private var movements: (Account) -> Unit = { _ -> Unit }
 
 
     fun security(securityProvider: Security): AccountBuilder {
         this.securityProvider = Some(securityProvider)
+        return this
+    }
+
+    fun receivingSecurity(securityProvider: Security): AccountBuilder {
+        this.receivingSecurity = Some(securityProvider)
         return this
     }
 
