@@ -83,7 +83,24 @@ class PremiumAccountShould : AccountShould() {
 //                .map{Account.confirmTransfer( it as Transaction.Transfer.Incoming.Request)}})
 
         assertThat(receiver.value.balance()).isEqualTo(previousReceiverBalance)
-//        assertThat(sender.value.balance()).isEqualTo(previousSenderBalance) //TODO AGB need to activate this
+//        assertThat(sender.value.balance()).isEqualTo(previousSenderBalance) //TODO AGB need to decide this
+    }
+
+    @Test
+    fun `--DEFECT or FEATURE-- as soon as the transfer is confirmed in the sender account, the money is withdrawn`() {
+        val (sender, _) = persistAndSize(AccountBuilder.aNew(this::account).outgoing(securityProvider).movements().build(), "sender")
+        val (receiver, _) = persistAndSize(AccountBuilder.aNew(this::account).incoming(securityProvider).build(), "receiver")
+        val previousReceiverBalance = receiver.value.balance()
+        val previousSenderBalance = sender.value.balance()
+
+        Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
+                .let {
+                    sender.value.confirmChain(it as Transaction.Transfer.Chain, "123456")
+                }
+        //do not confirm incoming transfer
+
+        assertThat(receiver.value.balance()).isEqualTo(previousReceiverBalance)
+        assertThat(sender.value.balance()).isNotEqualTo(previousSenderBalance)
     }
 
 
