@@ -111,6 +111,13 @@ class Account(
         fun transfer(operationAmount: Amount, description: String, originAccount: Persisted<Account>, destinationAccount: Persisted<Account>): Either<List<Exception>,
                 Transaction.Transfer> {
             val request = originAccount.value.requestEmitTransfer(operationAmount, description, originAccount, destinationAccount)
+            return requestReceiveTransfer(request, originAccount, destinationAccount)
+        }
+
+        private fun requestReceiveTransfer(request: Transaction.Transfer.Outgoing, originAccount: Persisted<Account>, destinationAccount: Persisted<Account>): Either<List<Exception>, Transaction.Transfer> {
+            val operationAmount = request.tx.amount
+            val description = request.tx.description
+
             return when (request) {
                 is Emitted -> {
                     if (destinationAccount.value.receivingSecurityProvider.isDefined()) {
