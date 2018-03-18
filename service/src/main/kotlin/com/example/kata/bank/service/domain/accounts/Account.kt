@@ -158,8 +158,10 @@ class Account(
             return if (unlock.isLeft()) {
                 Intermediate(request.tx, unlock.swap().get())
             } else {
+//                request.request.from.value.requestEmitTransfer(request.tx, request.request.from, request.request.destination)
+//                request.request.destination.value.requestReceiveTransfer(request.tx, request.request.from, request.request.destination)
                 request.request.from.value.emitTransfer(request.tx, request.request.from.id, request.request.destination.id)
-                return request.request.destination.value.receiveTransfer(request.tx, request.request.from, request.request.destination)
+                return request.request.destination.value.requestReceiveTransfer(request.tx, request.request.from, request.request.destination)
             }
         }
 
@@ -169,13 +171,17 @@ class Account(
 //        }
     }
 
+    private fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
+        return service.requestEmitTransfer(tx, from, to)
+    }
+
     private fun requestReceiveTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
         return service.requestReceiveTransfer(tx, from, to)
     }
 
     private fun requestTransfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
         val tx = Tx(amount, clock.getTime(), description)
-        val emitted = service.requestEmitTransfer(tx, from, to)
+        val emitted = this.requestEmitTransfer(tx, from, to)
         return if (emitted.blocked()) {
             emitted
         } else {
