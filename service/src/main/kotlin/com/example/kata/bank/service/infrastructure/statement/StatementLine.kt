@@ -40,13 +40,13 @@ sealed class StatementLine(open val balance: Amount) {
         fun parse(transaction: Transaction, previousBalance: Amount): StatementLine {
             return when (transaction) {
                 is Transaction.Deposit -> {
-                    Credit(transaction.time, "", transaction.amount, previousBalance.add(transaction.amount))
+                    Credit(transaction.tx.time, "", transaction.tx.amount, previousBalance.add(transaction.tx.amount))
                 }
                 is Transaction.Withdrawal -> {
-                    Debit(transaction.time, "", transaction.amount, previousBalance.subtract(transaction.amount))
+                    Debit(transaction.tx.time, "", transaction.tx.amount, previousBalance.subtract(transaction.tx.amount))
                 }
                 is Transaction.Cost -> {
-                    Debit(transaction.time, "", transaction.amount, previousBalance.subtract(transaction.amount))
+                    Debit(transaction.tx.time, "", transaction.tx.amount, previousBalance.subtract(transaction.tx.amount))
                 }
                 is Transaction.Transfer -> TODO()
             }

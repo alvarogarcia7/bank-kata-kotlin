@@ -15,6 +15,7 @@ import com.example.kata.bank.service.domain.accounts.AccountRepository
 import com.example.kata.bank.service.domain.accounts.Clock
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
+import com.example.kata.bank.service.domain.transactions.Tx
 import com.example.kata.bank.service.domain.users.UsersRepository
 import com.example.kata.bank.service.infrastructure.AccountsService
 import com.example.kata.bank.service.infrastructure.OperationsRepository
@@ -172,7 +173,7 @@ class E2EServiceFeatureTest {
         val newOperations = `operationsFor!`(accountId)
         this.bIsSupersetOfA(a = existingOperations, b = newOperations)
         assertThat(newOperations.size).isGreaterThan(existingOperations.size)
-        TransactionAssert.assertThat(newOperations.last().value).isEqualToIgnoringDate(Transaction.Deposit(Amount.Companion.of("1234.56"), anyDate(), "rent for this month"))
+        TransactionAssert.assertThat(newOperations.last().value).isEqualToIgnoringDate(Transaction.Deposit(Tx(Amount.of("1234.56"), anyDate(), "rent for this month")))
     }
 
     private fun <T> forceGet(a: Option<T>): T {
@@ -206,8 +207,8 @@ class E2EServiceFeatureTest {
             assertThat(transaction).isNotNull
 
             val softly = SoftAssertions()
-            softly.assertThat(this.actualT.amount).isEqualTo(transaction.amount)
-            softly.assertThat(this.actualT.description).isEqualTo(transaction.description)
+            softly.assertThat(this.actualT.tx.amount).isEqualTo(transaction.tx.amount)
+            softly.assertThat(this.actualT.tx.description).isEqualTo(transaction.tx.description)
             softly.assertAll()
 
             return this

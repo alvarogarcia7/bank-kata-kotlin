@@ -17,9 +17,9 @@ class Mapper {
     private val iso = DateTimeFormatter.ISO_DATE_TIME
     fun toDTO(value: Transaction): TransactionDTO {
         return TransactionDTO(
-                amount = toDTO(value.amount),
-                description = value.description,
-                time = toDTO(value.time),
+                amount = toDTO(value.tx.amount),
+                description = value.tx.description,
+                time = toDTO(value.tx.time),
                 type = "deposit")
     }
 
