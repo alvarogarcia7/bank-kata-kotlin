@@ -13,8 +13,13 @@ import com.example.kata.bank.service.domain.transactions.Tx
 import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.example.kata.bank.service.infrastructure.statement.StatementLine
 
-class Account(private val clock: Clock, val name: String, val type: AccountType = AccountType.Personal, private val securityProvider: Option<Security> = None, private val
-receivingSecurityProvider: Option<Security> = None) {
+class Account(
+        private val clock: Clock,
+        val name: String,
+        val type: AccountType = AccountType.Personal,
+        private val securityProvider: Option<Security> = None,
+        private val receivingSecurityProvider: Option<Security> = None
+) {
     private val transactionRepository: TransactionRepository = TransactionRepository()
 
     fun deposit(amount: Amount, description: String): Id {
