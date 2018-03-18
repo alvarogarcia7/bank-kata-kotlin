@@ -11,7 +11,7 @@ import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.*
 import com.example.kata.bank.service.domain.transactions.Tx
-import com.nhaarman.mockito_kotlin.doReturn
+import com.nhaarman.mockito_kotlin.doAnswer
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.verify
 import org.assertj.core.api.Assertions.assertThat
@@ -97,7 +97,7 @@ abstract class AccountShould {
 
     @Test
     fun `money is not lost during transfers with confirmation`() {
-        val origin = Persisted.`for`(AccountBuilder.aNew(this::account).security(securityProvider).clock(fakeClock).movements().build(), Id.of("origin"))
+        val origin = Persisted.`for`(AccountBuilder.aNew(this::account).outgoing(securityProvider).clock(fakeClock).movements().build(), Id.of("origin"))
         val destination = Persisted.`for`(AccountBuilder.aNew(this::account).clock(fakeClock).movements().build(), Id.of("destination"))
 
 
@@ -110,7 +110,7 @@ abstract class AccountShould {
 
     @Test
     fun `be protected with an OTP code to confirm a transfer`() {
-        val account = AccountBuilder.aNew(this::account).clock(fakeClock).security(securityProvider).movements().build()
+        val account = AccountBuilder.aNew(this::account).clock(fakeClock).outgoing(securityProvider).movements().build()
         val origin = Persisted.`for`(account, Id.of("origin"))
         val initialBalance = origin.value.balance()
         val destination = Persisted.`for`(AccountBuilder.aNew(this::account).clock(fakeClock).build(), Id.of("destination"))
@@ -121,14 +121,14 @@ abstract class AccountShould {
         verify(securityProvider).generate()
         assertThat(result).isEqualTo(Intermediate(
                 Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description),
-                Request(origin, destination, securityProvider.generate())))
+                Request.Request(origin, destination, securityProvider.generate())))
         assertThat(origin.value.balance()).isEqualTo(initialBalance)
     }
 
 
     @Test
     fun `transfer a security-enabled transfer after confirmation`() {
-        val (origin, initialBalance) = withBalance(AccountBuilder.aNew(this::account).clock(fakeClock).security(securityProvider).movements().build(), Id.of("origin"))
+        val (origin, initialBalance) = withBalance(AccountBuilder.aNew(this::account).clock(fakeClock).outgoing(securityProvider).movements().build(), Id.of("origin"))
         val (destination, destinationBalance) = withBalance(AccountBuilder.aNew(this::account).clock(fakeClock).build(), Id.of("destination"))
 
         val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
@@ -137,7 +137,7 @@ abstract class AccountShould {
         verify(securityProvider).generate()
         assertThat(result).isEqualTo(Intermediate(
                 Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description),
-                Request(origin, destination, securityProvider.generate())
+                Request.Request(origin, destination, securityProvider.generate())
         ))
         assertThat(origin.value.balance()).isEqualTo(initialBalance.subtract(sampleTransferAmount))
         assertThat(destination.value.balance()).isEqualTo(destinationBalance.add(sampleTransferAmount))
@@ -171,7 +171,7 @@ abstract class AccountShould {
     }
 
     protected val securityProvider = mock<Security> {
-        on { generate() } doReturn "123456"
+        on { generate() } doAnswer { println("Your code for verifying the operation is: ");"123456" }
     }
 
     val sampleTransferAmount = Amount.of("100")
@@ -186,19 +186,19 @@ class AccountBuilder private constructor(private val accountType: () -> Account.
         }
     }
 
-    private var securityProvider: Option<Security> = None
-    private var receivingSecurity: Option<Security> = None
+    private var outgoingSecurity: Option<Security> = None
+    private var incomingSecurity: Option<Security> = None
     private var clock: Clock = Clock.aNew()
     private var movements: (Account) -> Unit = { _ -> Unit }
 
 
-    fun security(securityProvider: Security): AccountBuilder {
-        this.securityProvider = Some(securityProvider)
+    fun outgoing(securityProvider: Security): AccountBuilder {
+        this.outgoingSecurity = Some(securityProvider)
         return this
     }
 
-    fun receivingSecurity(securityProvider: Security): AccountBuilder {
-        this.receivingSecurity = Some(securityProvider)
+    fun incoming(securityProvider: Security): AccountBuilder {
+        this.incomingSecurity = Some(securityProvider)
         return this
     }
 
@@ -217,17 +217,31 @@ class AccountBuilder private constructor(private val accountType: () -> Account.
     }
 
     fun build(): Account {
-        val accountService = AccountService()
-        val service: IAccountService = when (securityProvider) {
-            is Some -> {
-                IncomingSecurityAccountService(accountService, securityProvider)
-            }
-            is None -> {
-                accountService
-            }
-        }
-        val account = Account(clock, "account name", this.accountType.invoke(), service)
+        val finalService: IAccountService = decorateOutgoing(outgoingSecurity, decorateIncoming(incomingSecurity, AccountService()))
+        val account = Account(clock, "account name", this.accountType.invoke(), finalService)
         this.movements(account)
         return account
+    }
+
+    private fun decorateOutgoing(security: Option<Security>, initial: IAccountService): IAccountService {
+        return when (security) {
+            is Some -> {
+                OutgoingSecurityAccountService(initial, security.t)
+            }
+            is None -> {
+                initial
+            }
+        }
+    }
+
+    private fun decorateIncoming(security: Option<Security>, initialValue: AccountService): IAccountService {
+        return when (security) {
+            is Some -> {
+                IncomingSecurityAccountService(initialValue, security.t)
+            }
+            is None -> {
+                initialValue
+            }
+        }
     }
 }

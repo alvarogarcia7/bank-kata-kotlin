@@ -30,24 +30,41 @@ sealed class Transaction(open val tx: Tx) {
         }
     }
 
-    open class Transfer(override val tx: Tx) : Transaction(tx) {
+    abstract class Transfer(override val tx: Tx) : Transaction(tx) {
+        abstract fun blocked(): Boolean
         override fun subtotal(amount: Amount): Amount {
             return amount
         }
 
-        data class Request(val from: Persisted<Account>, val destination: Persisted<Account>, private val code: String)
+        sealed class Request(open val from: Persisted<Account>, open val destination: Persisted<Account>) {
+            data class Request(override val from: Persisted<Account>, override val destination: Persisted<Account>, private val code: String) : Transfer.Request(from, destination)
+            data class Recursive(override val from: Persisted<Account>, override val destination: Persisted<Account>, private val re: Transfer, private val code: String) :
+                    Transfer.Request(from, destination)
+        }
 
         data class Completed(val from: Id, val to: Id)
 
         data class Emitted(override val tx: Tx, val completed: Completed) : Transfer(tx) {
+            override fun blocked(): Boolean {
+                return false
+            }
+
             override fun subtotal(amount: Amount): Amount {
                 return amount.subtract(this.tx.amount)
             }
         }
 
-        data class Intermediate(override val tx: Tx, val request: Request) : Transfer(tx)
+        data class Intermediate(override val tx: Tx, val request: Request) : Transfer(tx) {
+            override fun blocked(): Boolean {
+                return true
+            }
+        }
 
         data class Received(override val tx: Tx, val completed: Completed) : Transfer(tx) {
+            override fun blocked(): Boolean {
+                return false
+            }
+
             override fun subtotal(amount: Amount): Amount {
                 return amount.add(this.tx.amount)
             }
