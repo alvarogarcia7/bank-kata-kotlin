@@ -163,32 +163,6 @@ class Account(
         fun transfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
             return from.value.requestTransfer(amount, description, from, to)
         }
-
-        fun confirmOperation(request: Intermediate, code: String): Transaction.Transfer {
-            val unlock = request.unlock(code)
-            return if (unlock.isLeft()) {
-                Intermediate(request.tx, unlock.swap().get())
-            } else {
-//                val x = request.request.destination.value.requestReceiveTransfer(request.tx, request.request.from, request.request.destination)
-//                when (x) {
-//                    is Intermediate -> {
-//
-//                    }
-//                    is Transaction.Transfer.Emitted -> {
-//                        request.request.from.value.emitTransfer(request.tx, request.request.from.id, request.request.destination.id)
-//                        request.request.from.value.emitTransfer(request.tx, request.request.from.id, request.request.destination.id)
-//                    }
-//                }
-//                return x
-                request.request.from.value.emitTransfer(request.tx, request.request.from.id, request.request.destination.id)
-                request.request.destination.value.requestReceiveTransfer(request.tx, request.request.from, request.request.destination)
-            }
-        }
-
-//        fun confirmTransfer(request: Transaction.Transfer.Intermediate): Transaction.Transfer {
-//            the incoming is fine - need to confirm both
-//            return request.request.destination.value.emit(request.tx, request.request.from, request.request.destination)
-//        }
     }
 
     private fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {

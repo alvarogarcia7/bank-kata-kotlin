@@ -142,7 +142,7 @@ abstract class AccountShould {
         softly.assertThat(result.tx).isEqualTo(Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description))
         softly.assertThat(result.t1).isEqualTo(Intermediate(
                 Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description),
-                Request.Request(origin, destination, securityProvider.generate())
+                Request.Request(origin, destination, "123456")
         ))
         softly.assertThat(origin.value.balance()).isEqualTo(initialBalance.subtract(sampleTransferAmount))
         softly.assertThat(destination.value.balance()).isEqualTo(destinationBalance.add(sampleTransferAmount))
