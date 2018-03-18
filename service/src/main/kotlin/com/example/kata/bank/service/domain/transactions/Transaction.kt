@@ -39,30 +39,17 @@ sealed class Transaction(open val tx: Tx) {
 
         data class Completed(val from: Id, val to: Id)
 
-        sealed class Outgoing(override val tx: Tx) : Transfer(tx) {
-
+        data class Emitted(override val tx: Tx, val completed: Completed) : Transfer(tx) {
             override fun subtotal(amount: Amount): Amount {
-                return amount
+                return amount.subtract(this.tx.amount)
             }
-
-            data class Request(override val tx: Tx, val request: Transfer.Request) : Outgoing(tx)
-
-            data class Emitted(override val tx: Tx, val completed: Completed) : Outgoing(tx) {
-                override fun subtotal(amount: Amount): Amount {
-                    return amount.subtract(this.tx.amount)
-                }
-            }
-
         }
 
-        sealed class Incoming(override val tx: Tx) : Transfer(tx) {
+        data class Intermediate(override val tx: Tx, val request: Request) : Transfer(tx)
 
-            data class Request(override val tx: Tx, val request: Transfer.Request) : Incoming(tx)
-
-            data class Received(override val tx: Tx, val completed: Completed) : Transfer.Incoming(tx) {
-                override fun subtotal(amount: Amount): Amount {
-                    return amount.add(this.tx.amount)
-                }
+        data class Received(override val tx: Tx, val completed: Completed) : Transfer(tx) {
+            override fun subtotal(amount: Amount): Amount {
+                return amount.add(this.tx.amount)
             }
         }
     }

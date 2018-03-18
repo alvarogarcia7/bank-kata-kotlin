@@ -79,7 +79,7 @@ abstract class AccountShould {
 
         assertThat(origin.value.findAll().size).isEqualTo(originTransactionCount + 1)
         assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
-        assertThat(result).isEqualTo(Incoming.Received(
+        assertThat(result).isEqualTo(Received(
                 Tx(sampleTransferAmount, FakeClock.date("14/03/2018"), dummy_description),
                 Completed(origin.id, destination.id)
         ))
@@ -103,7 +103,7 @@ abstract class AccountShould {
 
         invariant({
             val x = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
-            Account.confirmOperation(x as Transaction.Transfer.Outgoing.Request)
+            Account.confirmOperation(x as Transaction.Transfer.Intermediate)
         },
                 { ("same balance" to origin.value.balance().add(destination.value.balance())) })
     }
@@ -119,7 +119,7 @@ abstract class AccountShould {
         val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
 
         verify(securityProvider).generate()
-        assertThat(result).isEqualTo(Outgoing.Request(
+        assertThat(result).isEqualTo(Intermediate(
                 Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description),
                 Request(origin, destination, securityProvider.generate())))
         assertThat(origin.value.balance()).isEqualTo(initialBalance)
@@ -132,10 +132,10 @@ abstract class AccountShould {
         val (destination, destinationBalance) = withBalance(AccountBuilder.aNew(this::account).clock(fakeClock).build(), Id.of("destination"))
 
         val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
-        val result2 = result.let { Account.confirmOperation(it as Transaction.Transfer.Outgoing.Request) }
+        val result2 = result.let { Account.confirmOperation(it as Transaction.Transfer.Intermediate) }
 
         verify(securityProvider).generate()
-        assertThat(result).isEqualTo(Outgoing.Request(
+        assertThat(result).isEqualTo(Intermediate(
                 Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description),
                 Request(origin, destination, securityProvider.generate())
         ))
@@ -217,17 +217,17 @@ class AccountBuilder private constructor(private val accountType: () -> Account.
     }
 
     fun build(): Account {
-        val account = Account(clock, "account name", this.accountType.invoke(), securityProvider, receivingSecurity)
-        this.movements(account)
         val accountService = AccountService()
-        val service: IAccountService = when (receivingSecurity) {
+        val service: IAccountService = when (securityProvider) {
             is Some -> {
-                IncomingSecurityAccountService(accountService, (receivingSecurity as Some<Security>).t)
+                IncomingSecurityAccountService(accountService, securityProvider)
             }
             is None -> {
                 accountService
             }
         }
-        return account.withService(service)
+        val account = Account(clock, "account name", this.accountType.invoke(), service)
+        this.movements(account)
+        return account
     }
 }

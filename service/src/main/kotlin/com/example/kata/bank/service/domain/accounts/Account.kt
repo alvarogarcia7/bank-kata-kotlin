@@ -6,36 +6,40 @@ import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
-import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.Incoming.Received
-import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.Outgoing.Emitted
+import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.Emitted
+import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.Received
 import com.example.kata.bank.service.domain.transactions.TransactionRepository
 import com.example.kata.bank.service.domain.transactions.Tx
 import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.example.kata.bank.service.infrastructure.statement.StatementLine
 
 interface IAccountService {
-    fun confirmOperation(transfer: Transaction.Transfer.Incoming.Request): Transaction.Transfer.Incoming.Received
+    val securityProvider: Option<Security>
+    val receivingSecurityProvider: Option<Security>
+
+    //    fun confirmOperation(transfer: Transaction.Transfer.Incoming.Request): Transaction.Transfer.Incoming.Received
+//    fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer
+
+    fun transfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer
 }
 
 class Account(
         val clock: Clock,
         val name: String,
         val type: AccountType = AccountType.Personal,
-        private val securityProvider: Option<Security> = None,
-        private val receivingSecurityProvider: Option<Security> = None
+        private val service: IAccountService = AccountService()
 ) {
-    private lateinit var service: IAccountService
 
     private val transactionRepository: TransactionRepository = TransactionRepository()
 
-    override fun deposit(amount: Amount, description: String): Id {
+    fun deposit(amount: Amount, description: String): Id {
         val transaction = createIdentityFor(Transaction.Deposit(Tx(amount, clock.getTime(), description)))
         this.transactionRepository.save(transaction)
         return transaction.id
     }
 
     @Synchronized
-    override fun withdraw(operationAmount: Amount, description: String): Either<List<Exception>, Id> {
+    fun withdraw(operationAmount: Amount, description: String): Either<List<Exception>, Id> {
         if (type == AccountType.Personal) {
             if (operationAmount.greaterThan(balance())) {
                 return Either.left(listOf(Exception("Cannot go overdraft")))
@@ -113,20 +117,21 @@ class Account(
     }
 
     fun receiveTransfer(
-            transfer: Transaction.Transfer.Outgoing.Emitted,
+            transfer: Transaction.Transfer.Emitted,
             originAccount: Persisted<Account>,
             destinationAccount: Persisted<Account>
-    ) {
+    ): Received {
         val receivedTransfer = Received(transfer.tx, Transaction.Transfer.Completed(originAccount.id, destinationAccount.id))
         val persistedTransfer = createIdentityFor(receivedTransfer)
         transactionRepository.save(persistedTransfer)
+        return receivedTransfer
     }
 
-    fun requestEmitTransfer(operationAmount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer.Outgoing {
-        return securityProvider.map {
-            Transaction.Transfer.Outgoing.Request(Tx(operationAmount, clock.getTime(), description), Transaction.Transfer.Request(from, to, it.generate()))
+    fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
+        return service.securityProvider.map {
+            Transaction.Transfer.Intermediate(tx, Transaction.Transfer.Request(from, to, it.generate()))
         }.getOrElse {
-            Emitted(Tx(operationAmount, clock.getTime(), description), Transaction.Transfer.Completed(from.id, to.id))
+            Transaction.Transfer.Emitted(tx, Transaction.Transfer.Completed(from.id, to.id))
         }.let {
             val persistedTransfer = createIdentityFor(it)
             transactionRepository.save(persistedTransfer)
@@ -142,23 +147,23 @@ class Account(
     }
 
     fun requestReceiveTransfer(
-            request: Transaction.Transfer.Outgoing.Emitted,
+            request: Transaction.Transfer.Emitted,
             originAccount: Persisted<Account>,
             destinationAccount: Persisted<Account>
-    ): Transaction.Transfer.Incoming {
-        val transfer = when (receivingSecurityProvider) {
+    ): Transaction.Transfer {
+        val transfer = when (service.receivingSecurityProvider) {
             is Some -> {
-                Transaction.Transfer.Incoming.Request(
+                Transaction.Transfer.Intermediate(
                         request.tx,
                         Transaction.Transfer.Request(
                                 originAccount,
                                 destinationAccount,
-                                this.receivingSecurityProvider.t.generate()
+                                (this.service.receivingSecurityProvider as Some<Security>).t.generate()
                         )
                 )
             }
             is None -> {
-                val transfer = Transaction.Transfer.Incoming.Received(request.tx, Transaction.Transfer.Completed(
+                val transfer = Transaction.Transfer.Received(request.tx, Transaction.Transfer.Completed(
                         originAccount.id,
                         destinationAccount.id
                 ))
@@ -170,13 +175,15 @@ class Account(
         return transfer
     }
 
-    fun confirmOutgoingRequestOperation(
-            operationAmount: Amount,
-            description: String,
-            from: Id,
-            destinationId: Id
-    ): Received {
-        val transfer = Received(Tx(operationAmount, clock.getTime(), description), Transaction.Transfer.Completed(from, destinationId))
+    private fun confirmIngoingRequestOperation(request: Transaction.Transfer.Intermediate): Received {
+        val transfer = Received(request.tx, Transaction.Transfer.Completed(request.request.from.id, request.request.destination.id))
+        val persistedTransfer = createIdentityFor(transfer)
+        transactionRepository.save(persistedTransfer)
+        return transfer
+    }
+
+    fun confirmOutgoingRequestOperation(request: Transaction.Transfer.Intermediate): Emitted {
+        val transfer = Emitted(request.tx, Transaction.Transfer.Completed(request.request.from.id, request.request.destination.id))
         val persistedTransfer = createIdentityFor(transfer)
         transactionRepository.save(persistedTransfer)
         return transfer
@@ -189,52 +196,56 @@ class Account(
         }
     }
 
+    companion object {
+        fun transfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
+            return from.value.transfer(amount, description, from, to)
+        }
 
-    fun withService(service: IAccountService): Account {
-        this.service = service
-        return this
-    }
-}
-
-class IncomingSecurityAccountService(private val accountService: IAccountService, private val receivingSecurityProvider: Security) : IAccountService {
-    override fun confirmOperation(transfer: Transaction.Transfer.Incoming.Request): Received {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-}
-
-class AccountService : IAccountService {
-    fun transfer(
-            operationAmount: Amount,
-            description: String,
-            originAccount: Persisted<Account>,
-            destinationAccount: Persisted<Account>
-    ): Transaction.Transfer {
-        val request = originAccount.value.requestEmitTransfer(operationAmount, description, originAccount, destinationAccount)
-        return when (request) {
-            is Transaction.Transfer.Outgoing.Emitted -> {
-                destinationAccount.value.requestReceiveTransfer(request, originAccount, destinationAccount)
-            }
-            is Transaction.Transfer.Outgoing.Request -> {
-                request
-            }
+        fun confirmOperation(request: Transaction.Transfer.Intermediate): Transaction.Transfer {
+            request.request.destination.value.confirmIngoingRequestOperation(request)
+            return request.request.from.value.confirmOutgoingRequestOperation(request)
         }
     }
 
-    fun confirmOperation(transfer: Transaction.Transfer.Outgoing.Request): Transaction.Transfer {
+    private fun transfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
+        val tx = Tx(amount, clock.getTime(), description)
+        return service.transfer(tx, from, to)
+    }
+
+}
+
+class IncomingSecurityAccountService(accountService: IAccountService, receivingSecurity: Option<Security>) : IAccountService {
+    override fun transfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
+        return Transaction.Transfer.Intermediate(tx, Transaction.Transfer.Request(from, to, receivingSecurityProvider.map { it.generate() }.get()))
+    }
+
+    override val securityProvider: Option<Security> = accountService.securityProvider
+    override val receivingSecurityProvider: Option<Security> = receivingSecurity
+}
+
+class AccountService : IAccountService {
+    override fun transfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
+        val emitted = from.value.emitTransfer(tx, from.id, to.id)
+        return to.value.receiveTransfer(emitted, from, to)
+    }
+
+    fun confirmOperation(transfer: Transaction.Transfer.Intermediate): Transaction.Transfer {
         val emittedTransfer = transfer.request.from.value.emitTransfer(Tx(transfer.tx.amount, transfer.request.from.value.clock.getTime(), transfer.tx.description), transfer.request.from.id, transfer.request.destination.id)
         return transfer.request.destination.value.requestReceiveTransfer(emittedTransfer, transfer.request.from, transfer.request.destination)
     }
 
-    override fun confirmOperation(transfer: Transaction.Transfer.Incoming.Request): Transaction.Transfer.Incoming.Received {
-        val origin = transfer.request.from.value
-        val emitted = origin.emitTransfer(transfer.tx, transfer.request.from.id, transfer.request.destination.id)
+//    override fun confirmOperation(transfer: Transaction.Transfer.Incoming.Request): Transaction.Transfer.Incoming.Received {
+//        val origin = transfer.request.from.value
+//        val emitted = origin.emitTransfer(transfer.tx, transfer.request.from.id, transfer.request.destination.id)
+//
+//        val destination = transfer.request.destination.value
+//        destination.receiveTransfer(emitted, transfer.request.from, transfer.request.destination)
+//        val confirmOutgoingRequestOperation = destination.requestReceiveTransfer(transfer)
+//        return confirmOutgoingRequestOperation
+//    }
 
-        val destination = transfer.request.destination.value
-        destination.receiveTransfer(emitted, transfer.request.from, transfer.request.destination)
-        val confirmOutgoingRequestOperation = destination.confirmOutgoingRequestOperation(transfer.tx.amount, transfer.tx.description, transfer.request.from.id, transfer.request.destination.id)
-        return confirmOutgoingRequestOperation
-    }
+    override val securityProvider: Option<Security> = None
+    override val receivingSecurityProvider: Option<Security> = None
 
 }
 
