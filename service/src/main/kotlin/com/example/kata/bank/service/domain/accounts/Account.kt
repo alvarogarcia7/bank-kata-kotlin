@@ -6,6 +6,8 @@ import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
+import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.Incoming.Received
+import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.Outgoing.Emitted
 import com.example.kata.bank.service.domain.transactions.TransactionRepository
 import com.example.kata.bank.service.domain.transactions.Tx
 import com.example.kata.bank.service.infrastructure.statement.Statement
@@ -105,12 +107,12 @@ receivingSecurityProvider: Option<Security> = None) {
                 Transaction.Transfer> {
             val request = originAccount.value.requestEmitTransfer(operationAmount, description, originAccount, destinationAccount)
             return when (request) {
-                is Transaction.Transfer.Outgoing.Emitted -> {
+                is Emitted -> {
                     if (destinationAccount.value.receivingSecurityProvider.isDefined()) {
                         destinationAccount.value.receiveIncomingTransfer(operationAmount, description, originAccount, destinationAccount)
                     } else {
                         destinationAccount.value.receiveEmittedTransfer(operationAmount, description, originAccount.id, destinationAccount.id)
-                        Either.right(Transaction.Transfer.Incoming.Received(Tx(operationAmount, request.tx.time, description), originAccount.id, destinationAccount.id))
+                        Either.right(Received(Tx(operationAmount, request.tx.time, description), Transaction.Transfer.YY(originAccount.id, destinationAccount.id)))
                     }
                 }
                 is Transaction.Transfer.Outgoing.Request -> {
@@ -120,16 +122,16 @@ receivingSecurityProvider: Option<Security> = None) {
         }
 
         fun confirmOperation(transfer: Transaction.Transfer.Outgoing.Request): Any {
-            transfer.from.value.emitTransfer(transfer.tx.amount, transfer.tx.description, transfer.from.id, transfer.destination.id)
-            return transfer.destination.value.receiveEmittedTransfer(transfer.tx.amount, transfer.tx.description, transfer.from.id, transfer.destination.id)
+            transfer.request.from.value.emitTransfer(transfer.tx.amount, transfer.tx.description, transfer.request.from.id, transfer.request.destination.id)
+            return transfer.request.destination.value.receiveEmittedTransfer(transfer.tx.amount, transfer.tx.description, transfer.request.from.id, transfer.request.destination.id)
         }
     }
 
     private fun requestEmitTransfer(operationAmount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer.Outgoing {
         return securityProvider.map {
-            Transaction.Transfer.Outgoing.Request(Tx(operationAmount, clock.getTime(), description), from, to, it.generate())
+            Transaction.Transfer.Outgoing.Request(Tx(operationAmount, clock.getTime(), description), Transaction.Transfer.XX(from, to, it.generate()))
         }.getOrElse {
-            Transaction.Transfer.Outgoing.Emitted(Tx(operationAmount, clock.getTime(), description), from.id, to.id)
+            Emitted(Tx(operationAmount, clock.getTime(), description), Transaction.Transfer.YY(from.id, to.id))
         }.let {
             val persistedTransfer = createIdentityFor(it)
             transactionRepository.save(persistedTransfer)
@@ -138,21 +140,25 @@ receivingSecurityProvider: Option<Security> = None) {
     }
 
     private fun emitTransfer(amount: Amount, description: String, from: Id, to: Id) {
-        val x = Transaction.Transfer.Outgoing.Emitted(Tx(amount, clock.getTime(), description), from, to)
+        val x = Emitted(Tx(amount, clock.getTime(), description), Transaction.Transfer.YY(from, to))
         val persistedTransfer = createIdentityFor(x)
         transactionRepository.save(persistedTransfer)
     }
 
     private fun receiveIncomingTransfer(operationAmount: Amount, description: String, from: Persisted<Account>, destination: Persisted<Account>):
             Either<List<Exception>, Transaction.Transfer.Incoming.Request> {
-        val transfer = Transaction.Transfer.Incoming.Request(Tx(operationAmount, clock.getTime(), description), from, destination, this.receivingSecurityProvider.map { it.generate() }.get())
+        val transfer = Transaction.Transfer.Incoming.Request(Tx(operationAmount, clock.getTime(), description), Transaction.Transfer.XX(from, destination, this
+                .receivingSecurityProvider.map {
+            it
+                    .generate()
+        }.get()))
         val persistedTransfer = createIdentityFor(transfer)
         transactionRepository.save(persistedTransfer)
         return Either.right(transfer)
     }
 
-    private fun receiveEmittedTransfer(operationAmount: Amount, description: String, from: Id, destinationId: Id): Either<List<Exception>, Transaction.Transfer.Incoming.Received> {
-        val transfer = Transaction.Transfer.Incoming.Received(Tx(operationAmount, clock.getTime(), description), from, destinationId)
+    private fun receiveEmittedTransfer(operationAmount: Amount, description: String, from: Id, destinationId: Id): Either<List<Exception>, Received> {
+        val transfer = Received(Tx(operationAmount, clock.getTime(), description), Transaction.Transfer.YY(from, destinationId))
         val persistedTransfer = createIdentityFor(transfer)
         transactionRepository.save(persistedTransfer)
         return Either.right(transfer)

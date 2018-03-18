@@ -79,9 +79,9 @@ abstract class AccountShould {
 
         assertThat(origin.value.findAll().size).isEqualTo(originTransactionCount + 1)
         assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Incoming.Received(Tx(sampleTransferAmount, FakeClock.date("14/03/2018"), dummy_description), origin.id,
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Incoming.Received(Tx(sampleTransferAmount, FakeClock.date("14/03/2018"), dummy_description), Transaction.Transfer.YY(origin.id,
                 destination
-                        .id)))
+                        .id))))
     }
 
     @Test
@@ -118,9 +118,9 @@ abstract class AccountShould {
         val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
 
         verify(securityProvider).generate()
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description), origin, destination,
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description), Transaction.Transfer.XX(origin, destination,
                 securityProvider
-                .generate())))
+                        .generate()))))
         assertThat(origin.value.balance()).isEqualTo(initialBalance)
     }
 
@@ -134,8 +134,8 @@ abstract class AccountShould {
         result.map { Account.confirmOperation(it as Transaction.Transfer.Outgoing.Request) }
 
         verify(securityProvider).generate()
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description), origin, destination,
-                securityProvider.generate())))
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description), Transaction.Transfer.XX(origin, destination,
+                securityProvider.generate()))))
         assertThat(origin.value.balance()).isEqualTo(initialBalance.subtract(sampleTransferAmount))
         assertThat(destination.value.balance()).isEqualTo(destinationBalance.add(sampleTransferAmount))
     }
