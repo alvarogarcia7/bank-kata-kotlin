@@ -32,9 +32,16 @@ sealed class Transaction(open val tx: Tx) {
     }
 
     abstract class Transfer(override val tx: Tx) : Transaction(tx) {
+
         abstract fun blocked(): Boolean
         override fun subtotal(amount: Amount): Amount {
             return amount
+        }
+
+        data class Chain(override val tx: Tx, val t1: Transfer, val f2: (tx: Tx, from: Persisted<Account>, to: Persisted<Account>) -> Transfer) : Transfer(tx) {
+            override fun blocked(): Boolean {
+                return t1.blocked()
+            }
         }
 
         sealed class Request(open val from: Persisted<Account>, open val destination: Persisted<Account>) {
@@ -45,12 +52,15 @@ sealed class Transaction(open val tx: Tx) {
                     return code == this.code
                 }
             }
+        }
 
-            data class Recursive(override val from: Persisted<Account>, override val destination: Persisted<Account>, val re: Transfer, private val code: String) :
-                    Transfer.Request(from, destination) {
-                override fun unlockedBy(code: String): Boolean {
-                    return code == this.code
-                }
+        data class ValidatedRequest(override val tx: Tx, val from: Persisted<Account>, open val destination: Persisted<Account>) : Transfer(tx) {
+            override fun blocked(): Boolean {
+                return false
+            }
+
+            override fun subtotal(amount: Amount): Amount {
+                return amount
             }
         }
 
@@ -66,15 +76,12 @@ sealed class Transaction(open val tx: Tx) {
             }
         }
 
-        data class Intermediate(override val tx: Tx, val request: Request) : Transfer(tx) {
+        data class Intermediate(override val tx: Tx, val request: Request, val next: Intermediate? = null) : Transfer(tx) {
             fun unlock(code: String): Either<Request, Completed> {
                 if (request.unlockedBy(code)) {
                     when (request) {
                         is Request.Request -> {
                             return Either.right(Completed(request.from.id, request.destination.id))
-                        }
-                        is Request.Recursive -> {
-                            return Either.left(request.re as Request)
                         }
                     }
                 } else {

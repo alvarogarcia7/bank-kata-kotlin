@@ -77,7 +77,7 @@ class PremiumAccountShould : AccountShould() {
 
         val result = Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
                 .let {
-                    Account.confirmOperation(it as Transaction.Transfer.Intermediate, securityProvider.generate())
+                    sender.value.confirmChain(it as Transaction.Transfer.Chain, "123456")
                 }
         //do not confirm incoming transfer
 //                .map{Account.confirmTransfer( it as Transaction.Transfer.Incoming.Request)}})

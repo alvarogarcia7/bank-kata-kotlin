@@ -135,10 +135,21 @@ class Account(
         return transfer
     }
 
-    fun confirmOutgoingRequestOperation(request: Transaction.Transfer.Intermediate): Emitted {
-        val transfer = Emitted(request.tx, Completed(request.request.from.id, request.request.destination.id))
-        transactionRepository.save(createIdentityFor(transfer))
-        return transfer
+    fun confirmChain(request: Transaction.Transfer.Chain, code: String): Transaction.Transfer {
+
+        val request1 = request.t1 as Transaction.Transfer.Intermediate
+        val from = request1.request.from
+        val destination = request1.request.destination
+//        val x = ValidatedRequest(request.tx, from, destination)
+//
+//        transactionRepository.save(createIdentityFor(x))
+
+        val y = request.f2.invoke(request.tx, from, destination)
+        return y
+
+//        val transfer = Emitted(request.tx, Completed(request.t1request.from.id, request.request.destination.id))
+//        transactionRepository.save(createIdentityFor(transfer))
+//        return transfer
     }
 
     inline fun <T, S> Option<T>.toEither(left: () -> S): Either<S, T> {
@@ -182,11 +193,13 @@ class Account(
 
     private fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
         val requestEmitTransfer = service.requestEmitTransfer(tx, from, to)
+//        transactionRepository.save(createIdentityFor(requestEmitTransfer))
         return requestEmitTransfer
     }
 
     private fun requestReceiveTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
         val requestReceiveTransfer = service.requestReceiveTransfer(tx, from, to)
+//        transactionRepository.save(createIdentityFor(requestReceiveTransfer))
         return requestReceiveTransfer
     }
 
@@ -194,7 +207,10 @@ class Account(
         val tx = Tx(amount, clock.getTime(), description)
         val emitted = this.requestEmitTransfer(tx, from, to)
         return if (emitted.blocked()) {
-            emitted
+            Chain(tx, emitted) { tx: Tx, from: Persisted<Account>, to: Persisted<Account> ->
+                from.value.emitTransfer(tx, from.id, to.id)
+                to.value.requestReceiveTransfer(tx, from, to)
+            }
         } else {
             to.value.requestReceiveTransfer(tx, from, to)
         }
