@@ -10,6 +10,7 @@ import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
+import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.*
 import com.example.kata.bank.service.domain.transactions.Tx
 import com.nhaarman.mockito_kotlin.doReturn
 import com.nhaarman.mockito_kotlin.mock
@@ -79,9 +80,10 @@ abstract class AccountShould {
 
         assertThat(origin.value.findAll().size).isEqualTo(originTransactionCount + 1)
         assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Incoming.Received(Tx(sampleTransferAmount, FakeClock.date("14/03/2018"), dummy_description), Transaction.Transfer.Completed(origin.id,
-                destination
-                        .id))))
+        assertThat(result).isEqualTo(Either.right(Incoming.Received(
+                Tx(sampleTransferAmount, FakeClock.date("14/03/2018"), dummy_description),
+                Completed(origin.id, destination.id)
+        )))
     }
 
     @Test
@@ -118,9 +120,9 @@ abstract class AccountShould {
         val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
 
         verify(securityProvider).generate()
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description), Transaction.Transfer.Request(origin, destination,
-                securityProvider
-                        .generate()))))
+        assertThat(result).isEqualTo(Either.right(Outgoing.Request(
+                Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description),
+                Request(origin, destination, securityProvider.generate()))))
         assertThat(origin.value.balance()).isEqualTo(initialBalance)
     }
 
@@ -134,8 +136,10 @@ abstract class AccountShould {
         result.map { Account.confirmOperation(it as Transaction.Transfer.Outgoing.Request) }
 
         verify(securityProvider).generate()
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Outgoing.Request(Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description), Transaction.Transfer.Request(origin, destination,
-                securityProvider.generate()))))
+        assertThat(result).isEqualTo(Either.right(Outgoing.Request(
+                Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description),
+                Request(origin, destination, securityProvider.generate())
+        )))
         assertThat(origin.value.balance()).isEqualTo(initialBalance.subtract(sampleTransferAmount))
         assertThat(destination.value.balance()).isEqualTo(destinationBalance.add(sampleTransferAmount))
     }
