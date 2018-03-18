@@ -1,6 +1,5 @@
 package com.example.kata.bank.service.domain.accounts
 
-import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
@@ -80,10 +79,10 @@ abstract class AccountShould {
 
         assertThat(origin.value.findAll().size).isEqualTo(originTransactionCount + 1)
         assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
-        assertThat(result).isEqualTo(Either.right(Incoming.Received(
+        assertThat(result).isEqualTo(Incoming.Received(
                 Tx(sampleTransferAmount, FakeClock.date("14/03/2018"), dummy_description),
                 Completed(origin.id, destination.id)
-        )))
+        ))
     }
 
     @Test
@@ -103,8 +102,8 @@ abstract class AccountShould {
 
 
         invariant({
-            Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
-                    .map { Account.confirmOperation(it as Transaction.Transfer.Outgoing.Request) }
+            val x = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
+            Account.confirmOperation(x as Transaction.Transfer.Outgoing.Request)
         },
                 { ("same balance" to origin.value.balance().add(destination.value.balance())) })
     }
@@ -120,9 +119,9 @@ abstract class AccountShould {
         val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
 
         verify(securityProvider).generate()
-        assertThat(result).isEqualTo(Either.right(Outgoing.Request(
+        assertThat(result).isEqualTo(Outgoing.Request(
                 Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description),
-                Request(origin, destination, securityProvider.generate()))))
+                Request(origin, destination, securityProvider.generate())))
         assertThat(origin.value.balance()).isEqualTo(initialBalance)
     }
 
@@ -133,13 +132,13 @@ abstract class AccountShould {
         val (destination, destinationBalance) = withBalance(AccountBuilder.aNew(this::account).clock(fakeClock).build(), Id.of("destination"))
 
         val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
-        result.map { Account.confirmOperation(it as Transaction.Transfer.Outgoing.Request) }
+        val result2 = result.let { Account.confirmOperation(it as Transaction.Transfer.Outgoing.Request) }
 
         verify(securityProvider).generate()
-        assertThat(result).isEqualTo(Either.right(Outgoing.Request(
+        assertThat(result).isEqualTo(Outgoing.Request(
                 Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description),
                 Request(origin, destination, securityProvider.generate())
-        )))
+        ))
         assertThat(origin.value.balance()).isEqualTo(initialBalance.subtract(sampleTransferAmount))
         assertThat(destination.value.balance()).isEqualTo(destinationBalance.add(sampleTransferAmount))
     }
