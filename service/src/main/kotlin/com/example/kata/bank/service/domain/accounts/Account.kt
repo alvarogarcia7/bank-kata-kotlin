@@ -127,8 +127,6 @@ class Account(
 
         fun confirmOperation(transfer: Transaction.Transfer.Outgoing.Request): Transaction.Transfer {
             val emittedTransfer = transfer.request.from.value.emitTransfer(Tx(transfer.tx.amount, transfer.request.from.value.clock.getTime(), transfer.tx.description), transfer.request.from.id, transfer.request.destination.id)
-//            val confirmOutgoingRequestOperation = destination.confirmOutgoingRequestOperation(transfer.tx.amount, transfer.tx.description, transfer.request.from.id, transfer.request.destination.id)
-//            return confirmOutgoingRequestOperation
             return transfer.request.destination.value.requestReceiveTransfer(emittedTransfer, transfer.request.from, transfer.request.destination)
         }
 
