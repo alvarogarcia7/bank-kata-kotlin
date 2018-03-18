@@ -72,7 +72,8 @@ class PremiumAccountShould : AccountShould() {
     fun `can confirm incoming secure transfers`() {
         val (sender, _) = persistAndSize(AccountBuilder.aNew(this::account).outgoing(securityProvider).movements().build(), "sender")
         val (receiver, _) = persistAndSize(AccountBuilder.aNew(this::account).incoming(securityProvider).build(), "receiver")
-        val previousBalance = receiver.value.balance()
+        val previousReceiverBalance = receiver.value.balance()
+        val previousSenderBalance = sender.value.balance()
 
         val result = Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
                 .let {
@@ -81,7 +82,8 @@ class PremiumAccountShould : AccountShould() {
         //do not confirm incoming transfer
 //                .map{Account.confirmTransfer( it as Transaction.Transfer.Incoming.Request)}})
 
-        assertThat(receiver.value.balance()).isEqualTo(previousBalance)
+        assertThat(receiver.value.balance()).isEqualTo(previousReceiverBalance)
+        assertThat(sender.value.balance()).isEqualTo(previousSenderBalance)
     }
 
 
