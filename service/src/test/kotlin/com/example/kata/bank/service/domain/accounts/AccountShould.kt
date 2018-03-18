@@ -219,6 +219,15 @@ class AccountBuilder private constructor(private val accountType: () -> Account.
     fun build(): Account {
         val account = Account(clock, "account name", this.accountType.invoke(), securityProvider, receivingSecurity)
         this.movements(account)
-        return account
+        val accountService = AccountService()
+        val service: IAccountService = when (receivingSecurity) {
+            is Some -> {
+                IncomingSecurityAccountService(accountService, (receivingSecurity as Some<Security>).t)
+            }
+            is None -> {
+                accountService
+            }
+        }
+        return account.withService(service)
     }
 }
