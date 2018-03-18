@@ -158,10 +158,19 @@ class Account(
             return if (unlock.isLeft()) {
                 Intermediate(request.tx, unlock.swap().get())
             } else {
-//                request.request.from.value.requestEmitTransfer(request.tx, request.request.from, request.request.destination)
-//                request.request.destination.value.requestReceiveTransfer(request.tx, request.request.from, request.request.destination)
+//                val x = request.request.destination.value.requestReceiveTransfer(request.tx, request.request.from, request.request.destination)
+//                when (x) {
+//                    is Intermediate -> {
+//
+//                    }
+//                    is Transaction.Transfer.Emitted -> {
+//                        request.request.from.value.emitTransfer(request.tx, request.request.from.id, request.request.destination.id)
+//                        request.request.from.value.emitTransfer(request.tx, request.request.from.id, request.request.destination.id)
+//                    }
+//                }
+//                return x
                 request.request.from.value.emitTransfer(request.tx, request.request.from.id, request.request.destination.id)
-                return request.request.destination.value.requestReceiveTransfer(request.tx, request.request.from, request.request.destination)
+                request.request.destination.value.requestReceiveTransfer(request.tx, request.request.from, request.request.destination)
             }
         }
 
@@ -172,11 +181,13 @@ class Account(
     }
 
     private fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
-        return service.requestEmitTransfer(tx, from, to)
+        val requestEmitTransfer = service.requestEmitTransfer(tx, from, to)
+        return requestEmitTransfer
     }
 
     private fun requestReceiveTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
-        return service.requestReceiveTransfer(tx, from, to)
+        val requestReceiveTransfer = service.requestReceiveTransfer(tx, from, to)
+        return requestReceiveTransfer
     }
 
     private fun requestTransfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
@@ -214,7 +225,6 @@ class OutgoingSecurityAccountService(private val accountService: IAccountService
 
     override fun requestReceiveTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
         println("GOGOGO!")
-        from.value.emitTransfer(tx, from.id, to.id)
         return to.value.receiveTransfer(tx, from, to)
     }
 }
