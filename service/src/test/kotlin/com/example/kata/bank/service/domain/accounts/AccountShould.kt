@@ -78,7 +78,9 @@ abstract class AccountShould {
 
         assertThat(origin.value.findAll().size).isEqualTo(originTransactionCount + 1)
         assertThat(destination.value.findAll().size).isEqualTo(destinationTransactionCount + 1)
-        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Received(sampleTransferAmount, FakeClock.date("14/03/2018"), dummy_description, origin.id, destination.id)))
+        assertThat(result).isEqualTo(Either.right(Transaction.Transfer.Incoming.Received(sampleTransferAmount, FakeClock.date("14/03/2018"), dummy_description, origin.id,
+                destination
+                        .id)))
     }
 
     @Test
@@ -209,7 +211,7 @@ class AccountBuilder private constructor(private val accountType: () -> Account.
     }
 
     fun build(): Account {
-        val account = Account(clock, "account name", this.accountType.invoke(), securityProvider)
+        val account = Account(clock, "account name", this.accountType.invoke(), securityProvider, receivingSecurity)
         this.movements(account)
         return account
     }

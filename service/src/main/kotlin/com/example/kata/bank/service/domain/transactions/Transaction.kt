@@ -64,16 +64,31 @@ sealed class Transaction(open val amount: Amount, open val time: LocalDateTime, 
 
         }
 
-        data class Received(
+        sealed class Incoming(
                 override val amount: Amount,
                 override val time: LocalDateTime,
-                override val description: String,
-                val from: Id,
-                val to: Id
-        ) : Transfer(amount, time,
-                description) {
-            override fun subtotal(amount: Amount): Amount {
-                return amount.add(this.amount)
+                override val description: String
+        ) : Transfer(amount, time, description) {
+
+            data class Request(
+                    override val amount: Amount,
+                    override val time: LocalDateTime,
+                    override val description: String,
+                    val from: Persisted<Account>,
+                    val destination: Persisted<Account>,
+                    private val code: String
+            ) : Incoming(amount, time, description)
+
+            data class Received(
+                    override val amount: Amount,
+                    override val time: LocalDateTime,
+                    override val description: String,
+                    val from: Id,
+                    val to: Id
+            ) : Transfer.Incoming(amount, time, description) {
+                override fun subtotal(amount: Amount): Amount {
+                    return amount.add(this.amount)
+                }
             }
         }
     }

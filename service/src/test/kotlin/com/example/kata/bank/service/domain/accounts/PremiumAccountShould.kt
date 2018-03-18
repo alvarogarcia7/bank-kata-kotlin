@@ -67,6 +67,18 @@ class PremiumAccountShould : AccountShould() {
         assertThat(receiver.value.balance()).isEqualTo(previousBalance)
     }
 
+    @Test
+    fun `can confirm incoming secure transfers`() {
+        val (sender, _) = persistAndSize(AccountBuilder.aNew(this::account).security(securityProvider).movements().build(), "sender")
+        val (receiver, _) = persistAndSize(AccountBuilder.aNew(this::account).receivingSecurity(securityProvider).build(), "receiver")
+        val previousBalance = receiver.value.balance()
+
+        val result = Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
+        //do not confirm incoming transfer
+
+        assertThat(receiver.value.balance()).isEqualTo(previousBalance)
+    }
+
 
     private fun costsFor(account: Account) = account.findAll().map { it.value }.filter { it is Transaction.Cost }
 
