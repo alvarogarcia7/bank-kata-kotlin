@@ -35,27 +35,19 @@ sealed class Transaction(open val tx: Tx) {
             return amount
         }
 
-        data class Request(val from: Persisted<Account>,
-                           val destination: Persisted<Account>,
-                           private val code: String)
+        data class Request(val from: Persisted<Account>, val destination: Persisted<Account>, private val code: String)
 
-        data class Completed(val from: Id,
-                             val to: Id)
+        data class Completed(val from: Id, val to: Id)
 
         sealed class Outgoing(override val tx: Tx) : Transfer(tx) {
 
             override fun subtotal(amount: Amount): Amount {
                 return amount
             }
-            data class Request(
-                    override val tx: Tx,
-                    val request: Transfer.Request
-            ) : Outgoing(tx)
 
-            data class Emitted(
-                    override val tx: Tx,
-                    val completed: Completed
-            ) : Outgoing(tx) {
+            data class Request(override val tx: Tx, val request: Transfer.Request) : Outgoing(tx)
+
+            data class Emitted(override val tx: Tx, val completed: Completed) : Outgoing(tx) {
                 override fun subtotal(amount: Amount): Amount {
                     return amount.subtract(this.tx.amount)
                 }
@@ -65,15 +57,9 @@ sealed class Transaction(open val tx: Tx) {
 
         sealed class Incoming(override val tx: Tx) : Transfer(tx) {
 
-            data class Request(
-                    override val tx: Tx,
-                    val request: Transfer.Request
-            ) : Incoming(tx)
+            data class Request(override val tx: Tx, val request: Transfer.Request) : Incoming(tx)
 
-            data class Received(
-                    override val tx: Tx,
-                    val completed: Completed
-            ) : Transfer.Incoming(tx) {
+            data class Received(override val tx: Tx, val completed: Completed) : Transfer.Incoming(tx) {
                 override fun subtotal(amount: Amount): Amount {
                     return amount.add(this.tx.amount)
                 }
