@@ -18,7 +18,6 @@ import com.example.kata.bank.service.infrastructure.statement.StatementLine
 interface IAccountService {
     fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer
     fun requestReceiveTransfer(tx: Tx, originAccount: Persisted<Account>, destinationAccount: Persisted<Account>): Transaction.Transfer
-    fun transfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer
 }
 
 class Account(
@@ -151,23 +150,39 @@ class Account(
 
     companion object {
         fun transfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
-            return from.value.transfer(amount, description, from, to)
+            return from.value.requestTransfer(amount, description, from, to)
         }
 
-        fun confirmOperation(request: Transaction.Transfer.Intermediate): Transaction.Transfer {
-            request.request.destination.value.confirmIngoingRequestOperation(request)
-            return request.request.from.value.confirmOutgoingRequestOperation(request)
+        fun confirmOperation(request: Intermediate, code: String): Transaction.Transfer {
+            val unlock = request.unlock(code)
+            return if (unlock.isLeft()) {
+                Intermediate(request.tx, unlock.swap().get())
+            } else {
+                request.request.from.value.emitTransfer(request.tx, request.request.from.id, request.request.destination.id)
+                return request.request.destination.value.receiveTransfer(request.tx, request.request.from, request.request.destination)
+            }
         }
+
+//        fun confirmTransfer(request: Transaction.Transfer.Intermediate): Transaction.Transfer {
+//            the incoming is fine - need to confirm both
+//            return request.request.destination.value.emit(request.tx, request.request.from, request.request.destination)
+//        }
     }
 
-    private fun transfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
+    private fun requestReceiveTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
+        return service.requestReceiveTransfer(tx, from, to)
+    }
+
+    private fun requestTransfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
         val tx = Tx(amount, clock.getTime(), description)
-        return service.transfer(tx, from, to)
+        val emitted = service.requestEmitTransfer(tx, from, to)
+        return if (emitted.blocked()) {
+            emitted
+        } else {
+            to.value.requestReceiveTransfer(tx, from, to)
+        }
     }
 
-    fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
-        return service.requestEmitTransfer(tx, from, to)
-    }
 
 }
 
@@ -182,16 +197,6 @@ class IncomingSecurityAccountService(private val accountService: IAccountService
         println("BLOCKING HERE")
         return Transaction.Transfer.Intermediate(tx, Transaction.Transfer.Request.Request(originAccount, destinationAccount, security.generate()))
     }
-
-    override fun transfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
-        val emitted = this.requestEmitTransfer(tx, from, to)
-        return if (emitted.blocked()) {
-            emitted
-        } else {
-            this.requestReceiveTransfer(tx, from, to)
-        }
-    }
-
 }
 
 class OutgoingSecurityAccountService(private val accountService: IAccountService, private val security: Security) : IAccountService {
@@ -201,18 +206,10 @@ class OutgoingSecurityAccountService(private val accountService: IAccountService
         return Transaction.Transfer.Intermediate(tx, Transaction.Transfer.Request.Request(from, to, security.generate()))
     }
 
-    override fun requestReceiveTransfer(tx: Tx, originAccount: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
+    override fun requestReceiveTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
         println("GOGOGO!")
-        return to.value.receiveTransfer(tx, originAccount, to)
-    }
-
-    override fun transfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
-        val emitted = this.requestEmitTransfer(tx, from, to)
-        return if (emitted.blocked()) {
-            emitted
-        } else {
-            this.requestReceiveTransfer(tx, from, to)
-        }
+        from.value.emitTransfer(tx, from.id, to.id)
+        return to.value.receiveTransfer(tx, from, to)
     }
 }
 
@@ -224,15 +221,6 @@ class AccountService : IAccountService {
 
     override fun requestReceiveTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
         return to.value.receiveTransfer(tx, from, to)
-    }
-
-    override fun transfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
-        val emitted = this.requestEmitTransfer(tx, from, to)
-        return if (emitted.blocked()) {
-            emitted
-        } else {
-            this.requestReceiveTransfer(tx, from, to)
-        }
     }
 }
 

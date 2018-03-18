@@ -1,5 +1,6 @@
 package com.example.kata.bank.service.domain.transactions
 
+import arrow.core.Either
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
@@ -37,9 +38,20 @@ sealed class Transaction(open val tx: Tx) {
         }
 
         sealed class Request(open val from: Persisted<Account>, open val destination: Persisted<Account>) {
-            data class Request(override val from: Persisted<Account>, override val destination: Persisted<Account>, private val code: String) : Transfer.Request(from, destination)
-            data class Recursive(override val from: Persisted<Account>, override val destination: Persisted<Account>, private val re: Transfer, private val code: String) :
-                    Transfer.Request(from, destination)
+            abstract fun unlockedBy(code: String): Boolean
+
+            data class Request(override val from: Persisted<Account>, override val destination: Persisted<Account>, private val code: String) : Transfer.Request(from, destination) {
+                override fun unlockedBy(code: String): Boolean {
+                    return code == this.code
+                }
+            }
+
+            data class Recursive(override val from: Persisted<Account>, override val destination: Persisted<Account>, val re: Transfer, private val code: String) :
+                    Transfer.Request(from, destination) {
+                override fun unlockedBy(code: String): Boolean {
+                    return code == this.code
+                }
+            }
         }
 
         data class Completed(val from: Id, val to: Id)
@@ -55,6 +67,21 @@ sealed class Transaction(open val tx: Tx) {
         }
 
         data class Intermediate(override val tx: Tx, val request: Request) : Transfer(tx) {
+            fun unlock(code: String): Either<Request, Completed> {
+                if (request.unlockedBy(code)) {
+                    when (request) {
+                        is Request.Request -> {
+                            return Either.right(Completed(request.from.id, request.destination.id))
+                        }
+                        is Request.Recursive -> {
+                            return Either.left(request.re as Request)
+                        }
+                    }
+                } else {
+                    return Either.left(request)
+                }
+            }
+
             override fun blocked(): Boolean {
                 return true
             }
