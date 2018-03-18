@@ -111,31 +111,32 @@ class Account(
         fun transfer(operationAmount: Amount, description: String, originAccount: Persisted<Account>, destinationAccount: Persisted<Account>): Either<List<Exception>,
                 Transaction.Transfer> {
             val request = originAccount.value.requestEmitTransfer(operationAmount, description, originAccount, destinationAccount)
-            return requestReceiveTransfer(request, originAccount, destinationAccount)
-        }
-
-        private fun requestReceiveTransfer(request: Transaction.Transfer.Outgoing, originAccount: Persisted<Account>, destinationAccount: Persisted<Account>): Either<List<Exception>, Transaction.Transfer> {
-            val operationAmount = request.tx.amount
-            val description = request.tx.description
-
-            return when (request) {
-                is Emitted -> {
-                    if (destinationAccount.value.receivingSecurityProvider.isDefined()) {
-                        destinationAccount.value.receiveIncomingTransfer(operationAmount, description, originAccount, destinationAccount)
-                    } else {
-                        destinationAccount.value.receiveEmittedTransfer(operationAmount, description, originAccount.id, destinationAccount.id)
-                        Either.right(Received(Tx(operationAmount, request.tx.time, description), Transaction.Transfer.Completed(originAccount.id, destinationAccount.id)))
-                    }
-                }
-                is Transaction.Transfer.Outgoing.Request -> {
-                    Either.right(request)
-                }
-            }
+            return destinationAccount.value.requestReceiveTransfer(request, originAccount, destinationAccount)
         }
 
         fun confirmOperation(transfer: Transaction.Transfer.Outgoing.Request): Any {
             transfer.request.from.value.emitTransfer(transfer.tx.amount, transfer.tx.description, transfer.request.from.id, transfer.request.destination.id)
             return transfer.request.destination.value.receiveEmittedTransfer(transfer.tx.amount, transfer.tx.description, transfer.request.from.id, transfer.request.destination.id)
+        }
+
+    }
+
+    private fun requestReceiveTransfer(request: Transaction.Transfer.Outgoing, originAccount: Persisted<Account>, destinationAccount: Persisted<Account>): Either<List<Exception>, Transaction.Transfer> {
+        val operationAmount = request.tx.amount
+        val description = request.tx.description
+
+        return when (request) {
+            is Emitted -> {
+                if (this.receivingSecurityProvider.isDefined()) {
+                    this.receiveIncomingTransfer(operationAmount, description, originAccount, destinationAccount)
+                } else {
+                    this.receiveEmittedTransfer(operationAmount, description, originAccount.id, destinationAccount.id)
+                    Either.right(Received(Tx(operationAmount, request.tx.time, description), Transaction.Transfer.Completed(originAccount.id, destinationAccount.id)))
+                }
+            }
+            is Transaction.Transfer.Outgoing.Request -> {
+                Either.right(request)
+            }
         }
     }
 
