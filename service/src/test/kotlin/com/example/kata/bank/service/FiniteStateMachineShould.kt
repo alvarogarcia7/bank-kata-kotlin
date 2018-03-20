@@ -73,18 +73,18 @@ sealed class Car(private val parts: List<String> = listOf()) {
 }
 
 
-class TransitionState<out T>(override val payload: T, private val transitions: (State<T>) -> State<T>) : State<T> {
+class TransitionState<T>(override val payload: T, private val transitions: (State<T>) -> State<T>) : State<T> {
     override fun run(): State<T> {
         return transitions.invoke(this)
     }
 }
 
-interface State<out T> {
+interface State<T> {
     fun run(): State<T>
     val payload: T
 }
 
-class FinalState<out T>(override val payload: T) : State<T> {
+class FinalState<T>(override val payload: T) : State<T> {
     override fun run(): State<T> {
         return this
     }
