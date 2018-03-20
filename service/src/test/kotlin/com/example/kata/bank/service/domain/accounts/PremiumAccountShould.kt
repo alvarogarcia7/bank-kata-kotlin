@@ -4,6 +4,7 @@ import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.Ignore
 import org.junit.Test
 
 class PremiumAccountShould : AccountShould() {
@@ -84,6 +85,23 @@ class PremiumAccountShould : AccountShould() {
 
         assertThat(receiver.value.balance()).isEqualTo(previousReceiverBalance)
 //        assertThat(sender.value.balance()).isEqualTo(previousSenderBalance) //TODO AGB need to decide this
+    }
+
+    @Ignore
+    @Test
+    fun `no money is lost when transferring money and both accounts are protected`() {
+        val (sender, _) = persistAndSize(AccountBuilder.aNew(this::account).outgoing(securityProvider).movements().build(), "sender")
+        val (receiver, _) = persistAndSize(AccountBuilder.aNew(this::account).incoming(securityProvider).build(), "receiver")
+        val previousTotalBalance = sender.value.balance().add(receiver.value.balance())
+
+        Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
+                .let {
+                    sender.value.confirmChain(it as Transaction.Transfer.Chain, "123456")
+                }.let {
+                    receiver.value.confirmChain(it as Transaction.Transfer.Chain, "123456")
+                }
+
+        assertThat(sender.value.balance().add(receiver.value.balance())).isEqualTo(previousTotalBalance)
     }
 
     @Test
