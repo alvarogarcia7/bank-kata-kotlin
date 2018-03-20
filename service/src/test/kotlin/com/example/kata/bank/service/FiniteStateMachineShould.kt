@@ -8,7 +8,6 @@ class FiniteStateMachineShould {
 
     @Test
     fun `stay at a stable state`() {
-
         val stableState = FinalState(emptyCar)
 
         val newState = stableState.run()
@@ -19,7 +18,6 @@ class FiniteStateMachineShould {
 
     @Test
     fun `automatically consume the lambda-transitions`() {
-
         val stableState = FinalState(emptyCar)
         val state = TransitionState(emptyCar, LambdaTransition({ _: State<Car> -> stableState }))
 
