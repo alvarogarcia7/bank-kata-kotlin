@@ -52,6 +52,8 @@ This only allows for representing two values, in an implicit way: the
 team consensus indicates left and right for these meanings.
 
 Also, it's strage to see an `Either<T,T>` where both `T` are the same.
+It's possible that this is caused by having the state machine implicitly
+(inheriting from a common class) + the Either.
 
 #### Thunks
 
