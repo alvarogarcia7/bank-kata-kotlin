@@ -41,6 +41,10 @@ case, Transfer) or using a wrapper (State<>) to signify the current state.
 For the former, there's the production code. For the latter, a side étude
 implementing a state machine library (using a Car + its factory as the domain)
 
+In the implementation, it is less type-safe, less comfortable to work
+with this implementation, as the method signatures are quite ambiguous:
+any state is representable under the Transfer object.
+
 #### Either
 
 As Either (i.e., failed computation): [Code](https://github.com/alvarogarcia7/bank-kata-kotlin/tree/variant/control-safe-transfers-as-either)
