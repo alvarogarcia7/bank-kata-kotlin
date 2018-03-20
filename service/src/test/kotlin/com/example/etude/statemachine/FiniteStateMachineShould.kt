@@ -1,4 +1,4 @@
-package com.example.kata.bank.service
+package com.example.etude.statemachine
 
 import org.assertj.core.api.Assertions
 import org.junit.Test
@@ -91,7 +91,6 @@ sealed class Car {
             return InitialCar(listOf())
         }
     }
-
 
     data class InitialCar(private val parts: List<String>) : Car() {
         fun putWheels(): Car {
