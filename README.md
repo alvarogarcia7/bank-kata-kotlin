@@ -23,14 +23,27 @@ both outgoing (e.g., most banks have this) as incoming.
 
 As parameters of the Account class: [Code](https://github.com/alvarogarcia7/bank-kata-kotlin/tree/variant/control-safe-transfers-as-parameters)
 
+This is the simplest approach: depend on the type of the parameter to
+decide the behaviour of the class.
+
 #### State machine
 
 As a state machine: [Code](https://github.com/alvarogarcia7/bank-kata-kotlin/tree/variant/control-safe-transfers-as-state-machine)
+
+Configure the states and the transitions as an internal/external part of
+the Transfer class, therefore making it more generic and future-proof (YAGNI?)
 
 #### Either
 
 As Either (i.e., failed computation): [Code](https://github.com/alvarogarcia7/bank-kata-kotlin/tree/variant/control-safe-transfers-as-either)
 
+Either allows you to represent two explicit computation results. Left has
+been used to mean blocked/safe transfer and Right to mean unblocked transfer.
+
 #### Thunks
 
 As thunks (i.e., delayed computations): [Code](https://github.com/alvarogarcia7/bank-kata-kotlin/tree/variant/control-safe-transfers-as-thunks)
+
+A thunk has been passed as a parameter and executed when it is necessary.
+This system does not allow for easy persistance/storage, as functions can't
+be serialized/deserialized.
