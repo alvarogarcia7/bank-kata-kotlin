@@ -94,10 +94,6 @@ sealed class Car {
 
 
     data class InitialCar(private val parts: List<String>) : Car() {
-        fun hasWheels(): Boolean {
-            return parts.contains("wheels")
-        }
-
         fun putWheels(): Car {
             val parts = this.parts.toMutableList()
             parts.add("wheels")
