@@ -4,7 +4,7 @@ import org.assertj.core.api.Assertions
 import org.junit.Test
 
 class FiniteStateMachineShould {
-    private val emptyCar = Car(listOf())
+    private val emptyCar = Car.using(listOf())
 
     @Test
     fun `stay at a stable state`() {
@@ -17,40 +17,81 @@ class FiniteStateMachineShould {
     }
 
     @Test
-    fun `automatically consume the lambda-transitions`() {
+    fun `automatically consume the lambda-transitions, as they are defined in the set of transtions`() {
         val stableState = FinalState(emptyCar)
-        val state = TransitionState(emptyCar, LambdaTransition({ _: State<Car> -> stableState }))
+        val state = TransitionState(emptyCar, { _: State<Car> -> stableState })
 
         val newState = state.run()
 
         Assertions.assertThat(newState).isEqualTo(stableState)
         Assertions.assertThat(stableState.payload).isEqualTo(newState.payload)
     }
+
+    @Test
+    fun `configure the state with multiple transitions`() {
+
+        val transitions = { state: State<Car> ->
+            when (state.payload) {
+                is Car.FinishedCar -> {
+                    println("the car has been finished")
+                    FinalState(state.payload)
+                }
+                else -> {
+                    FinalState(state.payload.putWheels())
+                }
+            }
+        }
+        val state = TransitionState(emptyCar, transitions)
+
+        val newState = state.run()
+
+        Assertions.assertThat(newState.payload.javaClass.simpleName).isEqualTo("FinishedCar")
+        Assertions.assertThat(newState.payload.hasWheels()).isTrue()
+    }
 }
 
-data class Car(val parts: List<String>)
+sealed class Car(private val parts: List<String> = listOf()) {
+    companion object {
+        fun using(parts: List<String>): Car {
+            return InitialCar(parts)
+        }
+    }
 
-class TransitionState<T>(override val payload: T, private val lambdaTransition: LambdaTransition<T>) : State<T> {
+    fun hasWheels(): Boolean {
+        return parts.contains("wheels")
+    }
+
+    fun putWheels(): Car {
+        val parts = this.parts.toMutableList()
+        parts.add("wheels")
+        return FinishedCar(parts.toList())
+    }
+
+    data class FinishedCar(val parts: List<String>) : Car(parts)
+    data class InitialCar(val parts: List<String>) : Car(parts)
+
+}
+
+
+class TransitionState<out T>(override val payload: T, private val transitions: (State<T>) -> State<T>) : State<T> {
     override fun run(): State<T> {
-        return lambdaTransition.perform(this)
-    }
-
-}
-
-class LambdaTransition<T>(private val function: (State<T>) -> State<T>) {
-    fun perform(previous: State<T>): State<T> {
-        return function.invoke(previous)
+        return transitions.invoke(this)
     }
 }
+//
+//class LambdaTransition<out T>(private val function: (State<T>) -> State<T>) {
+//    fun perform(previous: State<T>): State<T> {
+//        return function.invoke(previous)
+//    }
+//}
 
-interface State<T> {
+interface State<out T> {
     fun run(): State<T>
     val payload: T
 }
 
-class FinalState<T>(override val payload: T) : State<T> {
+class FinalState<out T>(override val payload: T) : State<T> {
     override fun run(): State<T> {
         return this
     }
-
 }
