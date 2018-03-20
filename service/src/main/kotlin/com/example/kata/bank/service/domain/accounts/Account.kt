@@ -153,9 +153,8 @@ class Account(
     private fun requestTransfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
         val tx = Tx(amount, clock.getTime(), description)
         val requestEmitTransfer = this.service.requestEmitTransfer(tx, from, to)
-        val emitted = requestEmitTransfer
-        return if (emitted.blocked()) {
-            Chain(tx, emitted) { tx: Tx, from: Persisted<Account>, to: Persisted<Account> ->
+        return if (requestEmitTransfer.blocked()) {
+            Chain(tx, requestEmitTransfer) { tx: Tx, from: Persisted<Account>, to: Persisted<Account> ->
                 from.value.emitTransfer(tx, from.id, to.id)
                 val requestReceiveTransfer = to.value.service.requestReceiveTransfer(tx, from, to)
                 requestReceiveTransfer
