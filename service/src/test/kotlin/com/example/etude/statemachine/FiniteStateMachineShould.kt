@@ -13,7 +13,7 @@ class FiniteStateMachineShould {
     fun `stay at a stable state`() {
         val stableState = FinalState(emptyCar)
 
-        val newState = stableState.run()
+        val newState = stableState.transition()
 
         Assertions.assertThat(stableState).isEqualTo(newState)
         Assertions.assertThat(stableState.payload).isEqualTo(newState.payload)
@@ -24,7 +24,7 @@ class FiniteStateMachineShould {
         val stableState = FinalState(emptyCar)
         val state = TransitionState(emptyCar, { _: State<Car> -> stableState })
 
-        val newState = state.run()
+        val newState = state.transition()
 
         Assertions.assertThat(newState).isEqualTo(stableState)
         Assertions.assertThat(stableState.payload).isEqualTo(newState.payload)
@@ -45,7 +45,7 @@ class FiniteStateMachineShould {
             }
         })
 
-        val newState = state.run()
+        val newState = state.transition()
 
         Assertions.assertThat((newState.payload.javaClass.simpleName)).isEqualTo(Car.Assembled::class.java.simpleName)
         //If it is assembled, it means that it has wheels already
@@ -67,7 +67,7 @@ class FiniteStateMachineShould {
             }
         })
 
-        val newState = state.run()
+        val newState = state.transition()
 
         val state2 = TransitionState(newState.payload, { state: State<Car> ->
             when (state.payload) {
@@ -80,11 +80,11 @@ class FiniteStateMachineShould {
             }
         })
 
-        val newNewState = state2.run()
+        val newNewState = state2.transition()
 
 
         Assertions.assertThat((newState.payload.javaClass.simpleName)).isEqualTo(Car.Assembled::class.java.simpleName)
-        Assertions.assertThat((newNewState.payload as Car.FinishedCar).color).isEqualTo("blue")
+        Assertions.assertThat((newNewState.payload as Car.Painted).color).isEqualTo("blue")
     }
 }
 
