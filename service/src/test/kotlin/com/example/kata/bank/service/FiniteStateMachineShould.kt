@@ -4,7 +4,7 @@ import org.assertj.core.api.Assertions
 import org.junit.Test
 
 class FiniteStateMachineShould {
-    private val emptyCar = Car.using(listOf())
+    private val emptyCar = Car.aNew()
 
     @Test
     fun `stay at a stable state`() {
@@ -54,6 +54,10 @@ sealed class Car(private val parts: List<String> = listOf()) {
     companion object {
         fun using(parts: List<String>): Car {
             return InitialCar(parts)
+        }
+
+        fun aNew(): Car {
+            return InitialCar(listOf())
         }
     }
 
