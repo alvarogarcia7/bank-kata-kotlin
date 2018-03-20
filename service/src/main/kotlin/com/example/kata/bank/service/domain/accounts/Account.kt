@@ -140,8 +140,7 @@ class Account(
         val request1 = request.t1 as Transaction.Transfer.Intermediate
         val from = request1.request.from
         val destination = request1.request.destination
-        val y = request.f2.invoke(request.tx, from, destination)
-        return y
+        return request.f2.invoke(request.tx, from, destination)
     }
 
     inline fun <T, S> Option<T>.toEither(left: () -> S): Either<S, T> {
