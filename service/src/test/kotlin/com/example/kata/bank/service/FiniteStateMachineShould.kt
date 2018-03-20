@@ -78,12 +78,6 @@ class TransitionState<out T>(override val payload: T, private val transitions: (
         return transitions.invoke(this)
     }
 }
-//
-//class LambdaTransition<out T>(private val function: (State<T>) -> State<T>) {
-//    fun perform(previous: State<T>): State<T> {
-//        return function.invoke(previous)
-//    }
-//}
 
 interface State<out T> {
     fun run(): State<T>
