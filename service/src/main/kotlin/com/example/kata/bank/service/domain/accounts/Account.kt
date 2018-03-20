@@ -1,9 +1,6 @@
 package com.example.kata.bank.service.domain.accounts
 
-import arrow.core.Either
-import arrow.core.None
-import arrow.core.Option
-import arrow.core.Some
+import arrow.core.*
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
@@ -16,8 +13,8 @@ import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.example.kata.bank.service.infrastructure.statement.StatementLine
 
 interface IAccountService {
-    fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer
-    fun requestReceiveTransfer(tx: Tx, originAccount: Persisted<Account>, destinationAccount: Persisted<Account>): Transaction.Transfer
+    fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Transaction.Transfer, Transaction.Transfer>
+    fun requestReceiveTransfer(tx: Tx, originAccount: Persisted<Account>, destinationAccount: Persisted<Account>): Either<Transaction.Transfer, Transaction.Transfer>
 }
 
 class Account(
@@ -152,56 +149,64 @@ class Account(
 
     private fun requestTransfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
         val tx = Tx(amount, clock.getTime(), description)
-        val requestEmitTransfer = this.service.requestEmitTransfer(tx, from, to)
-        return if (requestEmitTransfer.blocked()) {
-            Chain(tx, requestEmitTransfer) { tx: Tx, from: Persisted<Account>, to: Persisted<Account> ->
-                from.value.emitTransfer(tx, from.id, to.id)
-                val requestReceiveTransfer = to.value.service.requestReceiveTransfer(tx, from, to)
-                requestReceiveTransfer
-            }
-        } else {
-            val requestReceiveTransfer = to.value.service.requestReceiveTransfer(tx, from, to)
-            requestReceiveTransfer
+
+        val result = this.service.requestEmitTransfer(tx, from, to)
+                .map { }
+                .flatMap { to.value.service.requestReceiveTransfer(tx, from, to) }
+                .mapLeft {
+                    Chain(tx, it) { tx: Tx, from: Persisted<Account>, to: Persisted<Account> ->
+                        from.value.emitTransfer(tx, from.id, to.id)
+                        val result = to.value.service.requestReceiveTransfer(tx, from, to)
+                        when (result) {
+                            is Either.Left -> result.a
+                            is Either.Right -> result.b
+                        }
+                    }
+                }
+
+        return when (result) {
+            is Either.Left -> result.a
+            is Either.Right -> result.b
         }
     }
-
-
 }
 
 class IncomingSecurityAccountService(private val accountService: IAccountService, private val security: Security) : IAccountService {
     private val type = this::class.simpleName
-    override fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
+    override fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Transaction.Transfer, Transaction.Transfer> {
         println("GOGOGO!")
-        return from.value.emitTransfer(tx, from.id, to.id)
+        return Either.right(from.value.emitTransfer(tx, from.id, to.id))
     }
 
-    override fun requestReceiveTransfer(tx: Tx, originAccount: Persisted<Account>, destinationAccount: Persisted<Account>): Transaction.Transfer {
+    override fun requestReceiveTransfer(tx: Tx, originAccount: Persisted<Account>, destinationAccount: Persisted<Account>): Either<Transaction.Transfer, Transaction.Transfer> {
         println("BLOCKING HERE")
-        return Transaction.Transfer.Intermediate(tx, Transaction.Transfer.Request.Request(originAccount, destinationAccount, security.generate()))
+        return Either.left(Transaction.Transfer.Intermediate(tx, Transaction.Transfer.Request.Request(originAccount, destinationAccount, security.generate())))
     }
 }
 
 class OutgoingSecurityAccountService(private val accountService: IAccountService, private val security: Security) : IAccountService {
     private val type = this::class.simpleName
-    override fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
+    override fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Transaction.Transfer, Transaction.Transfer> {
         println("BLOCKING HERE")
-        return Transaction.Transfer.Intermediate(tx, Transaction.Transfer.Request.Request(from, to, security.generate()))
+        val requestEmitTransfer = Transaction.Transfer.Intermediate(tx, Transaction.Transfer.Request.Request(from, to, security.generate()))
+        return Either.left(requestEmitTransfer)
     }
 
-    override fun requestReceiveTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
+    override fun requestReceiveTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Transaction.Transfer, Transaction.Transfer> {
         println("GOGOGO!")
-        return to.value.receiveTransfer(tx, from, to)
+        return Either.right(to.value.receiveTransfer(tx, from, to))
     }
 }
 
 class AccountService : IAccountService {
     private val type = this::class.simpleName
-    override fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
-        return from.value.emitTransfer(tx, from.id, to.id)
+    override fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Transaction.Transfer, Transaction.Transfer> {
+        return Either.right(from.value.emitTransfer(tx, from.id, to.id))
     }
 
-    override fun requestReceiveTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
-        return to.value.receiveTransfer(tx, from, to)
+    override fun requestReceiveTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Transaction.Transfer, Transaction.Transfer> {
+        return Either.right(to.value.receiveTransfer(tx, from, to))
     }
 }
+
 

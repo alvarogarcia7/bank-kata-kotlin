@@ -33,15 +33,11 @@ sealed class Transaction(open val tx: Tx) {
 
     abstract class Transfer(override val tx: Tx) : Transaction(tx) {
 
-        abstract fun blocked(): Boolean
         override fun subtotal(amount: Amount): Amount {
             return amount
         }
 
         data class Chain(override val tx: Tx, val t1: Transfer, val f2: (tx: Tx, from: Persisted<Account>, to: Persisted<Account>) -> Transfer) : Transfer(tx) {
-            override fun blocked(): Boolean {
-                return t1.blocked()
-            }
         }
 
         sealed class Request(open val from: Persisted<Account>, open val destination: Persisted<Account>) {
@@ -55,10 +51,6 @@ sealed class Transaction(open val tx: Tx) {
         }
 
         data class ValidatedRequest(override val tx: Tx, val from: Persisted<Account>, open val destination: Persisted<Account>) : Transfer(tx) {
-            override fun blocked(): Boolean {
-                return false
-            }
-
             override fun subtotal(amount: Amount): Amount {
                 return amount
             }
@@ -67,10 +59,6 @@ sealed class Transaction(open val tx: Tx) {
         data class Completed(val from: Id, val to: Id)
 
         data class Emitted(override val tx: Tx, val completed: Completed) : Transfer(tx) {
-            override fun blocked(): Boolean {
-                return false
-            }
-
             override fun subtotal(amount: Amount): Amount {
                 return amount.subtract(this.tx.amount)
             }
@@ -88,17 +76,9 @@ sealed class Transaction(open val tx: Tx) {
                     return Either.left(request)
                 }
             }
-
-            override fun blocked(): Boolean {
-                return true
-            }
         }
 
         data class Received(override val tx: Tx, val completed: Completed) : Transfer(tx) {
-            override fun blocked(): Boolean {
-                return false
-            }
-
             override fun subtotal(amount: Amount): Amount {
                 return amount.add(this.tx.amount)
             }
