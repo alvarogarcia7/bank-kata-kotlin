@@ -164,7 +164,7 @@ class Account(
         return result.leftOrRight()
     }
 
-    inline fun <T> Either<T, T>.leftOrRight(): T {
+    private fun <T> Either<T, T>.leftOrRight(): T {
         return when (this) {
             is Either.Left -> this.a
             is Either.Right -> this.b
