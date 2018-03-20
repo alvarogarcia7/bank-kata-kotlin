@@ -52,10 +52,6 @@ class FiniteStateMachineShould {
 
 sealed class Car(private val parts: List<String> = listOf()) {
     companion object {
-        fun using(parts: List<String>): Car {
-            return InitialCar(parts)
-        }
-
         fun aNew(): Car {
             return InitialCar(listOf())
         }
