@@ -13,11 +13,14 @@ Keeping track of the time using git commits.
 
 ## Development notes
 
-### Variants for Safe transfers
+### Variants for Safe transfers (ACID)
 
 I've implemented the feature of safe transfers: the account can be
 configured to request a code (e.g., OTP) to verify the wire transfer,
 both outgoing (e.g., most banks have this) as incoming.
+
+I've investigated ways to conserve the ACID properties, rather than choosing
+an eventually consistent system.
 
 #### Parameters
 
