@@ -1,6 +1,5 @@
 package com.example.kata.bank.service.domain.transactions
 
-import arrow.core.Either
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
@@ -37,8 +36,7 @@ sealed class Transaction(open val tx: Tx) {
             return amount
         }
 
-        data class Chain(override val tx: Tx, val t1: Transfer, val f2: (tx: Tx, from: Persisted<Account>, to: Persisted<Account>) -> Transfer) : Transfer(tx) {
-        }
+        data class Chain(override val tx: Tx, val t1: Transfer, val f2: (tx: Tx, from: Persisted<Account>, to: Persisted<Account>) -> Transfer) : Transfer(tx)
 
         sealed class Request(open val from: Persisted<Account>, open val destination: Persisted<Account>) {
             abstract fun unlockedBy(code: String): Boolean
@@ -50,12 +48,6 @@ sealed class Transaction(open val tx: Tx) {
             }
         }
 
-        data class ValidatedRequest(override val tx: Tx, val from: Persisted<Account>, open val destination: Persisted<Account>) : Transfer(tx) {
-            override fun subtotal(amount: Amount): Amount {
-                return amount
-            }
-        }
-
         data class Completed(val from: Id, val to: Id)
 
         data class Emitted(override val tx: Tx, val completed: Completed) : Transfer(tx) {
@@ -64,19 +56,7 @@ sealed class Transaction(open val tx: Tx) {
             }
         }
 
-        data class Intermediate(override val tx: Tx, val request: Request, val next: Intermediate? = null) : Transfer(tx) {
-            fun unlock(code: String): Either<Request, Completed> {
-                if (request.unlockedBy(code)) {
-                    when (request) {
-                        is Request.Request -> {
-                            return Either.right(Completed(request.from.id, request.destination.id))
-                        }
-                    }
-                } else {
-                    return Either.left(request)
-                }
-            }
-        }
+        data class Intermediate(override val tx: Tx, val request: Request, val next: Intermediate? = null) : Transfer(tx)
 
         data class Received(override val tx: Tx, val completed: Completed) : Transfer(tx) {
             override fun subtotal(amount: Amount): Amount {
