@@ -19,10 +19,18 @@ I've implemented the feature of safe transfers: the account can be
 configured to request a code (e.g., OTP) to verify the wire transfer,
 both outgoing (e.g., most banks have this) as incoming.
 
+#### Parameters
+
 As parameters of the Account class: [Code](https://github.com/alvarogarcia7/bank-kata-kotlin/tree/variant/control-safe-transfers-as-parameters)
+
+#### State machine
 
 As a state machine: [Code](https://github.com/alvarogarcia7/bank-kata-kotlin/tree/variant/control-safe-transfers-as-state-machine)
 
+#### Either
+
 As Either (i.e., failed computation): [Code](https://github.com/alvarogarcia7/bank-kata-kotlin/tree/variant/control-safe-transfers-as-either)
+
+#### Thunks
 
 As thunks (i.e., delayed computations): [Code](https://github.com/alvarogarcia7/bank-kata-kotlin/tree/variant/control-safe-transfers-as-thunks)
