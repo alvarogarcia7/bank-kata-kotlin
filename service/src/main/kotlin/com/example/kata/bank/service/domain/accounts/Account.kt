@@ -129,12 +129,6 @@ class Account(
         return result
     }
 
-    private fun confirmIngoingRequestOperation(request: Transaction.Transfer.Intermediate): Received {
-        val transfer = Received(request.tx, Completed(request.request.from.id, request.request.destination.id))
-        transactionRepository.save(createIdentityFor(transfer))
-        return transfer
-    }
-
     fun confirmChain(request: Transaction.Transfer.Chain, code: String): Transaction.Transfer {
 
         val request1 = request.t1 as Transaction.Transfer.Intermediate
