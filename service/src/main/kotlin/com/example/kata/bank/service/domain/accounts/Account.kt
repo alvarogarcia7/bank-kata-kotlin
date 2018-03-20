@@ -126,16 +126,12 @@ class Account(
         return result
     }
 
-    fun confirmChain(request: Transaction.Transfer.Chain, code: String): Either<Chain, Transaction.Transfer> {
+    fun confirmChain(request: Transaction.Transfer.Chain, code: String): Transaction.Transfer {
 
-        val request1 = request.t1 as Transaction.Transfer.Chain
-        val from = request1.t1.from
-        val destination = request1.t1.destination
-        if (request.next != null) {
-            return Either.left(request.next)
-        } else {
-            return Either.right()
-        }
+        val request1 = request.t1 as Transaction.Transfer.Intermediate
+        val from = request1.request.from
+        val destination = request1.request.destination
+        return request.f2.invoke(request.tx, from, destination)
     }
 
     inline fun <T, S> Option<T>.toEither(left: () -> S): Either<S, T> {
@@ -146,7 +142,7 @@ class Account(
     }
 
     companion object {
-        fun transfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Either<Chain, Transaction.Transfer> {
+        fun transfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
             return from.value.requestTransfer(amount, description, from, to)
         }
     }
@@ -155,7 +151,15 @@ class Account(
         val tx = Tx(amount, clock.getTime(), description)
 
         val result = this.service.requestEmitTransfer(tx, from, to)
+                .map { }
                 .flatMap { to.value.service.requestReceiveTransfer(tx, from, to) }
+                .mapLeft {
+                    Chain(tx, it) { tx: Tx, from: Persisted<Account>, to: Persisted<Account> ->
+                        from.value.emitTransfer(tx, from.id, to.id)
+                        val result = to.value.service.requestReceiveTransfer(tx, from, to)
+                        result.leftOrRight()
+                    }
+                }
 
         return result.leftOrRight()
     }
@@ -177,7 +181,7 @@ class IncomingSecurityAccountService(private val accountService: IAccountService
 
     override fun requestReceiveTransfer(tx: Tx, originAccount: Persisted<Account>, destinationAccount: Persisted<Account>): Either<Transaction.Transfer, Transaction.Transfer> {
         println("BLOCKING HERE")
-        return Either.left(Transaction.Transfer.Chain(tx, Transaction.Transfer.Request.Request(originAccount, destinationAccount, security.generate())))
+        return Either.left(Transaction.Transfer.Intermediate(tx, Transaction.Transfer.Request.Request(originAccount, destinationAccount, security.generate())))
     }
 }
 
@@ -185,7 +189,7 @@ class OutgoingSecurityAccountService(private val accountService: IAccountService
     private val type = this::class.simpleName
     override fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Transaction.Transfer, Transaction.Transfer> {
         println("BLOCKING HERE")
-        val requestEmitTransfer = Transaction.Transfer.Chain(tx, Transaction.Transfer.Request.Request(from, to, security.generate()))
+        val requestEmitTransfer = Transaction.Transfer.Intermediate(tx, Transaction.Transfer.Request.Request(from, to, security.generate()))
         return Either.left(requestEmitTransfer)
     }
 
