@@ -18,7 +18,7 @@ class FiniteStateMachineShould {
     fun `automatically consume the lambda-transitions`() {
 
         val stableState = StableState()
-        val state = NonStableState(LambdaTransition({ _: State -> stableState }))
+        val state = TransitionState(LambdaTransition({ _: State -> stableState }))
 
         val newState = state.run()
 
@@ -26,7 +26,7 @@ class FiniteStateMachineShould {
     }
 }
 
-class NonStableState(private val lambdaTransition: LambdaTransition) : State {
+class TransitionState(private val lambdaTransition: LambdaTransition) : State {
     override fun run(): State {
         return lambdaTransition.perform(this)
     }
