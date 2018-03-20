@@ -87,6 +87,22 @@ class PremiumAccountShould : AccountShould() {
     }
 
     @Test
+    fun `no money is lost when transferring money and both accounts are protected`() {
+        val (sender, _) = persistAndSize(AccountBuilder.aNew(this::account).outgoing(securityProvider).movements().build(), "sender")
+        val (receiver, _) = persistAndSize(AccountBuilder.aNew(this::account).incoming(securityProvider).build(), "receiver")
+        val previousTotalBalance = sender.value.balance().add(receiver.value.balance())
+
+        Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
+                .mapLeft {
+                    sender.value.confirmChain(it as Transaction.Transfer.Chain, "123456")
+                }.mapLeft {
+                    receiver.value.confirmChain(it as Transaction.Transfer.Chain, "123456")
+                }
+
+        assertThat(sender.value.balance().add(receiver.value.balance())).isEqualTo(previousTotalBalance)
+    }
+
+    @Test
     fun `--DEFECT or FEATURE-- as soon as the transfer is confirmed in the sender account, the money is withdrawn`() {
         val (sender, _) = persistAndSize(AccountBuilder.aNew(this::account).outgoing(securityProvider).movements().build(), "sender")
         val (receiver, _) = persistAndSize(AccountBuilder.aNew(this::account).incoming(securityProvider).build(), "receiver")
@@ -94,7 +110,7 @@ class PremiumAccountShould : AccountShould() {
         val previousSenderBalance = sender.value.balance()
 
         Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
-                .let {
+                .mapLeft {
                     sender.value.confirmChain(it as Transaction.Transfer.Chain, "123456")
                 }
         //do not confirm incoming transfer

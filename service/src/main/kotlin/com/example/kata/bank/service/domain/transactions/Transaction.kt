@@ -36,7 +36,7 @@ sealed class Transaction(open val tx: Tx) {
             return amount
         }
 
-        data class Chain(override val tx: Tx, val t1: Transfer, val f2: (tx: Tx, from: Persisted<Account>, to: Persisted<Account>) -> Transfer) : Transfer(tx)
+        data class Chain(override val tx: Tx, val t1: Request, val next: Chain? = null) : Transfer(tx)
 
         sealed class Request(open val from: Persisted<Account>, open val destination: Persisted<Account>) {
             abstract fun unlockedBy(code: String): Boolean
@@ -56,7 +56,7 @@ sealed class Transaction(open val tx: Tx) {
             }
         }
 
-        data class Intermediate(override val tx: Tx, val request: Request, val next: Intermediate? = null) : Transfer(tx)
+//        data class Intermediate(override val tx: Tx, val request: Request, val next: Intermediate? = null) : Transfer(tx)
 
         data class Received(override val tx: Tx, val completed: Completed) : Transfer(tx) {
             override fun subtotal(amount: Amount): Amount {
