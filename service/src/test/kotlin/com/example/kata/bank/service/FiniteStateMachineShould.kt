@@ -30,46 +30,89 @@ class FiniteStateMachineShould {
     @Test
     fun `configure the state with multiple transitions`() {
 
-        val transitions = { state: State<Car> ->
+        val state = TransitionState(emptyCar, { state: State<Car> ->
             when (state.payload) {
-                is Car.FinishedCar -> {
-                    println("the car has been finished")
-                    FinalState(state.payload)
+                is Car.InitialCar -> {
+                    val car = (state.payload as Car.InitialCar).putWheels()
+                    FinalState(car)
                 }
                 else -> {
-                    FinalState(state.payload.putWheels())
+                    FinalState(state.payload)
                 }
             }
-        }
-        val state = TransitionState(emptyCar, transitions)
+        })
 
         val newState = state.run()
 
-        Assertions.assertThat(newState.payload.javaClass.simpleName).isEqualTo("FinishedCar")
-        Assertions.assertThat(newState.payload.hasWheels()).isTrue()
+        Assertions.assertThat((newState.payload.javaClass.simpleName)).isEqualTo(Car.Assembled::class.java.simpleName)
+        //If it is assembled, it means that it has wheels already
+    }
+
+
+    @Test
+    fun `configure the multiple state transitions`() {
+
+        val state = TransitionState(emptyCar, { state: State<Car> ->
+            when (state.payload) {
+                is Car.InitialCar -> {
+                    val car = (state.payload as Car.InitialCar).putWheels()
+                    FinalState(car)
+                }
+                else -> {
+                    FinalState(state.payload)
+                }
+            }
+        })
+
+        val newState = state.run()
+
+        val state2 = TransitionState(newState.payload, { state: State<Car> ->
+            when (state.payload) {
+                is Car.Assembled -> {
+                    FinalState((state.payload as Car.Assembled).paint("blue"))
+                }
+                else -> {
+                    FinalState(state.payload)
+                }
+            }
+        })
+
+        val newNewState = state2.run()
+
+
+        Assertions.assertThat((newState.payload.javaClass.simpleName)).isEqualTo(Car.Assembled::class.java.simpleName)
+        Assertions.assertThat((newNewState.payload as Car.FinishedCar).color).isEqualTo("blue")
     }
 }
 
-sealed class Car(private val parts: List<String> = listOf()) {
+sealed class Car {
     companion object {
         fun aNew(): Car {
             return InitialCar(listOf())
         }
     }
 
-    fun hasWheels(): Boolean {
-        return parts.contains("wheels")
+
+    data class InitialCar(private val parts: List<String>) : Car() {
+        fun hasWheels(): Boolean {
+            return parts.contains("wheels")
+        }
+
+        fun putWheels(): Car {
+            val parts = this.parts.toMutableList()
+            parts.add("wheels")
+            val base = InitialCar(parts)
+            return Assembled(base)
+        }
     }
 
-    fun putWheels(): Car {
-        val parts = this.parts.toMutableList()
-        parts.add("wheels")
-        return FinishedCar(parts.toList())
+    data class Assembled(val car: InitialCar) : Car() {
+        fun paint(color: String): FinishedCar {
+            return FinishedCar(this, color)
+        }
     }
 
-    data class FinishedCar(val parts: List<String>) : Car(parts)
-    data class InitialCar(val parts: List<String>) : Car(parts)
-
+    data class FinishedCar(val car: Assembled, val color: String) : Car()
 }
 
 
