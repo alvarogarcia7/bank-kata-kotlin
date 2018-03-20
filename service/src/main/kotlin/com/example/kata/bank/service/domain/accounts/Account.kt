@@ -157,16 +157,17 @@ class Account(
                     Chain(tx, it) { tx: Tx, from: Persisted<Account>, to: Persisted<Account> ->
                         from.value.emitTransfer(tx, from.id, to.id)
                         val result = to.value.service.requestReceiveTransfer(tx, from, to)
-                        when (result) {
-                            is Either.Left -> result.a
-                            is Either.Right -> result.b
-                        }
+                        result.leftOrRight()
                     }
                 }
 
-        return when (result) {
-            is Either.Left -> result.a
-            is Either.Right -> result.b
+        return result.leftOrRight()
+    }
+
+    inline fun <T> Either<T, T>.leftOrRight(): T {
+        return when (this) {
+            is Either.Left -> this.a
+            is Either.Right -> this.b
         }
     }
 }
