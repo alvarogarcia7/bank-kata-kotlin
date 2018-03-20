@@ -1,5 +1,8 @@
 package com.example.etude.statemachine
 
+import com.example.etude.statemachine.library.FinalState
+import com.example.etude.statemachine.library.State
+import com.example.etude.statemachine.library.TransitionState
 import org.assertj.core.api.Assertions
 import org.junit.Test
 
@@ -85,45 +88,4 @@ class FiniteStateMachineShould {
     }
 }
 
-sealed class Car {
-    companion object {
-        fun aNew(): Car {
-            return InitialCar(listOf())
-        }
-    }
 
-    data class InitialCar(private val parts: List<String>) : Car() {
-        fun putWheels(): Car {
-            val parts = this.parts.toMutableList()
-            parts.add("wheels")
-            val base = InitialCar(parts)
-            return Assembled(base)
-        }
-    }
-
-    data class Assembled(val car: InitialCar) : Car() {
-        fun paint(color: String): FinishedCar {
-            return FinishedCar(this, color)
-        }
-    }
-
-    data class FinishedCar(val car: Assembled, val color: String) : Car()
-}
-
-
-class TransitionState<T>(override val payload: T, private val transitions: (State<T>) -> State<T>) : State<T> {
-    override fun run(): State<T> {
-        return transitions.invoke(this)
-    }
-}
-
-interface State<T> {
-    fun run(): State<T>
-    val payload: T
-}
-
-class FinalState<T>(override val payload: T) : State<T> {
-    override fun run(): State<T> {
-        return this
-    }
-}
