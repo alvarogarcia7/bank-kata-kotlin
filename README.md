@@ -51,6 +51,8 @@ been used to mean blocked/safe transfer and Right to mean unblocked transfer.
 This only allows for representing two values, in an implicit way: the
 team consensus indicates left and right for these meanings.
 
+Also, it's strage to see an `Either<T,T>` where both `T` are the same.
+
 #### Thunks
 
 As thunks (i.e., delayed computations): [Code](https://github.com/alvarogarcia7/bank-kata-kotlin/tree/variant/control-safe-transfers-as-thunks)
