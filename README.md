@@ -33,6 +33,11 @@ As a state machine: [Code](https://github.com/alvarogarcia7/bank-kata-kotlin/tre
 Configure the states and the transitions as an internal/external part of
 the Transfer class, therefore making it more generic and future-proof (YAGNI?)
 
+This can be represented using inheritance from a common class (in this
+case, Transfer) or using a wrapper (State<>) to signify the current state.
+For the former, there's the production code. For the latter, a side étude
+implementing a state machine library (using a Car + its factory as the domain)
+
 #### Either
 
 As Either (i.e., failed computation): [Code](https://github.com/alvarogarcia7/bank-kata-kotlin/tree/variant/control-safe-transfers-as-either)
