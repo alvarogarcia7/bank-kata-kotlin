@@ -165,28 +165,19 @@ class Account(
         }
     }
 
-    private fun requestEmitTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
-        val requestEmitTransfer = service.requestEmitTransfer(tx, from, to)
-//        transactionRepository.save(createIdentityFor(requestEmitTransfer))
-        return requestEmitTransfer
-    }
-
-    private fun requestReceiveTransfer(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
-        val requestReceiveTransfer = service.requestReceiveTransfer(tx, from, to)
-//        transactionRepository.save(createIdentityFor(requestReceiveTransfer))
-        return requestReceiveTransfer
-    }
-
     private fun requestTransfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Transaction.Transfer {
         val tx = Tx(amount, clock.getTime(), description)
-        val emitted = this.requestEmitTransfer(tx, from, to)
+        val requestEmitTransfer = this.service.requestEmitTransfer(tx, from, to)
+        val emitted = requestEmitTransfer
         return if (emitted.blocked()) {
             Chain(tx, emitted) { tx: Tx, from: Persisted<Account>, to: Persisted<Account> ->
                 from.value.emitTransfer(tx, from.id, to.id)
-                to.value.requestReceiveTransfer(tx, from, to)
+                val requestReceiveTransfer = to.value.service.requestReceiveTransfer(tx, from, to)
+                requestReceiveTransfer
             }
         } else {
-            to.value.requestReceiveTransfer(tx, from, to)
+            val requestReceiveTransfer = to.value.service.requestReceiveTransfer(tx, from, to)
+            requestReceiveTransfer
         }
     }
 
