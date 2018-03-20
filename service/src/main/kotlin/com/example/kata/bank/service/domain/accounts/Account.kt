@@ -140,16 +140,8 @@ class Account(
         val request1 = request.t1 as Transaction.Transfer.Intermediate
         val from = request1.request.from
         val destination = request1.request.destination
-//        val x = ValidatedRequest(request.tx, from, destination)
-//
-//        transactionRepository.save(createIdentityFor(x))
-
         val y = request.f2.invoke(request.tx, from, destination)
         return y
-
-//        val transfer = Emitted(request.tx, Completed(request.t1request.from.id, request.request.destination.id))
-//        transactionRepository.save(createIdentityFor(transfer))
-//        return transfer
     }
 
     inline fun <T, S> Option<T>.toEither(left: () -> S): Either<S, T> {
