@@ -13,7 +13,7 @@ Keeping track of the time using git commits.
 
 ## Development notes
 
-### Safe transfers
+### Variants for Safe transfers
 
 I've implemented the feature of safe transfers: the account can be
 configured to request a code (e.g., OTP) to verify the wire transfer,
