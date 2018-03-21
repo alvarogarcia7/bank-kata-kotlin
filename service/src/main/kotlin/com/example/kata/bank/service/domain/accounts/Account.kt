@@ -114,10 +114,8 @@ class Account(
 
     companion object {
         fun transfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Workflow {
-            val tx1 = from.value.genTx(amount, description)
-            val part1 = from.value.tryOutgoing(tx1, from, to)
-            val tx2 = to.value.genTx(amount, description)
-            val part2 = to.value.tryIncoming(tx2, from, to)
+            val part1 = from.value.tryOutgoing(from.value.genTx(amount, description), from, to)
+            val part2 = to.value.tryIncoming(to.value.genTx(amount, description), from, to)
             val xx1 = choose(part1)
             val xx2 = choose(part2)
             return Workflow.from(listOf(part1, part2), /*account, persisted transfer*/ listOf(Pair(from.value, xx1), Pair(to.value, xx2)))
