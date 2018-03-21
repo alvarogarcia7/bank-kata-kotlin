@@ -113,18 +113,6 @@ class Account(
         abstract fun determineStatementCost(map: List<Transaction>, statementRequest: AccountRequest.StatementRequest): Option<Pair<Amount, String>>
     }
 
-    fun `receiveTransfer!`(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Received {
-        val receivedTransfer = Received(tx, Completed(from.id, to.id))
-        transactionRepository.save(createIdentityFor(receivedTransfer))
-        return receivedTransfer
-    }
-
-    fun `emitTransfer!`(tx: Tx, from: Id, to: Id): Emitted {
-        val result = Emitted(tx, Completed(from, to))
-        transactionRepository.save(createIdentityFor(result))
-        return result
-    }
-
     inline fun <T, S> Option<T>.toEither(left: () -> S): Either<S, T> {
         return when (this) {
             is Some -> Either.right(this.t)
