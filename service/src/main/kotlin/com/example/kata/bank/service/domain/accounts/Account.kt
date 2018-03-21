@@ -116,9 +116,10 @@ class Account(
         fun transfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Workflow {
             val part1 = from.value.tryOutgoing(from.value.genTx(amount, description), from, to)
             val part2 = to.value.tryIncoming(to.value.genTx(amount, description), from, to)
-            val xx1 = choose(part1)
-            val xx2 = choose(part2)
-            return Workflow.from(listOf(part1, part2), /*account, persisted transfer*/ listOf(Pair(from.value, xx1), Pair(to.value, xx2)))
+            val steps = listOf(part1, part2)
+            val finalOperation1 = choose(part1)
+            val finalOperation2 = choose(part2)
+            return Workflow.from(steps, listOf(Pair(from.value, finalOperation1), Pair(to.value, finalOperation2)))
         }
 
         private fun choose(part1: Either<SecureRequest, Transaction.Transfer>): Transaction.Transfer {
