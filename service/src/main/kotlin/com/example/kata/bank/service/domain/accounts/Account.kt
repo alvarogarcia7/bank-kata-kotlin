@@ -113,13 +113,6 @@ class Account(
         abstract fun determineStatementCost(map: List<Transaction>, statementRequest: AccountRequest.StatementRequest): Option<Pair<Amount, String>>
     }
 
-    inline fun <T, S> Option<T>.toEither(left: () -> S): Either<S, T> {
-        return when (this) {
-            is Some -> Either.right(this.t)
-            is None -> Either.left(left.invoke())
-        }
-    }
-
     companion object {
         fun transfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Workflow {
             val tx1 = from.value.genTx(amount, description)
