@@ -1,12 +1,14 @@
 package com.example.kata.bank.service.domain.transactions
 
+import arrow.core.Either
+import arrow.core.Option
+import com.example.kata.bank.service.NotTestedOperation
 import com.example.kata.bank.service.domain.Id
-import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
 import java.time.LocalDateTime
 
 
-data class Tx(open val amount: Amount, open val time: LocalDateTime, open val description: String)
+data class Tx(val amount: Amount, val time: LocalDateTime, val description: String)
 
 
 sealed class Transaction(open val tx: Tx) {
@@ -37,29 +39,52 @@ sealed class Transaction(open val tx: Tx) {
             return amount
         }
 
-        data class Chain(override val tx: Tx, val t1: Transfer, val f2: (tx: Tx, from: Persisted<Account>, to: Persisted<Account>) -> Transfer) : Transfer(tx) {
-            override fun blocked(): Boolean {
-                return true
-            }
-        }
+        data class Workflow private constructor(
+                val pendingParts: List<Either<SecureRequest, Transfer>>,
+                val toConfirmWhenEverythingIsReady: List<Pair<Account, Transfer>>
+        ) {
 
-        sealed class Request(open val from: Persisted<Account>, open val destination: Persisted<Account>) {
-            abstract fun unlockedBy(code: String): Boolean
-
-            data class Request(override val from: Persisted<Account>, override val destination: Persisted<Account>, private val code: String) : Transfer.Request(from, destination) {
-                override fun unlockedBy(code: String): Boolean {
-                    return code == this.code
+            companion object {
+                fun from(pendingParts: List<Either<SecureRequest, Transfer>>,
+                         toConfirmWhenEverythingIsReady: List<Pair<Account, Transfer>>): Workflow {
+                    return Workflow(pendingParts.filter { it.isLeft() }, toConfirmWhenEverythingIsReady)
                 }
             }
+
+            fun confirm(code: String): Option<Workflow> {
+                if (pendingParts.isNotEmpty()) {
+                    val x = this.pendingParts.first().mapLeft { it.unlockedBy(code) }
+                    val result = when (x) {
+                        is Either.Left -> {
+                            if (x.a) {
+                                true
+                            } else {
+                                throw NotTestedOperation()
+                            }
+                        }
+                        is Either.Right -> {
+                            true
+                        }
+                    }
+                    if (result) {
+                        val remainingParts = this.pendingParts.subList(1, this.pendingParts.size)
+                        if (remainingParts.isEmpty()) {
+                            toConfirmWhenEverythingIsReady.map { (account, transaction) -> account.save(transaction) }
+                            return Option.empty()
+                        }
+                        return Option(Workflow(remainingParts, this.toConfirmWhenEverythingIsReady))
+                    }
+                }
+                return Option(this)
+            }
         }
 
-        data class ValidatedRequest(override val tx: Tx, val from: Persisted<Account>, open val destination: Persisted<Account>) : Transfer(tx) {
-            override fun blocked(): Boolean {
-                return false
-            }
+        data class SecureRequest(override val tx: Tx, private val code: String, val transfer: Transfer) : Transfer(tx) {
+            override fun blocked() = true
+            override fun subtotal(amount: Amount) = amount
 
-            override fun subtotal(amount: Amount): Amount {
-                return amount
+            fun unlockedBy(code: String): Boolean {
+                return code == this.code
             }
         }
 
@@ -72,12 +97,6 @@ sealed class Transaction(open val tx: Tx) {
 
             override fun subtotal(amount: Amount): Amount {
                 return amount.subtract(this.tx.amount)
-            }
-        }
-
-        data class Intermediate(override val tx: Tx, val request: Request, val next: Intermediate? = null) : Transfer(tx) {
-            override fun blocked(): Boolean {
-                return true
             }
         }
 
