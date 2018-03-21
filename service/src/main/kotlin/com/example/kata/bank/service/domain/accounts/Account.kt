@@ -125,20 +125,6 @@ class Account(
         return result
     }
 
-//    fun confirmIncomingRequest(request1: Transaction.Transfer.SecureRequest, code: String): Transaction.Transfer {
-//        //TODO AGB need to verify code
-//        val from = request1.request
-//        this.transactionRepository.save(Persisted.`for`(request1.request, Id.random()))
-//        return request1.request
-//    }
-//
-//    fun confirmOutgoingRequest(request1: Transaction.Transfer.SecureRequest, code: String): Transaction.Transfer {
-//        //TODO AGB need to verify code
-//        val from = request1.request
-////        this.transactionRepository.save(Persisted.`for`(request1.request, Id.random()))
-//        return request1.request
-//    }
-
     inline fun <T, S> Option<T>.toEither(left: () -> S): Either<S, T> {
         return when (this) {
             is Some -> Either.right(this.t)
