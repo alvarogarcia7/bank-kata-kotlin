@@ -66,3 +66,14 @@ As thunks (i.e., delayed computations): [Code](https://github.com/alvarogarcia7/
 A thunk has been passed as a parameter and executed when it is necessary.
 This system does not allow for easy persistance/storage, as functions can't
 be serialized/deserialized.
+
+### Workflow
+
+As a workflow (i.e., a set of predefined steps): [Code][https://github.com/alvarogarcia7/bank-kata-kotlin/tree/variant/control-safe-transfers-as-workflow]
+
+This workflow has a set of steps (that can be validated or not), and at the
+end there is a set of actions.
+
+Based on the way it has been implemented (only data is passed around, but
+not behaviour), this could be serialized / exposed over ReST.
+
