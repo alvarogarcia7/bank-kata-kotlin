@@ -60,8 +60,7 @@ class Account(
     }
 
     private fun addCost(cost: Amount, description: String) {
-        val transaction = this.createIdentityFor(Transaction.Cost(Tx(cost, this.clock.getTime(), description)))
-        this.transactionRepository.save(transaction)
+        this.transactionRepository.save(createIdentityFor(Transaction.Cost(Tx(cost, clock.getTime(), description))))
     }
 
     fun balance(): Amount {
