@@ -155,27 +155,6 @@ class Account(
             val xx1 = choose(part1)
             val xx2 = choose(part2)
             return Workflow.from(listOf(part1, part2), /*account, persisted transfer*/ listOf(Pair(from.value, xx1), Pair(to.value, xx2)))
-//            when (outgoing) {
-//                is Either.Left -> {
-//                    //blocked
-//                    return Either.left(outgoing.a)
-//                }
-//                is Either.Right -> {
-//                    //not blocked
-//                    val tx = from.value.genTx(amount, description)
-//                    val incoming = from.value.tryIncoming(tx, from, to)
-//                    when (incoming) {
-//                        is Either.Left -> {
-//                            //blocked
-//                            return Either.left(incoming.a)
-//                        }
-//                        is Either.Right -> {
-//                            to.value.`receiveTransfer!`(incoming.b, from, to)
-//                            return Either.right(from.value.`emitTransfer!`(incoming.b, from.id, to.id))
-//                        }
-//                    }
-//                }
-//            }
         }
 
         private fun choose(part1: Either<SecureRequest, Transaction.Transfer>): Transaction.Transfer {
