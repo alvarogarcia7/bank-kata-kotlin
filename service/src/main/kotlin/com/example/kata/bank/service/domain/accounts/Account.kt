@@ -3,7 +3,6 @@ package com.example.kata.bank.service.domain.accounts
 import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
-import arrow.core.Some
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
@@ -125,7 +124,7 @@ class Account(
         }
 
         private fun choose(part1: Either<SecureRequest, Transaction.Transfer>): Transaction.Transfer {
-            val transfer = when (part1) {
+            return when (part1) {
                 is Either.Left -> {
                     part1.a.transfer
                 }
@@ -133,7 +132,6 @@ class Account(
                     part1.b
                 }
             }
-            return transfer
         }
     }
 
