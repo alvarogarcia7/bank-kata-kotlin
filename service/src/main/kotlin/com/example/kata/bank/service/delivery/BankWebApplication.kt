@@ -67,8 +67,3 @@ class StatementRequestFactory {
     }
 }
 
-
-private fun <C, D> Option<D>.replace(negative: () -> Either<C, D>): Either<C, D> {
-    return negative.invoke()
-}
-
