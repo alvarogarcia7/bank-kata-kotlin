@@ -12,10 +12,12 @@ import com.example.kata.bank.service.infrastructure.users.UsersSimpleRepository
 
 fun main(args: Array<String>) {
     val accountRepository = AccountRestrictedRepository(mutableListOf())
-    BankWebApplication(OperationsHandler(OperationService(), accountRepository), AccountsHandler(
-            accountRepository,
-            StatementRequestInteractor(accountRepository,
-                    OperationsRepository())),
-            UsersHandler(UsersSimpleRepository())
-    ).start(8080)
+    val handlers = arrayOf(
+            OperationsHandler(OperationService(), accountRepository),
+            AccountsHandler(
+                    accountRepository,
+                    StatementRequestInteractor(accountRepository,
+                            OperationsRepository())),
+            UsersHandler(UsersSimpleRepository()))
+    BankWebApplication(*handlers).start(8080)
 }
