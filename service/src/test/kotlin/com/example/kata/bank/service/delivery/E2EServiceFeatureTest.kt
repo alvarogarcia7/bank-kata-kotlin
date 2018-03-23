@@ -5,6 +5,7 @@ import arrow.core.andThen
 import arrow.core.getOrElse
 import com.example.kata.bank.service.ApplicationBooter
 import com.example.kata.bank.service.HTTP
+import com.example.kata.bank.service.UnreachableCode
 import com.example.kata.bank.service.delivery.`in`.StatementRequestDTO
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.MyResponse
@@ -375,12 +376,4 @@ class E2EServiceFeatureTest {
 
     val fixedTimeDTO = TimeDTO("2018-10-12 23:59:00", "2018-10-12T23:59:00")
 }
-
-/**
- * Class to satisfy the compiler.
- *
- * As a programmer I'm sure that the previous code will throw a runtime exception to interrupt the execution,
- * but the compile cannot realise about this, as they're not detectable until execution time
- */
-class UnreachableCode : Throwable()
 

@@ -4,6 +4,7 @@ import arrow.core.Option
 import arrow.core.getOrElse
 import com.example.kata.bank.service.ApplicationBooter
 import com.example.kata.bank.service.HTTP
+import com.example.kata.bank.service.UnreachableCode
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
