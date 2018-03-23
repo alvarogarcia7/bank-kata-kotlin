@@ -12,7 +12,6 @@ import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Operation
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
-import com.example.kata.bank.service.domain.accounts.AccountNumber
 import com.example.kata.bank.service.domain.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.domain.accounts.OpenAccountRequest
 import com.example.kata.bank.service.domain.transactions.Amount
@@ -254,7 +253,7 @@ class OperationsHandler(private val operationService: OperationService, private 
                         }
                         is OperationRequest.TransferRequest -> {
                             accountRepository
-                                    .findBy(AccountNumber.of(operationRequest.destination.number))
+                                    .findBy(Account.Number.of(operationRequest.destination.number))
                                     .flatMap { to ->
                                         accountRepository.findBy(Id.of(accountId))
                                                 .map { from ->

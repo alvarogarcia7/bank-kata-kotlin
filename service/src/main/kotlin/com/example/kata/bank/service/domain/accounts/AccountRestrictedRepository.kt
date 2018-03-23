@@ -2,7 +2,10 @@ package com.example.kata.bank.service.domain.accounts
 
 import arrow.core.Either
 import arrow.core.Option
-import com.example.kata.bank.service.domain.*
+import com.example.kata.bank.service.domain.Id
+import com.example.kata.bank.service.domain.Persisted
+import com.example.kata.bank.service.domain.ReadRepository
+import com.example.kata.bank.service.domain.RestrictedWriteRepository
 
 class AccountRestrictedRepository : ReadRepository<Account>, RestrictedWriteRepository<Account> {
     protected val values = mutableListOf<Persisted<Account>>()
@@ -15,7 +18,7 @@ class AccountRestrictedRepository : ReadRepository<Account>, RestrictedWriteRepo
         }
     }
 
-    fun findBy(accountNumber: AccountNumber): Option<Persisted<Account>> {
+    fun findBy(accountNumber: Account.Number): Option<Persisted<Account>> {
         return Option.fromNullable(this.values.find { it.value.number == accountNumber })
     }
 

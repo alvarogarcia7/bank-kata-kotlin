@@ -21,7 +21,7 @@ class Account(
         val type: AccountType = AccountType.Personal,
         private val incomingSecurity: Option<Security> = None,
         private val outgoingSecurity: Option<Security> = None,
-        val number: AccountNumber = AccountNumber.of(Id.random().value)
+        val number: Number = Number.of(Id.random().value)
 ) {
 
     private val transactionRepository: TransactionSimpleRepository = TransactionSimpleRepository()
@@ -188,12 +188,13 @@ class Account(
 
                 }
     }
-}
 
-data class AccountNumber private constructor(val value: String) {
-    companion object {
-        fun of(value: String): AccountNumber {
-            return AccountNumber(value)
+    data class Number private constructor(val value: String) {
+        companion object {
+            fun of(value: String): Number {
+                return Number(value)
+            }
         }
     }
 }
+
