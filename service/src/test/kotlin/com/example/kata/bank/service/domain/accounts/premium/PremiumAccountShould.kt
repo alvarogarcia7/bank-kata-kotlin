@@ -1,6 +1,9 @@
-package com.example.kata.bank.service.domain.accounts
+package com.example.kata.bank.service.domain.accounts.premium
 
 import com.example.kata.bank.service.domain.AccountRequest
+import com.example.kata.bank.service.domain.accounts.Account
+import com.example.kata.bank.service.domain.accounts.AccountBuilder
+import com.example.kata.bank.service.domain.accounts.AccountShould
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
 import org.assertj.core.api.Assertions.assertThat
