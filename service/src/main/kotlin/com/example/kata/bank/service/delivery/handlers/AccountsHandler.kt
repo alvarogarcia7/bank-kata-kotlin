@@ -3,14 +3,14 @@ package com.example.kata.bank.service.delivery.handlers
 import arrow.core.Either
 import arrow.core.Option
 import arrow.core.flatMap
+import com.example.kata.bank.service.delivery.BankWebApplication.Companion.canFail
+import com.example.kata.bank.service.delivery.BankWebApplication.Companion.many
+import com.example.kata.bank.service.delivery.BankWebApplication.Companion.mayBeMissing
 import com.example.kata.bank.service.delivery.StatementRequestFactory
 import com.example.kata.bank.service.delivery.StatementRequestInteractor
 import com.example.kata.bank.service.delivery.X
 import com.example.kata.bank.service.delivery.`in`.OpenAccountRequestDTO
 import com.example.kata.bank.service.delivery.`in`.StatementRequestDTO
-import com.example.kata.bank.service.delivery.application.SparkAdapter
-import com.example.kata.bank.service.delivery.application.SparkAdapter.Companion.canFail
-import com.example.kata.bank.service.delivery.application.SparkAdapter.Companion.mayBeMissing
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.delivery.json.hateoas.Link
@@ -26,7 +26,7 @@ import spark.kotlin.Http
 
 class AccountsHandler(private val accountRepository: AccountRestrictedRepository, private val xApplicationService: StatementRequestInteractor) : Handler {
     override fun register(http: Http) {
-        http.get("/accounts", function = SparkAdapter.list(::list))
+        http.get("/accounts", function = many(::list))
         http.post("/accounts", function = canFail(::add))
         http.get("/accounts/:accountId", function = mayBeMissing(::detail))
         http.post("/accounts/:accountId", function = canFail(::request))
