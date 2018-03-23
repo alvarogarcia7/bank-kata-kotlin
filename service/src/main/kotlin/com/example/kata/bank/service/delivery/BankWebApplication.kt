@@ -125,7 +125,7 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
     fun list(request: spark.Request, response: spark.Response): X.ResponseEntity<List<MyResponse<AccountDTO>>> {
         val x = accountRepository
                 .findAll()
-                .map { (account, id) -> MyResponse(mapper.toDTO(account), listOf(Link("/accounts/${id.value}", rel = "self", method = "GET"))) }
+                .map { (account, id) -> MyResponse(mapper.toDTO(account), listOf(Link.self(Pair("accounts", id)))) }
         return X.ok(x)
     }
 
