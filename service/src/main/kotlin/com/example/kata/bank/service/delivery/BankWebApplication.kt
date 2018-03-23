@@ -3,37 +3,22 @@ package com.example.kata.bank.service.delivery
 import arrow.core.Either
 import arrow.core.Option
 import arrow.core.Some
-import arrow.core.flatMap
-import com.example.kata.bank.service.NotTestedOperation
-import com.example.kata.bank.service.delivery.`in`.OpenAccountRequestDTO
 import com.example.kata.bank.service.delivery.`in`.StatementRequestDTO
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.application.SparkAdapter
-import com.example.kata.bank.service.delivery.json.JSONMapper
+import com.example.kata.bank.service.delivery.handlers.AccountsHandler
+import com.example.kata.bank.service.delivery.handlers.OperationsHandler
+import com.example.kata.bank.service.delivery.handlers.UsersHandler
 import com.example.kata.bank.service.delivery.json.MyResponse
-import com.example.kata.bank.service.delivery.json.hateoas.Link
-import com.example.kata.bank.service.delivery.json.readValueOption
-import com.example.kata.bank.service.delivery.out.ErrorsDTO
-import com.example.kata.bank.service.delivery.out.StatementOutDTO
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Operation
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
-import com.example.kata.bank.service.domain.accounts.OpenAccountRequest
-import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRepository
-import com.example.kata.bank.service.infrastructure.accounts.out.AccountDTO
-import com.example.kata.bank.service.infrastructure.mapper.Mapper
-import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.example.kata.bank.service.infrastructure.operations.OperationsRepository
-import com.example.kata.bank.service.infrastructure.operations.`in`.OperationRequest
-import com.example.kata.bank.service.infrastructure.operations.out.TransactionDTO
 import com.example.kata.bank.service.infrastructure.statement.Statement
-import com.example.kata.bank.service.infrastructure.users.UsersSimpleRepository
-import com.fasterxml.jackson.module.kotlin.readValue
 import spark.kotlin.Http
-import spark.kotlin.RouteHandler
 
 class BankWebApplication(
         private val operationsHandler: OperationsHandler,
@@ -72,62 +57,6 @@ class BankWebApplication(
     }
 }
 
-
-class AccountsHandler(private val accountRepository: AccountRestrictedRepository, private val xApplicationService: XAPPlicationService) {
-    private val mapper = Mapper()
-    private val objectMapper = JSONMapper.aNew()
-    fun list(request: spark.Request, response: spark.Response): X.ResponseEntity<List<MyResponse<AccountDTO>>> {
-        val payload = accountRepository
-                .findAll()
-                .map { (account, id) -> MyResponse.links(mapper.toDTO(account), Link.self(Pair("accounts", id))) }
-        return X.ok(payload)
-    }
-
-    fun add(request: spark.Request, response: spark.Response): Either<X.ResponseEntity<MyResponse<List<String>>>, X.ResponseEntity<MyResponse<AccountDTO>>> {
-        val openAccountRequestDTO = objectMapper.readValue<OpenAccountRequestDTO>(request.body())
-        return (openAccountRequestDTO
-                .validate()
-                .flatMap { OpenAccountRequest.parse(it.name!!) }
-                .map { Persisted.`for`(it, Id.random()) }
-                .map {
-                    accountRepository.save(it)
-                    it
-                }
-                .map { (account, id) ->
-                    MyResponse(mapper.toDTO(account), listOf(Link.self("accounts" to id)))
-                })
-                .mapLeft { it -> MyResponse(it.map { it.message!! }, listOf()) }
-                .mapLeft { it -> X.badRequest(it) }
-                .map { it -> X.ok(it) }
-    }
-
-    fun detail(request: spark.Request, response: spark.Response): Option<X.ResponseEntity<MyResponse<AccountDTO>>> {
-        val accountId: String = request.params(":accountId") ?: throw RuntimeException("null account") //TODO AGB
-        return accountRepository.findBy(Id.of(accountId))
-                .map { (account, id) -> MyResponse.links(mapper.toDTO(account), Link.self(Pair("accounts", id))) }
-                .map { it -> X.ok(it) }
-    }
-
-    fun request(request: spark.Request, response: spark.Response): Either<X.ResponseEntity<MyResponse<ErrorsDTO>>, X.ResponseEntity<MyResponse<String>>> {
-
-        val accountId: String = request.params(":accountId") ?: throw RuntimeException("null account") //TODO AGB
-        val statementRequestDTO = objectMapper.readValue<StatementRequestDTO>(request.body())
-        return statementRequestDTO.validate()
-                .flatMap {
-                    val payload = accountRepository
-                            .findBy(Id.of(accountId))
-                            .map { account ->
-                                val id = account.id
-                                val statementId = xApplicationService.createAndSaveOperation(account.value, StatementRequestFactory.create(it))
-                                MyResponse.links("", Link.self(Pair("accounts", id), Pair("statements", statementId)))
-                            }
-
-                    Either.cond(payload.isDefined(), { payload.get() }, { listOf(Exception("Account does not exist")) })
-                }
-                .mapLeft { X.badRequest(MyResponse.noLinks(ErrorsDTO.from(it))) }
-                .map { X.ok(it) }
-    }
-}
 
 class X {
     companion object {
@@ -168,111 +97,6 @@ class XAPPlicationService(val accountRepository: AccountRestrictedRepository, va
     }
 }
 
-
-class UsersHandler(private val usersRepository: UsersSimpleRepository) {
-    private val objectMapper = JSONMapper.aNew()
-    val list: RouteHandler.() -> String = {
-        val result = usersRepository
-                .findAll()
-                .map { (user, id) -> MyResponse.links(user, Link.self(Pair("users", id))) }
-        objectMapper.writeValueAsString(result)
-    }
-
-}
-
-
-class OperationsHandler(private val operationService: OperationService, private val accountRepository: AccountRestrictedRepository) {
-    private val mapper = Mapper()
-    private val objectMapper = JSONMapper.aNew()
-
-    fun add(request: spark.Request, response: spark.Response): Either<X.ResponseEntity<MyResponse<ErrorsDTO>>, X.ResponseEntity<MyResponse<Unit>>> {
-        val accountId: String = request.params(":accountId")
-                ?: return Either.left(listOf(Exception("Needs an :accountId")))
-                        .mapLeft { ErrorsDTO.from(it) }
-                        .mapLeft { MyResponse.noLinks(it) }
-                        .mapLeft { X.badRequest(it) }
-        val result = objectMapper.readValueOption<OperationRequest>(request.body())
-                .mapLeft { listOf(it) }
-                .flatMap { operationRequest ->
-                    when (operationRequest) {
-                        is OperationRequest.DepositRequest -> {
-                            val depositId = accountFor(accountId)
-                            val x = Either.cond(depositId.isDefined(), { depositId.get() }, { listOf(Exception("No account")) })
-                                    .flatMap { account ->
-                                        val id = operationService.deposit(account, operationRequest)
-                                        Either.cond(id.isDefined(), { id.get() }, { listOf(Exception("Deposit failed")) })
-                                    }
-                            x
-                        }
-                        is OperationRequest.TransferRequest -> {
-                            accountRepository
-                                    .findBy(Account.Number.of(operationRequest.destination.number))
-                                    .flatMap { to ->
-                                        accountRepository.findBy(Id.of(accountId))
-                                                .map { from ->
-                                                    Account.transfer(Amount.of(operationRequest.amount.value), operationRequest.description, from, to)
-                                                }
-                                    }
-                            Either.right(Id.random())
-                        }
-                    }
-                }
-                .mapLeft { listOf(Exception("No result")) }
-                .mapLeft { ErrorsDTO.from(it) }
-                .mapLeft { MyResponse.noLinks(it) }
-                .mapLeft { X.badRequest(it) }
-                .map { MyResponse(Unit, listOf(Link("/accounts/$accountId/operations/${it.value}", "list", "GET"))) }
-                .map { X.ok(it) }
-
-        return result
-    }
-
-    fun detail(request: spark.Request, response: spark.Response): Option<X.ResponseEntity<MyResponse<TransactionDTO>>> {
-        val accountId: String? = request.params(":accountId")
-        val operationId: String? = request.params(":operationId")
-        if (accountId == null || operationId == null) {
-            throw RuntimeException("invalid request") //TODO AGB
-        }
-
-        return accountFor(accountId)
-                .flatMap {
-                    it.find(Id.of(operationId))
-                }.map {
-                    X.ok(MyResponse.links(mapper.toDTO(it.value), Link.self(Pair("accounts", Id.of(accountId)), Pair("operations", Id.of(operationId)))))
-                }
-    }
-
-    fun getStatement(request: spark.Request, response: spark.Response): Either<X.ResponseEntity<MyResponse<ErrorsDTO>>, X.ResponseEntity<MyResponse<StatementOutDTO>>> {
-        val accountId: String? = request.params(":accountId")
-        val statementId: String? = request.params(":statementId")
-        if (accountId == null || statementId == null) {
-            throw NotTestedOperation()
-        }
-
-        val result = accountFor(accountId)
-                .map {
-                    val operations = it.findAll().map { it.value }.map { mapper.toDTO(it) }
-                    val response = StatementOutDTO(operations)
-                    MyResponse.links(response,
-                            Link.self(Pair("accounts", Id.of(accountId)), Pair("operations", Id.of(statementId))))
-                }
-        return Either.cond(result.isDefined(), { result.get() }, { MyResponse(ErrorsDTO.from(listOf(NotTestedOperation())), listOf()) })
-                .map { X.ok(it) }
-                .mapLeft { X.badRequest(it) }
-    }
-
-    fun list(request: spark.Request, response: spark.Response): X.ResponseEntity<List<MyResponse<TransactionDTO>>> {
-        val accountId: String = request.params(":accountId") ?: throw RuntimeException("invalid request") //TODO AGB
-        val payload = accountRepository
-                .findBy(Id.of(accountId))
-                .map {
-                    it.value.findAll().map { MyResponse(mapper.toDTO(it.value), listOf(Link("/accounts/$accountId/operations/${it.id.value}", rel = "self", method = "GET"))) }
-                }.get()
-        return X.ok(payload)
-    }
-
-    private fun accountFor(accountId: String) = accountRepository.findBy(Id.of(accountId)).map { it.value }
-}
 
 private fun <C, D> Option<D>.replace(negative: () -> Either<C, D>): Either<C, D> {
     return negative.invoke()

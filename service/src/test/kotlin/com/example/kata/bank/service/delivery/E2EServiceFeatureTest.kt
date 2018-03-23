@@ -8,6 +8,9 @@ import com.example.kata.bank.service.HTTP
 import com.example.kata.bank.service.UnreachableCode
 import com.example.kata.bank.service.delivery.`in`.StatementRequestDTO
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
+import com.example.kata.bank.service.delivery.handlers.AccountsHandler
+import com.example.kata.bank.service.delivery.handlers.OperationsHandler
+import com.example.kata.bank.service.delivery.handlers.UsersHandler
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.delivery.out.ErrorsDTO
 import com.example.kata.bank.service.delivery.out.StatementOutDTO
