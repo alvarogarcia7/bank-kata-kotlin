@@ -289,7 +289,8 @@ class OperationsHandler(private val operationService: OperationService, private 
                 .map {
                     val operations = it.findAll().map { it.value }.map { mapper.toDTO(it) }
                     val response = StatementOutDTO(operations)
-                    MyResponse(response, listOf(Link("/accounts/$accountId/operations/$statementId", "self", "GET")))
+                    MyResponse(response,
+                            listOf(Link.self(Pair("accounts", Id.of(accountId)), Pair("operations", Id.of(statementId)))))
                 }
         return Either.cond(result.isDefined(), { result.get() }, { MyResponse(ErrorsDTO.from(listOf(NotTestedOperation())), listOf()) })
                 .map { X.ok(it) }
