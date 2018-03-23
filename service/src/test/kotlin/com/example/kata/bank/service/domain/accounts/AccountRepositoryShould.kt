@@ -1,7 +1,6 @@
 package com.example.kata.bank.service.domain.accounts
 
 import arrow.core.Either
-import com.example.kata.bank.service.domain.AccountNumber
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import org.assertj.core.api.Assertions.assertThat

@@ -7,11 +7,11 @@ import com.example.kata.bank.service.ApplicationBooter
 import com.example.kata.bank.service.HTTP
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.MyResponse
-import com.example.kata.bank.service.domain.AccountNumber
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
+import com.example.kata.bank.service.domain.accounts.AccountNumber
 import com.example.kata.bank.service.domain.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.domain.accounts.Clock
 import com.example.kata.bank.service.domain.transactions.Amount

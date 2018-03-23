@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
-import com.example.kata.bank.service.domain.AccountNumber
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
@@ -188,5 +187,13 @@ class Account(
                     }
 
                 }
+    }
+}
+
+data class AccountNumber private constructor(val value: String) {
+    companion object {
+        fun of(value: String): AccountNumber {
+            return AccountNumber(value)
+        }
     }
 }
