@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test
 
 internal class AccountRepositoryShould {
     @Test
-    fun `make_the_account_number_primary_key`() {
+    fun `make the account number primary key`() {
         val repository = AccountRestrictedRepository.aNew()
         repository.save(Persisted.`for`(Account(Clock.aNew(), "name1", number = Account.Number.of("11")), Id.random()))
 
