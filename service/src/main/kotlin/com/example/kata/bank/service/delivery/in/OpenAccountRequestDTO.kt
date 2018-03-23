@@ -1,4 +1,4 @@
-package com.example.kata.bank.service.delivery
+package com.example.kata.bank.service.delivery.`in`
 
 import arrow.core.Either
 

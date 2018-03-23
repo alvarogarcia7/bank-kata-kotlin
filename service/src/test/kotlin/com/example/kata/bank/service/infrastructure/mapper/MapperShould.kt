@@ -4,8 +4,8 @@ import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.transactions.Tx
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
-import com.example.kata.bank.service.infrastructure.operations.TimeDTO
-import com.example.kata.bank.service.infrastructure.operations.TransactionDTO
+import com.example.kata.bank.service.infrastructure.operations.out.TimeDTO
+import com.example.kata.bank.service.infrastructure.operations.out.TransactionDTO
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import java.time.LocalDateTime

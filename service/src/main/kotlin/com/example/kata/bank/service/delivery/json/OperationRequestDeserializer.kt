@@ -1,9 +1,9 @@
 package com.example.kata.bank.service.delivery.json
 
 
-import com.example.kata.bank.service.infrastructure.operations.AccountDTO
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
-import com.example.kata.bank.service.infrastructure.operations.OperationRequest
+import com.example.kata.bank.service.infrastructure.operations.`in`.AccountDTO
+import com.example.kata.bank.service.infrastructure.operations.`in`.OperationRequest
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.TreeNode
 import com.fasterxml.jackson.databind.DeserializationContext

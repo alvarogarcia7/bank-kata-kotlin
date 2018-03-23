@@ -5,8 +5,11 @@ import arrow.core.andThen
 import arrow.core.getOrElse
 import com.example.kata.bank.service.ApplicationBooter
 import com.example.kata.bank.service.HTTP
+import com.example.kata.bank.service.delivery.`in`.StatementRequestDTO
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.MyResponse
+import com.example.kata.bank.service.delivery.out.ErrorsDTO
+import com.example.kata.bank.service.delivery.out.StatementOutDTO
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
@@ -18,8 +21,12 @@ import com.example.kata.bank.service.domain.transactions.Tx
 import com.example.kata.bank.service.domain.users.UsersSimpleRepository
 import com.example.kata.bank.service.infrastructure.AccountRestrictedRepository
 import com.example.kata.bank.service.infrastructure.AccountsService
-import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
-import com.example.kata.bank.service.infrastructure.operations.*
+import com.example.kata.bank.service.infrastructure.accounts.out.AccountDTO
+import com.example.kata.bank.service.infrastructure.operations.AmountDTO
+import com.example.kata.bank.service.infrastructure.operations.OperationService
+import com.example.kata.bank.service.infrastructure.operations.OperationsRepository
+import com.example.kata.bank.service.infrastructure.operations.out.TimeDTO
+import com.example.kata.bank.service.infrastructure.operations.out.TransactionDTO
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.github.kittinunf.fuel.core.FuelManager
 import com.github.kittinunf.fuel.core.Request

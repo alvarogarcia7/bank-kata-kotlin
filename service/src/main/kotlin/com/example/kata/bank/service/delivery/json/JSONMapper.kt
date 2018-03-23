@@ -1,7 +1,7 @@
 package com.example.kata.bank.service.delivery.json
 
 import arrow.core.Either
-import com.example.kata.bank.service.infrastructure.operations.OperationRequest
+import com.example.kata.bank.service.infrastructure.operations.`in`.OperationRequest
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.module.SimpleModule

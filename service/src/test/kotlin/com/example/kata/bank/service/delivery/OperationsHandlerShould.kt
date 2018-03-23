@@ -3,10 +3,11 @@ package com.example.kata.bank.service.delivery
 import arrow.core.Either
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
+import com.example.kata.bank.service.delivery.out.ErrorsDTO
 import com.example.kata.bank.service.infrastructure.AccountRestrictedRepository
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
-import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.OperationService
+import com.example.kata.bank.service.infrastructure.operations.`in`.OperationRequest
 import com.nhaarman.mockito_kotlin.doReturn
 import com.nhaarman.mockito_kotlin.mock
 import org.assertj.core.api.Assertions.assertThat

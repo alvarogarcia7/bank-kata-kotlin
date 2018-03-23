@@ -2,11 +2,15 @@ package com.example.kata.bank.service.delivery
 
 import arrow.core.*
 import com.example.kata.bank.service.NotTestedOperation
+import com.example.kata.bank.service.delivery.`in`.OpenAccountRequestDTO
+import com.example.kata.bank.service.delivery.`in`.StatementRequestDTO
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.delivery.json.hateoas.Link
 import com.example.kata.bank.service.delivery.json.readValueOption
+import com.example.kata.bank.service.delivery.out.ErrorsDTO
+import com.example.kata.bank.service.delivery.out.StatementOutDTO
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Operation
@@ -16,12 +20,12 @@ import com.example.kata.bank.service.domain.accounts.OpenAccountRequest
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.users.UsersSimpleRepository
 import com.example.kata.bank.service.infrastructure.AccountRestrictedRepository
-import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
+import com.example.kata.bank.service.infrastructure.accounts.out.AccountDTO
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
-import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.example.kata.bank.service.infrastructure.operations.OperationsRepository
-import com.example.kata.bank.service.infrastructure.operations.TransactionDTO
+import com.example.kata.bank.service.infrastructure.operations.`in`.OperationRequest
+import com.example.kata.bank.service.infrastructure.operations.out.TransactionDTO
 import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.fasterxml.jackson.module.kotlin.readValue
 import spark.Request
