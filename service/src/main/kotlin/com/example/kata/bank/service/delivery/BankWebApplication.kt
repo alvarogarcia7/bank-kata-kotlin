@@ -26,7 +26,7 @@ class BankWebApplication(private vararg val handlers: Handler) : SparkAdapter() 
         private val objectMapper = JSONMapper.aNew()
 
 
-        fun <T : Any> many(kFunction2: (Request, Response) -> X.ResponseEntity<T>): RouteHandler.() -> Any = {
+        fun <T : Any> many(kFunction2: (Request, Response) -> X.ResponseEntity<Collection<T>>): RouteHandler.() -> Any = {
             val result = kFunction2.invoke(request, response)
             response.status(result.statusCode)
             result.payload
