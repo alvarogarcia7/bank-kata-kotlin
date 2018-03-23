@@ -18,8 +18,7 @@ import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
 import com.example.kata.bank.service.domain.accounts.OpenAccountRequest
 import com.example.kata.bank.service.domain.transactions.Amount
-import com.example.kata.bank.service.domain.users.UsersSimpleRepository
-import com.example.kata.bank.service.infrastructure.AccountRestrictedRepository
+import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.infrastructure.accounts.out.AccountDTO
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
 import com.example.kata.bank.service.infrastructure.operations.OperationService
@@ -27,6 +26,7 @@ import com.example.kata.bank.service.infrastructure.operations.OperationsReposit
 import com.example.kata.bank.service.infrastructure.operations.`in`.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.out.TransactionDTO
 import com.example.kata.bank.service.infrastructure.statement.Statement
+import com.example.kata.bank.service.infrastructure.users.UsersSimpleRepository
 import com.fasterxml.jackson.module.kotlin.readValue
 import spark.Request
 import spark.Response

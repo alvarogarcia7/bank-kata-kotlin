@@ -1,4 +1,4 @@
-package com.example.kata.bank.service.infrastructure
+package com.example.kata.bank.service.infrastructure.accounts
 
 import arrow.core.Either
 import arrow.core.Option

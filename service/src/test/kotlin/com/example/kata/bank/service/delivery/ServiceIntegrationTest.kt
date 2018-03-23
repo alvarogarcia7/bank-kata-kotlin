@@ -9,12 +9,12 @@ import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
 import com.example.kata.bank.service.domain.accounts.Clock
-import com.example.kata.bank.service.domain.users.UsersSimpleRepository
-import com.example.kata.bank.service.infrastructure.AccountRestrictedRepository
+import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
 import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.example.kata.bank.service.infrastructure.operations.OperationsRepository
 import com.example.kata.bank.service.infrastructure.operations.`in`.OperationRequest
+import com.example.kata.bank.service.infrastructure.users.UsersSimpleRepository
 import com.github.kittinunf.fuel.core.FuelManager
 import com.nhaarman.mockito_kotlin.verify
 import com.nhaarman.mockito_kotlin.verifyZeroInteractions

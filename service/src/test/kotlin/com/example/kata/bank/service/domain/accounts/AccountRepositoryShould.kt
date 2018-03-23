@@ -3,7 +3,7 @@ package com.example.kata.bank.service.domain.accounts
 import arrow.core.Either
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
-import com.example.kata.bank.service.infrastructure.AccountRestrictedRepository
+import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 

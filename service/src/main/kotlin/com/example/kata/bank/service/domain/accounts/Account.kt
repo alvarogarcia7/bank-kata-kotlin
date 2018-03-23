@@ -10,10 +10,10 @@ import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.*
-import com.example.kata.bank.service.domain.transactions.TransactionSimpleRepository
 import com.example.kata.bank.service.domain.transactions.Tx
 import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.example.kata.bank.service.infrastructure.statement.StatementLine
+import com.example.kata.bank.service.infrastructure.transactions.TransactionSimpleRepository
 
 class Account(
         val clock: Clock,

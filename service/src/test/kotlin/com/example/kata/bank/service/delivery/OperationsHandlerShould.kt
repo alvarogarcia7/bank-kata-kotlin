@@ -4,7 +4,7 @@ import arrow.core.Either
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.delivery.out.ErrorsDTO
-import com.example.kata.bank.service.infrastructure.AccountRestrictedRepository
+import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
 import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.example.kata.bank.service.infrastructure.operations.`in`.OperationRequest

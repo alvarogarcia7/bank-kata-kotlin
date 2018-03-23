@@ -1,4 +1,4 @@
-package com.example.kata.bank.service.infrastructure
+package com.example.kata.bank.service.infrastructure.accounts
 
 import arrow.core.Option
 import com.example.kata.bank.service.domain.Id
