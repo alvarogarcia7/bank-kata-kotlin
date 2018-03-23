@@ -3,7 +3,7 @@ package com.example.kata.bank.service.domain
 import arrow.core.Option
 
 open class InMemoryRepository<X> {
-    private val values = mutableListOf<Persisted<X>>()
+    protected val values = mutableListOf<Persisted<X>>()
 
     fun save(entity: Persisted<X>) {
         this.values.add(entity)

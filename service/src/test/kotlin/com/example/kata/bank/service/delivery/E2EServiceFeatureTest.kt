@@ -7,6 +7,7 @@ import com.example.kata.bank.service.ApplicationBooter
 import com.example.kata.bank.service.HTTP
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.json.MyResponse
+import com.example.kata.bank.service.domain.AccountNumber
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
@@ -116,7 +117,7 @@ class E2EServiceFeatureTest {
     @Test
     fun `detail for an account`() {
         val accountId = Id.random()
-        accountRepository.save(Persisted.`for`(aNewAccount("pepe"), accountId))
+        accountRepository.save(Persisted.`for`(aNewAccount("pepe", AccountNumber.of("00-00-00-01")), accountId))
 
         (HTTP::get)("/accounts/${accountId.value}")
                 .let(http::request)
@@ -183,7 +184,7 @@ class E2EServiceFeatureTest {
         accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
         val existingOperations = `operationsFor!`(accountId)
         val destinationId = Id.random()
-        accountRepository.save(Persisted.`for`(aNewAccount(), destinationId))
+        accountRepository.save(Persisted.`for`(aNewAccount(accountNumber = AccountNumber.of("11")), destinationId))
 
         depositRequest(accountId, """
 {
@@ -193,7 +194,7 @@ class E2EServiceFeatureTest {
       "currency": "EUR"
 	},
 	"destination":{
-		"number":"00-00-00-01",
+		"number":"11",
 		"owner": "Maria"
 	},
     "description": "rent for this month"
@@ -356,9 +357,9 @@ class E2EServiceFeatureTest {
                 }
     }
 
-    private fun aNewAccount() = aNewAccount("savings account #" + Random().nextInt(10))
+    private fun aNewAccount(accountNumber: AccountNumber = AccountNumber.of("00-00-00-01")) = aNewAccount("savings account #" + Random().nextInt(10), accountNumber)
 
-    private fun aNewAccount(accountName: String) = Account(Clock.aNew(), accountName)
+    private fun aNewAccount(accountName: String, accountNumber: AccountNumber) = Account(Clock.aNew(), accountName, number = accountNumber)
 
     private fun depositRequest(accountId: Id, jsonPayload: String): Request {
         return http.post("accounts/${accountId.value}/operations", jsonPayload)

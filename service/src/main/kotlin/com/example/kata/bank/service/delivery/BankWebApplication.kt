@@ -7,13 +7,12 @@ import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.delivery.json.hateoas.Link
 import com.example.kata.bank.service.delivery.json.readValueOption
-import com.example.kata.bank.service.domain.AccountRequest
+import com.example.kata.bank.service.domain.*
 import com.example.kata.bank.service.domain.Id
-import com.example.kata.bank.service.domain.Operation
-import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
 import com.example.kata.bank.service.domain.accounts.AccountRepository
 import com.example.kata.bank.service.domain.accounts.OpenAccountRequest
+import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.users.UsersRepository
 import com.example.kata.bank.service.infrastructure.OperationsRepository
 import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
@@ -243,11 +242,23 @@ class OperationsHandler(private val operationService: OperationService, private 
                     when (operationRequest) {
                         is OperationRequest.DepositRequest -> {
                             val depositId = accountFor(accountId)
-                            Either.cond(depositId.isDefined(), { depositId.get() }, { listOf(Exception("No account")) })
+                            val x = Either.cond(depositId.isDefined(), { depositId.get() }, { listOf(Exception("No account")) })
                                     .flatMap { account ->
                                         val id = operationService.deposit(account, operationRequest)
                                         Either.cond(id.isDefined(), { id.get() }, { listOf(Exception("Deposit failed")) })
                                     }
+                            x
+                        }
+                        is OperationRequest.TransferRequest -> {
+                            accountRepository
+                                    .findBy(AccountNumber.of(operationRequest.destination.number))
+                                    .flatMap { to ->
+                                        accountRepository.findBy(Id.of(accountId))
+                                                .map { from ->
+                                                    Account.transfer(Amount.of(operationRequest.amount.value), operationRequest.description, from, to)
+                                                }
+                                    }
+                            Either.right(Id.random())
                         }
                     }
                 }
@@ -306,5 +317,9 @@ class OperationsHandler(private val operationService: OperationService, private 
     }
 
     private fun accountFor(accountId: String) = accountRepository.findBy(Id.of(accountId)).map { it.value }
+}
+
+private fun <C, D> Option<D>.replace(negative: () -> Either<C, D>): Either<C, D> {
+    return negative.invoke()
 }
 

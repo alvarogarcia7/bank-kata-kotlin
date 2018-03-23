@@ -1,6 +1,7 @@
 package com.example.kata.bank.service.delivery.json
 
 
+import com.example.kata.bank.service.infrastructure.operations.AccountDTO
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
 import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.fasterxml.jackson.core.JsonParser
@@ -18,7 +19,10 @@ class OperationRequestDeserializer @JvmOverloads constructor(vc: Class<*>? = nul
             val nodeType = string(node, "type")
             val result = when (nodeType) {
                 "deposit" -> {
-                    OperationRequest.DepositRequest(amount = AmountDTO.EUR(string(node.get("amount"), "value")), description = string(node, "description"))
+                    OperationRequest.DepositRequest(amount = readAmount(node), description = string(node, "description"))
+                }
+                "transfer" -> {
+                    OperationRequest.TransferRequest(amount = readAmount(node), destination = readDestination(node), description = string(node, "description"))
                 }
                 else -> {
                     throw IllegalArgumentException("type not recognized in: $node")
@@ -29,6 +33,13 @@ class OperationRequestDeserializer @JvmOverloads constructor(vc: Class<*>? = nul
             throw IllegalArgumentException("Could not parse this Operation", e)
         }
     }
+
+    private fun readDestination(node: TreeNode): AccountDTO {
+        val destinationNode = node.get("destination")
+        return AccountDTO(string(destinationNode, "number"), string(destinationNode, "owner"))
+    }
+
+    private fun readAmount(node: TreeNode) = AmountDTO.EUR(string(node.get("amount"), "value"))
 
     private fun string(node: TreeNode, key: String) = (node.get(key) as TextNode).asText()
 }

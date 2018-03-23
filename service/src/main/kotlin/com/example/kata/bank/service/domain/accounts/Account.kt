@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
+import com.example.kata.bank.service.domain.AccountNumber
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
@@ -20,7 +21,8 @@ class Account(
         val name: String,
         val type: AccountType = AccountType.Personal,
         private val incomingSecurity: Option<Security> = None,
-        private val outgoingSecurity: Option<Security> = None
+        private val outgoingSecurity: Option<Security> = None,
+        val number: AccountNumber = AccountNumber.of("01-02-03-04")
 ) {
 
     private val transactionRepository: TransactionRepository = TransactionRepository()
