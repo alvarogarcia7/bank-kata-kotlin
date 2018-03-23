@@ -222,7 +222,7 @@ class UsersHandler(private val usersRepository: UsersRepository) {
     val list: RouteHandler.() -> String = {
         val x = usersRepository
                 .findAll()
-                .map { (user, id) -> MyResponse(user, listOf(Link("/users/$id", rel = "self", method = "GET"))) }
+                .map { (user, id) -> MyResponse(user, listOf(Link.self(Pair("users", id)))) }
         objectMapper.writeValueAsString(x)
     }
 
