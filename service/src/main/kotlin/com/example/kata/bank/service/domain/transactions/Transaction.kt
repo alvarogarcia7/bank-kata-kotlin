@@ -53,10 +53,10 @@ sealed class Transaction(open val tx: Tx) {
 
             fun confirm(code: String): Option<Workflow> {
                 if (pendingParts.isNotEmpty()) {
-                    val x = this.pendingParts.first().mapLeft { it.unlockedBy(code) }
-                    val result = when (x) {
+                    val isThisPartConfirmed = this.pendingParts.first().mapLeft { it.unlockedBy(code) }
+                    val result = when (isThisPartConfirmed) {
                         is Either.Left -> {
-                            if (x.a) {
+                            if (isThisPartConfirmed.a) {
                                 true
                             } else {
                                 throw NotTestedOperation()

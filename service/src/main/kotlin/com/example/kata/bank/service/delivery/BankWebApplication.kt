@@ -123,15 +123,15 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
     private val mapper = Mapper()
     private val objectMapper = JSONMapper.aNew()
     fun list(request: spark.Request, response: spark.Response): X.ResponseEntity<List<MyResponse<AccountDTO>>> {
-        val x = accountRepository
+        val payload = accountRepository
                 .findAll()
                 .map { (account, id) -> MyResponse.links(mapper.toDTO(account), Link.self(Pair("accounts", id))) }
-        return X.ok(x)
+        return X.ok(payload)
     }
 
     fun add(request: spark.Request, response: spark.Response): Either<X.ResponseEntity<MyResponse<List<String>>>, X.ResponseEntity<MyResponse<AccountDTO>>> {
         val openAccountRequestDTO = objectMapper.readValue<OpenAccountRequestDTO>(request.body())
-        val x = (openAccountRequestDTO
+        return (openAccountRequestDTO
                 .validate()
                 .flatMap { OpenAccountRequest.parse(it.name!!) }
                 .map { Persisted.`for`(it, Id.random()) }
@@ -145,7 +145,6 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
                 .mapLeft { it -> MyResponse(it.map { it.message!! }, listOf()) }
                 .mapLeft { it -> X.badRequest(it) }
                 .map { it -> X.ok(it) }
-        return x
     }
 
     fun detail(request: spark.Request, response: spark.Response): Option<X.ResponseEntity<MyResponse<AccountDTO>>> {
@@ -161,7 +160,7 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
         val statementRequestDTO = objectMapper.readValue<StatementRequestDTO>(request.body())
         return statementRequestDTO.validate()
                 .flatMap {
-                    val x = accountRepository
+                    val payload = accountRepository
                             .findBy(Id.of(accountId))
                             .map { account ->
                                 val id = account.id
@@ -169,7 +168,7 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
                                 MyResponse.links("", Link.self(Pair("accounts", id), Pair("statements", statementId)))
                             }
 
-                    Either.cond(x.isDefined(), { x.get() }, { listOf(Exception("Account does not exist")) })
+                    Either.cond(payload.isDefined(), { payload.get() }, { listOf(Exception("Account does not exist")) })
                 }
                 .mapLeft { X.badRequest(MyResponse.noLinks(ErrorsDTO.from(it))) }
                 .map { X.ok(it) }
@@ -208,9 +207,9 @@ class StatementRequestFactory {
 
 class XAPPlicationService(val accountRepository: AccountRepository, val operationsRepository: OperationsRepository) {
     fun createAndSaveOperation(account: Account, create: AccountRequest): Id {
-        val x = create.apply<Statement>(account)
+        val statement = create.apply<Statement>(account)
         val id = Id.random()
-        operationsRepository.save(Persisted.`for`(Operation.Statement(x), id))
+        operationsRepository.save(Persisted.`for`(Operation.Statement(statement), id))
         return id
     }
 }
@@ -219,10 +218,10 @@ class XAPPlicationService(val accountRepository: AccountRepository, val operatio
 class UsersHandler(private val usersRepository: UsersRepository) {
     private val objectMapper = JSONMapper.aNew()
     val list: RouteHandler.() -> String = {
-        val x = usersRepository
+        val result = usersRepository
                 .findAll()
                 .map { (user, id) -> MyResponse.links(user, Link.self(Pair("users", id))) }
-        objectMapper.writeValueAsString(x)
+        objectMapper.writeValueAsString(result)
     }
 
 }
@@ -246,8 +245,8 @@ class OperationsHandler(private val operationService: OperationService, private 
                             val depositId = accountFor(accountId)
                             Either.cond(depositId.isDefined(), { depositId.get() }, { listOf(Exception("No account")) })
                                     .flatMap { account ->
-                                        val x = operationService.deposit(account, operationRequest)
-                                        Either.cond(x.isDefined(), { x.get() }, { listOf(Exception("Deposit failed")) })
+                                        val id = operationService.deposit(account, operationRequest)
+                                        Either.cond(id.isDefined(), { id.get() }, { listOf(Exception("Deposit failed")) })
                                     }
                         }
                     }

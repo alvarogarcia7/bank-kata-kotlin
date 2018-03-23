@@ -165,10 +165,10 @@ class E2EServiceFeatureTest {
         """).let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
-                    val x = http.mapper.readValue<MyResponse<Unit>>(result.value)
-                    println(x)
-                    assertThat(x.links).hasSize(1)
-                    assertThat(x.links).filteredOn { it.rel == "list" }.isNotEmpty()
+                    val response = http.mapper.readValue<MyResponse<Unit>>(result.value)
+                    println(response)
+                    assertThat(response.links).hasSize(1)
+                    assertThat(response.links).filteredOn { it.rel == "list" }.isNotEmpty()
                 }
         val newOperations = `operationsFor!`(accountId)
         this.bIsSupersetOfA(a = existingOperations, b = newOperations)
@@ -238,8 +238,8 @@ class E2EServiceFeatureTest {
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     println(result.value)
-                    val x = http.mapper.readValue<List<MyResponse<TransactionDTO>>>(result.value)
-                    assertThat(x).hasSize(2)
+                    val response = http.mapper.readValue<List<MyResponse<TransactionDTO>>>(result.value)
+                    assertThat(response).hasSize(2)
                 }
     }
 
@@ -260,8 +260,8 @@ class E2EServiceFeatureTest {
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     println(result.value)
-                    val x = http.mapper.readValue<MyResponse<String>>(result.value)
-                    val statementPair = x.links.find { it.rel == "self" }?.resource("statements")!!
+                    val response = http.mapper.readValue<MyResponse<String>>(result.value)
+                    val statementPair = response.links.find { it.rel == "self" }?.resource("statements")!!
                     statementPair.map {
                         val (_, statementId) = it
                         assertThat(operationsRepository.findBy(Id.of(statementId)).isDefined()).isTrue()
