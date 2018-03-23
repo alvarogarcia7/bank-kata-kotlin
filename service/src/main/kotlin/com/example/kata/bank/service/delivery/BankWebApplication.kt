@@ -274,7 +274,7 @@ class OperationsHandler(private val operationService: OperationService, private 
                 .flatMap {
                     it.find(Id.of(operationId))
                 }.map {
-                    X.ok(MyResponse(mapper.toDTO(it.value), listOf(Link("/accounts/$accountId/operations/$operationId", "self", "GET"))))
+                    X.ok(MyResponse(mapper.toDTO(it.value), listOf(Link.self(Pair("accounts", Id.of(accountId)), Pair("operations", Id.of(operationId))))))
                 }
     }
 
