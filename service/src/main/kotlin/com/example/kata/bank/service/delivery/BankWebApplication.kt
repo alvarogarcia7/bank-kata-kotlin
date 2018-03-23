@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.Option
 import arrow.core.Some
 import com.example.kata.bank.service.delivery.`in`.StatementRequestDTO
-import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.delivery.application.SparkAdapter
 import com.example.kata.bank.service.delivery.handlers.AccountsHandler
 import com.example.kata.bank.service.delivery.handlers.OperationsHandler
@@ -17,16 +16,7 @@ class BankWebApplication(
         private val operationsHandler: OperationsHandler,
         private val accountsHandler: AccountsHandler,
         private val usersHandler: UsersHandler) :
-        SparkAdapter(), ApplicationEngine {
-
-    override fun start(port: Int): BankWebApplication {
-        val http = httpService
-                .port(port)
-//                .threadPool(10)
-
-        configurePaths(http)
-        return this
-    }
+        SparkAdapter() {
 
     override fun configurePaths(http: Http) {
         //accounts
@@ -43,10 +33,6 @@ class BankWebApplication(
 
         //users
         http.get("/users", function = usersHandler.list)
-    }
-
-    override fun stop() {
-        httpService.stop()
     }
 }
 

@@ -10,9 +10,23 @@ import spark.Service
 import spark.kotlin.Http
 import spark.kotlin.RouteHandler
 
-abstract class SparkAdapter {
+abstract class SparkAdapter : ApplicationEngine {
     protected var httpService: Http = Http(Service.ignite())
     private val objectMapper = JSONMapper.aNew()
+
+    override fun start(port: Int): SparkAdapter {
+        val http = httpService
+                .port(port)
+
+        configurePaths(http)
+        return this
+    }
+
+    override fun stop() {
+        httpService.stop()
+    }
+
+
     protected fun <T : Any> list(kFunction2: (Request, Response) -> X.ResponseEntity<T>): RouteHandler.() -> Any = {
         val result = kFunction2.invoke(request, response)
         response.status(result.statusCode)
