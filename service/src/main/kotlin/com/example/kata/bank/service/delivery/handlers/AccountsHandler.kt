@@ -4,8 +4,8 @@ import arrow.core.Either
 import arrow.core.Option
 import arrow.core.flatMap
 import com.example.kata.bank.service.delivery.StatementRequestFactory
+import com.example.kata.bank.service.delivery.StatementRequestInteractor
 import com.example.kata.bank.service.delivery.X
-import com.example.kata.bank.service.delivery.XAPPlicationService
 import com.example.kata.bank.service.delivery.`in`.OpenAccountRequestDTO
 import com.example.kata.bank.service.delivery.`in`.StatementRequestDTO
 import com.example.kata.bank.service.delivery.json.JSONMapper
@@ -20,7 +20,7 @@ import com.example.kata.bank.service.infrastructure.accounts.out.AccountDTO
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
 import com.fasterxml.jackson.module.kotlin.readValue
 
-class AccountsHandler(private val accountRepository: AccountRestrictedRepository, private val xApplicationService: XAPPlicationService) {
+class AccountsHandler(private val accountRepository: AccountRestrictedRepository, private val xApplicationService: StatementRequestInteractor) {
     private val mapper = Mapper()
     private val objectMapper = JSONMapper.aNew()
     fun list(request: spark.Request, response: spark.Response): X.ResponseEntity<List<MyResponse<AccountDTO>>> {

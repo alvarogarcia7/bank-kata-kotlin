@@ -77,7 +77,7 @@ class ServiceIntegrationTest {
         private val configuredApplication: () -> BankWebApplication = {
             BankWebApplication(
                     OperationsHandler(MockOperationService(), accountRepository),
-                    AccountsHandler(accountRepository, XAPPlicationService(accountRepository, OperationsRepository())),
+                    AccountsHandler(accountRepository, StatementRequestInteractor(accountRepository, OperationsRepository())),
                     UsersHandler(UsersSimpleRepository())
             )
         }

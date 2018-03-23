@@ -1,7 +1,7 @@
 package com.example.kata.bank.service.delivery.application
 
 import com.example.kata.bank.service.delivery.BankWebApplication
-import com.example.kata.bank.service.delivery.XAPPlicationService
+import com.example.kata.bank.service.delivery.StatementRequestInteractor
 import com.example.kata.bank.service.delivery.handlers.AccountsHandler
 import com.example.kata.bank.service.delivery.handlers.OperationsHandler
 import com.example.kata.bank.service.delivery.handlers.UsersHandler
@@ -14,7 +14,7 @@ fun main(args: Array<String>) {
     val accountRepository = AccountRestrictedRepository(mutableListOf())
     BankWebApplication(OperationsHandler(OperationService(), accountRepository), AccountsHandler(
             accountRepository,
-            XAPPlicationService(accountRepository,
+            StatementRequestInteractor(accountRepository,
                     OperationsRepository())),
             UsersHandler(UsersSimpleRepository())
     ).start(8080)
