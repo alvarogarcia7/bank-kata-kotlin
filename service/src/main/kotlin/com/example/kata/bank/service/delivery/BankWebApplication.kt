@@ -5,34 +5,16 @@ import arrow.core.Option
 import arrow.core.Some
 import com.example.kata.bank.service.delivery.`in`.StatementRequestDTO
 import com.example.kata.bank.service.delivery.application.SparkAdapter
-import com.example.kata.bank.service.delivery.handlers.AccountsHandler
-import com.example.kata.bank.service.delivery.handlers.OperationsHandler
-import com.example.kata.bank.service.delivery.handlers.UsersHandler
+import com.example.kata.bank.service.delivery.handlers.Handler
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.domain.AccountRequest
 import spark.kotlin.Http
 
-class BankWebApplication(
-        private val operationsHandler: OperationsHandler,
-        private val accountsHandler: AccountsHandler,
-        private val usersHandler: UsersHandler) :
-        SparkAdapter() {
-
+class BankWebApplication(private vararg val handlers: Handler) : SparkAdapter() {
     override fun configurePaths(http: Http) {
-        //accounts
-        http.get("/accounts", function = list(accountsHandler::list))
-        http.post("/accounts", function = canFail(accountsHandler::add))
-        http.get("/accounts/:accountId", function = mayBeMissing(accountsHandler::detail))
-        http.post("/accounts/:accountId", function = canFail(accountsHandler::request))
-
-//        operations
-        http.get("/accounts/:accountId/operations/:operationId", function = mayBeMissing(operationsHandler::detail))
-        http.get("/accounts/:accountId/operations", function = list(operationsHandler::list))
-        http.get("/accounts/:accountId/statements/:statementId", function = canFail(operationsHandler::getStatement))
-        http.post("/accounts/:accountId/operations", function = canFail(operationsHandler::add))
-
-        //users
-        http.get("/users", function = usersHandler.list)
+        handlers.map {
+            it.register(http)
+        }
     }
 }
 

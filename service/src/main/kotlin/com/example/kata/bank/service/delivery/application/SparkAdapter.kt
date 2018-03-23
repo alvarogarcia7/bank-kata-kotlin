@@ -12,7 +12,6 @@ import spark.kotlin.RouteHandler
 
 abstract class SparkAdapter : ApplicationEngine {
     protected var httpService: Http = Http(Service.ignite())
-    private val objectMapper = JSONMapper.aNew()
 
     override fun start(port: Int): SparkAdapter {
         val http = httpService
@@ -26,54 +25,59 @@ abstract class SparkAdapter : ApplicationEngine {
         httpService.stop()
     }
 
+    companion object {
+        private val objectMapper = JSONMapper.aNew()
 
-    protected fun <T : Any> list(kFunction2: (Request, Response) -> X.ResponseEntity<T>): RouteHandler.() -> Any = {
-        val result = kFunction2.invoke(request, response)
-        response.status(result.statusCode)
-        result.payload
-                .orElse { Some("") }
-                .map { objectMapper.writeValueAsString(it) }.get()
-    }
 
-    protected fun <T : Any, S : Any> canFail(fn: (Request, Response) -> Either<X.ResponseEntity<T>, X.ResponseEntity<S>>): RouteHandler.() -> Any = {
-        val result = fn.invoke(request, response)
-        val payload = when (result) {
-            is Either.Left<X.ResponseEntity<T>, X.ResponseEntity<S>> -> {
-                response.status(result.a.statusCode)
-                result.a.payload
-            }
-            is Either.Right<X.ResponseEntity<T>, X.ResponseEntity<S>> -> {
-                response.status(result.b.statusCode)
-                result.b.payload
-            }
+        fun <T : Any> list(kFunction2: (Request, Response) -> X.ResponseEntity<T>): RouteHandler.() -> Any = {
+            val result = kFunction2.invoke(request, response)
+            response.status(result.statusCode)
+            result.payload
+                    .orElse { Some("") }
+                    .map { objectMapper.writeValueAsString(it) }.get()
         }
-        val body = when (payload) {
-            is Some<Any> -> serialize(payload.t)
-            is None -> ""
-        }
-        body
-    }
 
-    protected fun <T : Any> mayBeMissing(fn: (Request, Response) -> Option<X.ResponseEntity<T>>): RouteHandler.() -> Any = {
-        val result = fn.invoke(request, response)
-        when (result) {
-            is Some<X.ResponseEntity<T>> -> {
-                response.status(result.t.statusCode)
-                val nP = result.t.payload
-                when (nP) {
-                    is Some<T> -> serialize(nP.t)
-                    is None -> NotTestedOperation()
+        fun <T : Any, S : Any> canFail(fn: (Request, Response) -> Either<X.ResponseEntity<T>, X.ResponseEntity<S>>): RouteHandler.() -> Any = {
+            val result = fn.invoke(request, response)
+            val payload = when (result) {
+                is Either.Left<X.ResponseEntity<T>, X.ResponseEntity<S>> -> {
+                    response.status(result.a.statusCode)
+                    result.a.payload
+                }
+                is Either.Right<X.ResponseEntity<T>, X.ResponseEntity<S>> -> {
+                    response.status(result.b.statusCode)
+                    result.b.payload
                 }
             }
-            is None -> {
-                response.status(404)
-                ""
+            val body = when (payload) {
+                is Some<Any> -> serialize(payload.t)
+                is None -> ""
+            }
+            body
+        }
+
+        fun <T : Any> mayBeMissing(fn: (Request, Response) -> Option<X.ResponseEntity<T>>): RouteHandler.() -> Any = {
+            val result = fn.invoke(request, response)
+            when (result) {
+                is Some<X.ResponseEntity<T>> -> {
+                    response.status(result.t.statusCode)
+                    val nP = result.t.payload
+                    when (nP) {
+                        is Some<T> -> serialize(nP.t)
+                        is None -> NotTestedOperation()
+                    }
+                }
+                is None -> {
+                    response.status(404)
+                    ""
+                }
             }
         }
-    }
 
-    private fun <T> serialize(it: T): String {
-        return objectMapper.writeValueAsString(it)
+
+        private fun <T> serialize(it: T): String {
+            return objectMapper.writeValueAsString(it)
+        }
     }
 
     protected abstract fun configurePaths(http: Http)

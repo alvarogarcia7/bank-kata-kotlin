@@ -8,6 +8,9 @@ import com.example.kata.bank.service.delivery.StatementRequestInteractor
 import com.example.kata.bank.service.delivery.X
 import com.example.kata.bank.service.delivery.`in`.OpenAccountRequestDTO
 import com.example.kata.bank.service.delivery.`in`.StatementRequestDTO
+import com.example.kata.bank.service.delivery.application.SparkAdapter
+import com.example.kata.bank.service.delivery.application.SparkAdapter.Companion.canFail
+import com.example.kata.bank.service.delivery.application.SparkAdapter.Companion.mayBeMissing
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.delivery.json.hateoas.Link
@@ -19,8 +22,16 @@ import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRe
 import com.example.kata.bank.service.infrastructure.accounts.out.AccountDTO
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import spark.kotlin.Http
 
-class AccountsHandler(private val accountRepository: AccountRestrictedRepository, private val xApplicationService: StatementRequestInteractor) {
+class AccountsHandler(private val accountRepository: AccountRestrictedRepository, private val xApplicationService: StatementRequestInteractor) : Handler {
+    override fun register(http: Http) {
+        http.get("/accounts", function = SparkAdapter.list(::list))
+        http.post("/accounts", function = canFail(::add))
+        http.get("/accounts/:accountId", function = mayBeMissing(::detail))
+        http.post("/accounts/:accountId", function = canFail(::request))
+    }
+
     private val mapper = Mapper()
     private val objectMapper = JSONMapper.aNew()
     fun list(request: spark.Request, response: spark.Response): X.ResponseEntity<List<MyResponse<AccountDTO>>> {
