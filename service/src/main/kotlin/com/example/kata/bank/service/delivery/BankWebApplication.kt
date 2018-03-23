@@ -125,7 +125,7 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
     fun list(request: spark.Request, response: spark.Response): X.ResponseEntity<List<MyResponse<AccountDTO>>> {
         val x = accountRepository
                 .findAll()
-                .map { (account, id) -> MyResponse(mapper.toDTO(account), listOf(Link.self(Pair("accounts", id)))) }
+                .map { (account, id) -> MyResponse.links(mapper.toDTO(account), Link.self(Pair("accounts", id))) }
         return X.ok(x)
     }
 
@@ -166,7 +166,7 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
                             .map { account ->
                                 val id = account.id
                                 val statementId = xApplicationService.createAndSaveOperation(account.value, StatementRequestFactory.create(it))
-                                MyResponse("", listOf(Link.self(Pair("accounts", id), Pair("statements", statementId))))
+                                MyResponse.links("", Link.self(Pair("accounts", id), Pair("statements", statementId)))
                             }
 
                     Either.cond(x.isDefined(), { x.get() }, { listOf(Exception("Account does not exist")) })
@@ -221,7 +221,7 @@ class UsersHandler(private val usersRepository: UsersRepository) {
     val list: RouteHandler.() -> String = {
         val x = usersRepository
                 .findAll()
-                .map { (user, id) -> MyResponse(user, listOf(Link.self(Pair("users", id)))) }
+                .map { (user, id) -> MyResponse.links(user, Link.self(Pair("users", id))) }
         objectMapper.writeValueAsString(x)
     }
 
@@ -273,7 +273,7 @@ class OperationsHandler(private val operationService: OperationService, private 
                 .flatMap {
                     it.find(Id.of(operationId))
                 }.map {
-                    X.ok(MyResponse(mapper.toDTO(it.value), listOf(Link.self(Pair("accounts", Id.of(accountId)), Pair("operations", Id.of(operationId))))))
+                    X.ok(MyResponse.links(mapper.toDTO(it.value), Link.self(Pair("accounts", Id.of(accountId)), Pair("operations", Id.of(operationId)))))
                 }
     }
 
@@ -288,8 +288,8 @@ class OperationsHandler(private val operationService: OperationService, private 
                 .map {
                     val operations = it.findAll().map { it.value }.map { mapper.toDTO(it) }
                     val response = StatementOutDTO(operations)
-                    MyResponse(response,
-                            listOf(Link.self(Pair("accounts", Id.of(accountId)), Pair("operations", Id.of(statementId)))))
+                    MyResponse.links(response,
+                            Link.self(Pair("accounts", Id.of(accountId)), Pair("operations", Id.of(statementId))))
                 }
         return Either.cond(result.isDefined(), { result.get() }, { MyResponse(ErrorsDTO.from(listOf(NotTestedOperation())), listOf()) })
                 .map { X.ok(it) }
