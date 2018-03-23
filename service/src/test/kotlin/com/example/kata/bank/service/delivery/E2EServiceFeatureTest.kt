@@ -176,6 +176,46 @@ class E2EServiceFeatureTest {
         TransactionAssert.assertThat(newOperations.last().value).isEqualToIgnoringDate(Transaction.Deposit(Tx(Amount.of("1234.56"), anyDate(), "rent for this month")))
     }
 
+    @Test
+    fun `wire transfer - a correct request`() {
+
+        val accountId = Id.random()
+        accountRepository.save(Persisted.`for`(aNewAccount(), accountId))
+        val existingOperations = `operationsFor!`(accountId)
+        val destinationId = Id.random()
+        accountRepository.save(Persisted.`for`(aNewAccount(), destinationId))
+
+        depositRequest(accountId, """
+{
+    "type": "transfer",
+    "amount": {
+      "value": "1234.56",
+      "currency": "EUR"
+	},
+	"destination":{
+		"number":"00-00-00-01",
+		"owner": "Maria"
+	},
+    "description": "rent for this month"
+}
+""").let(http::request)
+                .let { (response, result) ->
+                    assertThat(response.statusCode).isEqualTo(200)
+                    val response = http.mapper.readValue<MyResponse<Unit>>(result.value)
+                    println(response)
+                    assertThat(response.links).hasSize(1)
+                    assertThat(response.links).filteredOn { it.rel == "list" }.isNotEmpty()
+                }
+        val newOperations = `operationsFor!`(accountId)
+        this.bIsSupersetOfA(a = existingOperations, b = newOperations)
+        assertThat(newOperations.size).isGreaterThan(existingOperations.size)
+        TransactionAssert.assertThat(newOperations.last().value).isEqualToIgnoringDate(Transaction.Transfer.Emitted(Tx(Amount.of("1234.56"), anyDate(), "rent for this month"),
+                Transaction.Transfer.Completed(accountId, destinationId)))
+        TransactionAssert.assertThat(`operationsFor!`(destinationId).last().value).isEqualToIgnoringDate(Transaction.Transfer.Received(Tx(Amount.of("1234.56"), anyDate(),
+                "rent for this month"),
+                Transaction.Transfer.Completed(accountId, destinationId)))
+    }
+
     private fun <T> forceGet(a: Option<T>): T {
         return a.getOrElse {
             fail("this element must be present")
