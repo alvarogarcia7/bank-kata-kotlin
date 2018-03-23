@@ -142,17 +142,8 @@ class Account(
 
     fun tryOutgoing(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Persisted<Transaction.Transfer.SecureRequest>, Persisted<Transaction.Transfer>> {
         val security = this.outgoingSecurity
-        var request: Transaction.Transfer = Transaction.Transfer.Emitted(tx, Completed(from.id, to.id))
-        if (security.isDefined()) {
-            request = Transaction.Transfer.SecureRequest(tx, security.get().generate(), request)
-            val persisted = Persisted.`for`(request, Id.random())
-            transactionRepository.save(persisted)
-            return Either.left(persisted)
-        } else {
-            val persisted = Persisted.`for`(InsecureRequest(tx, request), Id.random())
-            transactionRepository.save(persisted)
-            return Either.right(persisted)
-        }
+        val request: Transaction.Transfer = Transaction.Transfer.Emitted(tx, Completed(from.id, to.id))
+        return secureOrInsecure(security, tx, request)
     }
 
     fun tryIncoming(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Persisted<Transaction.Transfer.SecureRequest>, Persisted<Transaction.Transfer>> {
