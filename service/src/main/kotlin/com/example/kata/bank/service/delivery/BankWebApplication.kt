@@ -166,8 +166,7 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
                             .map { account ->
                                 val id = account.id
                                 val statementId = xApplicationService.createAndSaveOperation(account.value, StatementRequestFactory.create(it))
-                                MyResponse("", listOf(Link("/accounts/${id.value}/statements/${statementId.value}", rel = "self", method
-                                = "GET")))
+                                MyResponse("", listOf(Link.self(Pair("accounts", id), Pair("statements", statementId))))
                             }
 
                     Either.cond(x.isDefined(), { x.get() }, { listOf(Exception("Account does not exist")) })
