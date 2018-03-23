@@ -41,12 +41,12 @@ sealed class Transaction(open val tx: Tx) {
 
         data class Workflow private constructor(
                 val pendingParts: List<Either<SecureRequest, Transfer>>,
-                val toConfirmWhenEverythingIsReady: List<Pair<Account, Transfer>>
+                val toConfirmWhenEverythingIsReady: List<Pair<Account, Id>>
         ) {
 
             companion object {
                 fun from(pendingParts: List<Either<SecureRequest, Transfer>>,
-                         toConfirmWhenEverythingIsReady: List<Pair<Account, Transfer>>): Workflow {
+                         toConfirmWhenEverythingIsReady: List<Pair<Account, Id>>): Workflow {
                     return Workflow(pendingParts.filter { it.isLeft() }, toConfirmWhenEverythingIsReady)
                 }
             }
@@ -69,7 +69,7 @@ sealed class Transaction(open val tx: Tx) {
                     if (result) {
                         val remainingParts = this.pendingParts.subList(1, this.pendingParts.size)
                         if (remainingParts.isEmpty()) {
-                            toConfirmWhenEverythingIsReady.map { (account, transaction) -> account.save(transaction) }
+                            toConfirmWhenEverythingIsReady.map { (account, transaction) -> account.confirm(transaction) }
                             return Option.empty()
                         }
                         return Option(Workflow(remainingParts, this.toConfirmWhenEverythingIsReady))
@@ -86,6 +86,11 @@ sealed class Transaction(open val tx: Tx) {
             fun unlockedBy(code: String): Boolean {
                 return code == this.code
             }
+        }
+
+        data class InsecureRequest(override val tx: Tx, val transfer: Transfer) : Transfer(tx) {
+            override fun blocked() = true
+            override fun subtotal(amount: Amount) = amount
         }
 
         data class Completed(val from: Id, val to: Id)

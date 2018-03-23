@@ -115,51 +115,76 @@ class Account(
         fun transfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Workflow {
             val part1 = from.value.tryOutgoing(from.value.genTx(amount, description), from, to)
             val part2 = to.value.tryIncoming(to.value.genTx(amount, description), from, to)
-            val steps = listOf(part1, part2)
-            val finalOperation1 = choose(part1)
-            val finalOperation2 = choose(part2)
+            val steps = listOf(part1, part2).map { chooseValue(it) }
+            val finalOperation1 = chooseId(part1)
+            val finalOperation2 = chooseId(part2)
             return Workflow.from(steps, listOf(Pair(from.value, finalOperation1), Pair(to.value, finalOperation2)))
         }
 
-        private fun choose(part1: Either<SecureRequest, Transaction.Transfer>): Transaction.Transfer {
+        private fun chooseId(part1: Either<Persisted<SecureRequest>, Persisted<Transaction.Transfer>>): Id {
             return when (part1) {
                 is Either.Left -> {
-                    part1.a.transfer
+                    part1.a.id
                 }
                 is Either.Right -> {
-                    part1.b
+                    part1.b.id
                 }
             }
+        }
+
+        private fun chooseValue(value: Either<Persisted<SecureRequest>, Persisted<Transaction.Transfer>>): Either<SecureRequest, Transaction.Transfer> {
+            return value.map { it.value }.mapLeft { it.value }
         }
     }
 
     private fun genTx(amount: Amount, description: String) = Tx(amount, clock.getTime(), description)
 
-    fun tryOutgoing(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Transaction.Transfer.SecureRequest, Transaction.Transfer> {
+    fun tryOutgoing(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Persisted<Transaction.Transfer.SecureRequest>, Persisted<Transaction.Transfer>> {
         val security = this.outgoingSecurity
         var request: Transaction.Transfer = Transaction.Transfer.Emitted(tx, Completed(from.id, to.id))
         if (security.isDefined()) {
             request = Transaction.Transfer.SecureRequest(tx, security.get().generate(), request)
+            val persisted = Persisted.`for`(request, Id.random())
+            transactionRepository.save(persisted)
+            return Either.left(persisted)
         } else {
-            return Either.right(request)
+            val persisted = Persisted.`for`(InsecureRequest(tx, request), Id.random())
+            transactionRepository.save(persisted)
+            return Either.right(persisted)
         }
-        transactionRepository.save(Persisted.`for`(request, Id.random()))
-        return Either.left(request)
     }
 
-    fun tryIncoming(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Transaction.Transfer.SecureRequest, Transaction.Transfer> {
+    fun tryIncoming(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Persisted<Transaction.Transfer.SecureRequest>, Persisted<Transaction.Transfer>> {
         val security = this.incomingSecurity
         var request: Transaction.Transfer = Transaction.Transfer.Received(tx, Completed(from.id, to.id))
         if (security.isDefined()) {
             request = Transaction.Transfer.SecureRequest(tx, security.get().generate(), request)
+            val persisted = Persisted.`for`(request, Id.random())
+            transactionRepository.save(persisted)
+            return Either.left(persisted)
         } else {
-            return Either.right(request)
+            val persisted = Persisted.`for`(InsecureRequest(tx, request), Id.random())
+            transactionRepository.save(persisted)
+            return Either.right(persisted)
         }
-        transactionRepository.save(Persisted.`for`(request, Id.random()))
-        return Either.left(request)
     }
 
-    fun save(transaction: Transaction.Transfer) {
-        this.transactionRepository.save(Persisted.`for`(transaction, Id.random()))
+    fun confirm(transactionId: Id) {
+        this.transactionRepository
+                .findBy(transactionId)
+                .map {
+                    when (it.value) {
+                        is SecureRequest -> {
+                            transactionRepository.save(Persisted.`for`(it.value.transfer, Id.random()))
+                        }
+                        is InsecureRequest -> {
+                            transactionRepository.save(Persisted.`for`(it.value.transfer, Id.random()))
+                        }
+                        else -> {
+                            throw IllegalArgumentException()
+                        }
+                    }
+
+                }
     }
 }
