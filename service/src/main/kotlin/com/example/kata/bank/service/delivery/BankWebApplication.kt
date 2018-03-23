@@ -38,7 +38,7 @@ import kotlin.reflect.KFunction2
 abstract class SparkAdapter {
     protected var httpService: Http = Http(Service.ignite())
     private val objectMapper = JSONMapper.aNew()
-    protected fun <T : Any> list(kFunction2: KFunction2<Request, Response, X.ResponseEntity<T>>): RouteHandler.() -> Any = {
+    protected fun <T : Any> list(kFunction2: (Request, Response)-> X.ResponseEntity<T>): RouteHandler.() -> Any = {
         val result = kFunction2.invoke(request, response)
         response.status(result.statusCode)
         result.payload
@@ -46,7 +46,7 @@ abstract class SparkAdapter {
                 .map { objectMapper.writeValueAsString(it) }.get()
     }
 
-    protected fun <T : Any, S : Any> canFail(fn: KFunction2<Request, Response, Either<X.ResponseEntity<T>, X.ResponseEntity<S>>>): RouteHandler.() -> Any = {
+    protected fun <T : Any, S : Any> canFail(fn: (Request, Response)-> Either<X.ResponseEntity<T>, X.ResponseEntity<S>>): RouteHandler.() -> Any = {
         val result = fn.invoke(request, response)
         val payload = when (result) {
             is Either.Left<X.ResponseEntity<T>, X.ResponseEntity<S>> -> {
@@ -65,7 +65,7 @@ abstract class SparkAdapter {
         body
     }
 
-    protected fun <T : Any> mayBeMissing(fn: KFunction2<Request, Response, Option<X.ResponseEntity<T>>>): RouteHandler.() -> Any = {
+    protected fun <T : Any> mayBeMissing(fn: (Request, Response) -> Option<X.ResponseEntity<T>>): RouteHandler.() -> Any = {
         val result = fn.invoke(request, response)
         when (result) {
             is Some<X.ResponseEntity<T>> -> {
