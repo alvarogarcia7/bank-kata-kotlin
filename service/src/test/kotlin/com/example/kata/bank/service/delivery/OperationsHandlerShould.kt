@@ -3,7 +3,7 @@ package com.example.kata.bank.service.delivery
 import arrow.core.Either
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
-import com.example.kata.bank.service.domain.accounts.AccountRestrictedRepository
+import com.example.kata.bank.service.infrastructure.AccountRestrictedRepository
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
 import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.OperationService
@@ -16,7 +16,7 @@ import spark.Response
 
 internal class OperationsHandlerShould {
     private val operationService = OperationService()
-    private val accountRepository = AccountRestrictedRepository()
+    private val accountRepository = AccountRestrictedRepository.aNew()
     private val operationsHandler = OperationsHandler(operationService, accountRepository)
     private val fakeResponse: Response = mock { }
     @Test

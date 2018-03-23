@@ -1,17 +1,17 @@
 package com.example.kata.bank.service.delivery.application
 
 import com.example.kata.bank.service.delivery.*
-import com.example.kata.bank.service.domain.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.domain.users.UsersSimpleRepository
-import com.example.kata.bank.service.infrastructure.OperationsSimpleRepository
+import com.example.kata.bank.service.infrastructure.AccountRestrictedRepository
 import com.example.kata.bank.service.infrastructure.operations.OperationService
+import com.example.kata.bank.service.infrastructure.operations.OperationsRepository
 
 fun main(args: Array<String>) {
-    val accountRepository = AccountRestrictedRepository()
+    val accountRepository = AccountRestrictedRepository(mutableListOf())
     BankWebApplication(OperationsHandler(OperationService(), accountRepository), AccountsHandler(
             accountRepository,
             XAPPlicationService(accountRepository,
-                    OperationsSimpleRepository())),
+                    OperationsRepository())),
             UsersHandler(UsersSimpleRepository())
     ).start(8080)
 }

@@ -11,19 +11,15 @@ import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
-import com.example.kata.bank.service.domain.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.domain.accounts.Clock
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.transactions.Tx
 import com.example.kata.bank.service.domain.users.UsersSimpleRepository
+import com.example.kata.bank.service.infrastructure.AccountRestrictedRepository
 import com.example.kata.bank.service.infrastructure.AccountsService
-import com.example.kata.bank.service.infrastructure.OperationsSimpleRepository
 import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
-import com.example.kata.bank.service.infrastructure.operations.AmountDTO
-import com.example.kata.bank.service.infrastructure.operations.OperationService
-import com.example.kata.bank.service.infrastructure.operations.TimeDTO
-import com.example.kata.bank.service.infrastructure.operations.TransactionDTO
+import com.example.kata.bank.service.infrastructure.operations.*
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.github.kittinunf.fuel.core.FuelManager
 import com.github.kittinunf.fuel.core.Request
@@ -66,9 +62,9 @@ class E2EServiceFeatureTest {
             FuelManager.instance.basePath = "http://localhost:" + serverPort
         }
 
-        val operationsRepository = OperationsSimpleRepository()
+        val operationsRepository = OperationsRepository()
 
-        val accountRepository = AccountRestrictedRepository()
+        val accountRepository = AccountRestrictedRepository.aNew()
         private val configuredApplication: () -> BankWebApplication = {
             BankWebApplication(
                     OperationsHandler(

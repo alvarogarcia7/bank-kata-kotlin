@@ -1,6 +1,6 @@
 package com.example.kata.bank.service.domain.users
 
-import com.example.kata.bank.service.infrastructure.InMemorySimpleRepository
+import com.example.kata.bank.service.infrastructure.storage.InMemorySimpleRepository
 
-class UsersSimpleRepository : InMemorySimpleRepository<User>()
+class UsersSimpleRepository : InMemorySimpleRepository<User>(mutableListOf())
 

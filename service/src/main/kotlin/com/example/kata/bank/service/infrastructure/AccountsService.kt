@@ -3,7 +3,6 @@ package com.example.kata.bank.service.infrastructure
 import arrow.core.Option
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
-import com.example.kata.bank.service.domain.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.domain.transactions.Transaction
 
 //TODO AGB - Still thinking about this pattern
