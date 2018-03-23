@@ -3,6 +3,7 @@ package com.example.kata.bank.service.domain.accounts
 import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
+import arrow.core.Some
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
@@ -156,16 +157,20 @@ class Account(
 
     fun tryIncoming(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Persisted<Transaction.Transfer.SecureRequest>, Persisted<Transaction.Transfer>> {
         val security = this.incomingSecurity
-        var request: Transaction.Transfer = Transaction.Transfer.Received(tx, Completed(from.id, to.id))
-        if (security.isDefined()) {
-            request = Transaction.Transfer.SecureRequest(tx, security.get().generate(), request)
-            val persisted = Persisted.`for`(request, Id.random())
-            transactionRepository.save(persisted)
-            return Either.left(persisted)
-        } else {
-            val persisted = Persisted.`for`(InsecureRequest(tx, request), Id.random())
-            transactionRepository.save(persisted)
-            return Either.right(persisted)
+        val request1: Transaction.Transfer = Transaction.Transfer.Received(tx, Completed(from.id, to.id))
+        return when (security) {
+            is Some -> {
+                val request = Transaction.Transfer.SecureRequest(tx, security.t.generate(), request1)
+                val persisted = Persisted.`for`(request, Id.random())
+                transactionRepository.save(persisted)
+                Either.left(persisted)
+            }
+            is None -> {
+                val request = Transaction.Transfer.InsecureRequest(tx, request1)
+                val persisted = Persisted.`for`(request, Id.random())
+                transactionRepository.save(persisted)
+                return Either.right(persisted)
+            }
         }
     }
 
