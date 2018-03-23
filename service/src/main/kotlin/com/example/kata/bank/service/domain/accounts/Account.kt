@@ -161,13 +161,13 @@ class Account(
         return when (security) {
             is Some -> {
                 val request = Transaction.Transfer.SecureRequest(tx, security.t.generate(), request1)
-                val persisted = Persisted.`for`(request, Id.random())
+                val persisted = createIdentityFor(request)
                 transactionRepository.save(persisted)
                 Either.left(persisted)
             }
             is None -> {
                 val request = Transaction.Transfer.InsecureRequest(tx, request1)
-                val persisted = Persisted.`for`(request, Id.random())
+                val persisted = createIdentityFor(request)
                 transactionRepository.save(persisted)
                 return Either.right(persisted)
             }
@@ -180,10 +180,10 @@ class Account(
                 .map {
                     when (it.value) {
                         is SecureRequest -> {
-                            transactionRepository.save(Persisted.`for`(it.value.transfer, Id.random()))
+                            transactionRepository.save(createIdentityFor(it.value.transfer))
                         }
                         is InsecureRequest -> {
-                            transactionRepository.save(Persisted.`for`(it.value.transfer, Id.random()))
+                            transactionRepository.save(createIdentityFor(it.value.transfer))
                         }
                         else -> {
                             throw IllegalArgumentException()
