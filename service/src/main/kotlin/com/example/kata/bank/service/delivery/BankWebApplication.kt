@@ -151,7 +151,7 @@ class AccountsHandler(private val accountRepository: AccountRepository, private 
     fun detail(request: spark.Request, response: spark.Response): Option<X.ResponseEntity<MyResponse<AccountDTO>>> {
         val accountId: String = request.params(":accountId") ?: throw RuntimeException("null account") //TODO AGB
         return accountRepository.findBy(Id.of(accountId))
-                .map { (account, id) -> MyResponse(mapper.toDTO(account), listOf(Link.self(Pair("accounts", id)))) }
+                .map { (account, id) -> MyResponse.links(mapper.toDTO(account), Link.self(Pair("accounts", id))) }
                 .map { it -> X.ok(it) }
     }
 
