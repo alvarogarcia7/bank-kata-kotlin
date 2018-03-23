@@ -10,11 +10,11 @@ import com.example.kata.bank.service.delivery.json.readValueOption
 import com.example.kata.bank.service.domain.*
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.accounts.Account
-import com.example.kata.bank.service.domain.accounts.AccountRepository
+import com.example.kata.bank.service.domain.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.domain.accounts.OpenAccountRequest
 import com.example.kata.bank.service.domain.transactions.Amount
-import com.example.kata.bank.service.domain.users.UsersRepository
-import com.example.kata.bank.service.infrastructure.OperationsRepository
+import com.example.kata.bank.service.domain.users.UsersSimpleRepository
+import com.example.kata.bank.service.infrastructure.OperationsSimpleRepository
 import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
 import com.example.kata.bank.service.infrastructure.operations.OperationRequest
@@ -118,7 +118,7 @@ class BankWebApplication(
 }
 
 
-class AccountsHandler(private val accountRepository: AccountRepository, private val xApplicationService: XAPPlicationService) {
+class AccountsHandler(private val accountRepository: AccountRestrictedRepository, private val xApplicationService: XAPPlicationService) {
     private val mapper = Mapper()
     private val objectMapper = JSONMapper.aNew()
     fun list(request: spark.Request, response: spark.Response): X.ResponseEntity<List<MyResponse<AccountDTO>>> {
@@ -204,7 +204,7 @@ class StatementRequestFactory {
     }
 }
 
-class XAPPlicationService(val accountRepository: AccountRepository, val operationsRepository: OperationsRepository) {
+class XAPPlicationService(val accountRepository: AccountRestrictedRepository, val operationsRepository: OperationsSimpleRepository) {
     fun createAndSaveOperation(account: Account, create: AccountRequest): Id {
         val statement = create.apply<Statement>(account)
         val id = Id.random()
@@ -214,7 +214,7 @@ class XAPPlicationService(val accountRepository: AccountRepository, val operatio
 }
 
 
-class UsersHandler(private val usersRepository: UsersRepository) {
+class UsersHandler(private val usersRepository: UsersSimpleRepository) {
     private val objectMapper = JSONMapper.aNew()
     val list: RouteHandler.() -> String = {
         val result = usersRepository
@@ -226,7 +226,7 @@ class UsersHandler(private val usersRepository: UsersRepository) {
 }
 
 
-class OperationsHandler(private val operationService: OperationService, private val accountRepository: AccountRepository) {
+class OperationsHandler(private val operationService: OperationService, private val accountRepository: AccountRestrictedRepository) {
     private val mapper = Mapper()
     private val objectMapper = JSONMapper.aNew()
 

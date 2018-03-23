@@ -12,14 +12,14 @@ import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
-import com.example.kata.bank.service.domain.accounts.AccountRepository
+import com.example.kata.bank.service.domain.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.domain.accounts.Clock
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.transactions.Tx
-import com.example.kata.bank.service.domain.users.UsersRepository
+import com.example.kata.bank.service.domain.users.UsersSimpleRepository
 import com.example.kata.bank.service.infrastructure.AccountsService
-import com.example.kata.bank.service.infrastructure.OperationsRepository
+import com.example.kata.bank.service.infrastructure.OperationsSimpleRepository
 import com.example.kata.bank.service.infrastructure.accounts.AccountDTO
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
 import com.example.kata.bank.service.infrastructure.operations.OperationService
@@ -67,16 +67,16 @@ class E2EServiceFeatureTest {
             FuelManager.instance.basePath = "http://localhost:" + serverPort
         }
 
-        val operationsRepository = OperationsRepository()
+        val operationsRepository = OperationsSimpleRepository()
 
-        val accountRepository = AccountRepository()
+        val accountRepository = AccountRestrictedRepository()
         private val configuredApplication: () -> BankWebApplication = {
             BankWebApplication(
                     OperationsHandler(
                             OperationService(),
                             accountRepository),
                     AccountsHandler(accountRepository, XAPPlicationService(accountRepository, operationsRepository)),
-                    UsersHandler(UsersRepository()))
+                    UsersHandler(UsersSimpleRepository()))
         }
     }
 
@@ -357,7 +357,7 @@ class E2EServiceFeatureTest {
                 }
     }
 
-    private fun aNewAccount(accountNumber: AccountNumber = AccountNumber.of("00-00-00-01")) = aNewAccount("savings account #" + Random().nextInt(10), accountNumber)
+    private fun aNewAccount(accountNumber: AccountNumber = AccountNumber.of(Id.random().value)) = aNewAccount("savings account #" + Random().nextInt(10), accountNumber)
 
     private fun aNewAccount(accountName: String, accountNumber: AccountNumber) = Account(Clock.aNew(), accountName, number = accountNumber)
 

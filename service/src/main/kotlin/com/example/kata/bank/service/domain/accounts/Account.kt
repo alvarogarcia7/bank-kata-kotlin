@@ -11,7 +11,7 @@ import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.*
-import com.example.kata.bank.service.domain.transactions.TransactionRepository
+import com.example.kata.bank.service.domain.transactions.TransactionSimpleRepository
 import com.example.kata.bank.service.domain.transactions.Tx
 import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.example.kata.bank.service.infrastructure.statement.StatementLine
@@ -22,10 +22,10 @@ class Account(
         val type: AccountType = AccountType.Personal,
         private val incomingSecurity: Option<Security> = None,
         private val outgoingSecurity: Option<Security> = None,
-        val number: AccountNumber = AccountNumber.of("01-02-03-04")
+        val number: AccountNumber = AccountNumber.of(Id.random().value)
 ) {
 
-    private val transactionRepository: TransactionRepository = TransactionRepository()
+    private val transactionRepository: TransactionSimpleRepository = TransactionSimpleRepository()
 
     fun deposit(amount: Amount, description: String): Id {
         val transaction = createIdentityFor(Transaction.Deposit(Tx(amount, clock.getTime(), description)))

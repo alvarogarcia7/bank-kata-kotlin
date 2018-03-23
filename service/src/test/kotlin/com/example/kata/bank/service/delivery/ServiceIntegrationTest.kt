@@ -8,10 +8,10 @@ import com.example.kata.bank.service.delivery.application.ApplicationEngine
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
-import com.example.kata.bank.service.domain.accounts.AccountRepository
+import com.example.kata.bank.service.domain.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.domain.accounts.Clock
-import com.example.kata.bank.service.domain.users.UsersRepository
-import com.example.kata.bank.service.infrastructure.OperationsRepository
+import com.example.kata.bank.service.domain.users.UsersSimpleRepository
+import com.example.kata.bank.service.infrastructure.OperationsSimpleRepository
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
 import com.example.kata.bank.service.infrastructure.operations.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.OperationService
@@ -69,12 +69,12 @@ class ServiceIntegrationTest {
             }
         }
 
-        val accountRepository = AccountRepository()
+        val accountRepository = AccountRestrictedRepository()
         private val configuredApplication: () -> BankWebApplication = {
             BankWebApplication(
                     OperationsHandler(MockOperationService(), accountRepository),
-                    AccountsHandler(accountRepository, XAPPlicationService(accountRepository, OperationsRepository())),
-                    UsersHandler(UsersRepository())
+                    AccountsHandler(accountRepository, XAPPlicationService(accountRepository, OperationsSimpleRepository())),
+                    UsersHandler(UsersSimpleRepository())
             )
         }
     }
