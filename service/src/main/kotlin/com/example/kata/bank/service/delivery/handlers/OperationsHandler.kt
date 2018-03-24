@@ -15,8 +15,6 @@ import com.example.kata.bank.service.delivery.json.readValueOption
 import com.example.kata.bank.service.delivery.out.ErrorsDTO
 import com.example.kata.bank.service.delivery.out.StatementOutDTO
 import com.example.kata.bank.service.domain.Id
-import com.example.kata.bank.service.domain.accounts.Account
-import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
 import com.example.kata.bank.service.infrastructure.operations.`in`.OperationRequest
@@ -48,10 +46,10 @@ class OperationsHandler(private val accountRepository: AccountRestrictedReposito
                     println(operationRequest)
                     when (operationRequest) {
                         is OperationRequest.DepositRequest -> {
-                            depositUseCase.deposit(Id.of(accountId), mapToUseCase(operationRequest))
+                            depositUseCase.deposit(Id.of(accountId), operationRequest.toUseCase())
                         }
                         is OperationRequest.TransferRequest -> {
-                            transferUseCase.transfer(Id.of(accountId), mapToUseCase(operationRequest))
+                            transferUseCase.transfer(Id.of(accountId), operationRequest.toUseCase())
                         }
                     }
                 }
@@ -63,16 +61,6 @@ class OperationsHandler(private val accountRepository: AccountRestrictedReposito
                 .map { X.ok(it) }
 
         return result
-    }
-
-    private fun mapToUseCase(operationRequest: OperationRequest.TransferRequest): TransferUseCase.In {
-        val amount = Amount.of(operationRequest.amount.value)
-        val description = operationRequest.description
-        return TransferUseCase.In(Account.Number.of(operationRequest.destination.number), amount, description)
-    }
-
-    private fun mapToUseCase(operationRequest: OperationRequest.DepositRequest): DepositUseCase.Request {
-        return DepositUseCase.Request(Amount.of(operationRequest.amount.value), operationRequest.description)
     }
 
     fun detail(request: spark.Request, response: spark.Response): Option<X.ResponseEntity<MyResponse<TransactionDTO>>> {
