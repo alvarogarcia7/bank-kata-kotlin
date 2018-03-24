@@ -8,6 +8,7 @@ import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import javax.annotation.PostConstruct
 
 class PremiumAccountShould : AccountShould() {
     @Test
@@ -80,27 +81,32 @@ class PremiumAccountShould : AccountShould() {
 
         val transfer = Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
 
-        class InitialState(private val transfer: Transaction.Transfer) {
-            fun startTransfer() {
-                if (transfer.isSecureOutgoing()) {
-                    return WaitingForOutgoing(transfer)
-                } else {
-                    if (transfer.isSecuredIncoming()) {
-                        return WaitingForIncoming(transfer)
+        class InitialState private constructor(private val transfer: Transaction.Transfer) {
+            companion object {
+                fun aNew() {
+                    if (transfer.isSecureOutgoing()) {
+                        return WaitingForOutgoing(transfer)
                     } else {
-                        return Committed()
+                        return OutgoingCompleted(transfer)
                     }
+                }
+            }
+        }
+
+        class OutgoingCompleted(transfer) {
+
+            constructor() {
+                if (transfer.isSecureIncoming()) {
+                    return WaitingForIncoming(transfer)
+                } else {
+                    return Committed()
                 }
             }
         }
 
         class WaitingForOutgoingState {
             fun confirmedOutgoing(code: String) {
-                if (transfer.isSecureIncoming()) {
-                    return WaitingForIncoming(transfer)
-                } else {
-                    return Committed()
-                }
+                return OutgoingCompleted(transfer)
             }
 
             fun rejected() {
