@@ -48,10 +48,10 @@ class OperationsHandler(private val accountRepository: AccountRestrictedReposito
                     println(operationRequest)
                     when (operationRequest) {
                         is OperationRequest.DepositRequest -> {
-                            depositUseCase(Id.of(accountId), operationRequest)
+                            depositUseCase.deposit(Id.of(accountId), mapToUseCase(operationRequest))
                         }
                         is OperationRequest.TransferRequest -> {
-                            transferUseCase(Id.of(accountId), operationRequest)
+                            transferUseCase.transfer(Id.of(accountId), mapToUseCase(operationRequest))
                         }
                     }
                 }
@@ -65,10 +65,6 @@ class OperationsHandler(private val accountRepository: AccountRestrictedReposito
         return result
     }
 
-    private fun transferUseCase(accountId: Id, operationRequest: OperationRequest.TransferRequest): Either<Nothing, Id> {
-        return this.transferUseCase.transfer(accountId, mapToUseCase(operationRequest))
-    }
-
     private fun mapToUseCase(operationRequest: OperationRequest.TransferRequest): TransferUseCase.In {
         val amount = Amount.of(operationRequest.amount.value)
         val description = operationRequest.description
@@ -77,10 +73,6 @@ class OperationsHandler(private val accountRepository: AccountRestrictedReposito
 
     private fun mapToUseCase(operationRequest: OperationRequest.DepositRequest): DepositUseCase.Request {
         return DepositUseCase.Request(Amount.of(operationRequest.amount.value), operationRequest.description)
-    }
-
-    private fun depositUseCase(accountId: Id, operationRequest: OperationRequest.DepositRequest): Either<List<Exception>, Id> {
-        return depositUseCase.deposit(accountId, mapToUseCase(operationRequest))
     }
 
     fun detail(request: spark.Request, response: spark.Response): Option<X.ResponseEntity<MyResponse<TransactionDTO>>> {
