@@ -43,7 +43,6 @@ class OperationsHandler(private val accountRepository: AccountRestrictedReposito
         val result = objectMapper.readValueOption<OperationRequest>(request.body())
                 .mapLeft { listOf(it) }
                 .flatMap { operationRequest ->
-                    println(operationRequest)
                     when (operationRequest) {
                         is OperationRequest.DepositRequest -> {
                             depositUseCase.deposit(Id.of(accountId), operationRequest.toUseCase())
