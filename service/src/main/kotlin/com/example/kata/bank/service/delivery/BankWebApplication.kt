@@ -32,7 +32,7 @@ class BankWebApplication(private vararg val handlers: Handler) : SparkAdapter() 
                     .map { objectMapper.writeValueAsString(it) }.get()
         }
 
-        fun <T : Any, S : Any> canFail(fn: (Request, Response) -> Either<X.ResponseEntity<List<Exception>>, X.ResponseEntity<S>>): RouteHandler.() -> Any = {
+        fun <T : Any, S : Any> canFail(fn: (Request, Response) -> Either<X.ResponseEntity<T>, X.ResponseEntity<S>>): RouteHandler.() -> Any = {
             val result = fn.invoke(request, response)
             val payload = when (result) {
                 is Either.Left<X.ResponseEntity<T>, X.ResponseEntity<S>> -> {
