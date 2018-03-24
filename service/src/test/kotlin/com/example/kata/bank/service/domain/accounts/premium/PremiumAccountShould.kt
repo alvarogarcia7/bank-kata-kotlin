@@ -78,7 +78,16 @@ class PremiumAccountShould : AccountShould() {
         val previousReceiverBalance = receiver.value.balance()
         val previousSenderBalance = sender.value.balance()
 
-        val result = Account.transfer(Amount.of("100"), "scam transfer", sender, receiver).confirm("123456")
+        val transfer = Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
+        if (transfer.outgointConfirmed()) {
+            if (transfer.incomingConfirmed()) {
+                transfer.commit()
+            } else {
+                transfer.denied()
+            }
+        } else {
+            transfer.denied()
+        }
         //do not confirm incoming transfer
 //                .map{Account.confirmTransfer( it as Transaction.Transfer.Incoming.Request)}})
 
