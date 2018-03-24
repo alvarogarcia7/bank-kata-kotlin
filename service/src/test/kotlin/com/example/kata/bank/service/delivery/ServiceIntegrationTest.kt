@@ -19,6 +19,7 @@ import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.example.kata.bank.service.infrastructure.operations.OperationsRepository
 import com.example.kata.bank.service.infrastructure.operations.`in`.OperationRequest
 import com.example.kata.bank.service.infrastructure.users.UsersSimpleRepository
+import com.example.kata.bank.service.usecases.statements.StatementCreationUseCase
 import com.github.kittinunf.fuel.core.FuelManager
 import com.nhaarman.mockito_kotlin.verify
 import com.nhaarman.mockito_kotlin.verifyZeroInteractions
@@ -77,7 +78,7 @@ class ServiceIntegrationTest {
         private val configuredApplication: () -> BankWebApplication = {
             BankWebApplication(
                     OperationsHandler(MockOperationService(), accountRepository),
-                    AccountsHandler(accountRepository, StatementRequestInteractor(OperationsRepository())),
+                    AccountsHandler(accountRepository, StatementCreationUseCase(OperationsRepository())),
                     UsersHandler(UsersSimpleRepository())
             )
         }

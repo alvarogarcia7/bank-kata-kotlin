@@ -1,4 +1,4 @@
-package com.example.kata.bank.service.delivery
+package com.example.kata.bank.service.usecases.statements
 
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
@@ -8,7 +8,7 @@ import com.example.kata.bank.service.domain.accounts.Account
 import com.example.kata.bank.service.infrastructure.operations.OperationsRepository
 import com.example.kata.bank.service.infrastructure.statement.Statement
 
-class StatementRequestInteractor(private val operationsRepository: OperationsRepository) {
+class StatementCreationUseCase(private val operationsRepository: OperationsRepository) {
     fun createAndSaveOperation(account: Account, create: AccountRequest): Id {
         val statement = create.apply<Statement>(account)
         val id = Id.random()

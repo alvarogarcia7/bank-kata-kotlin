@@ -6,7 +6,6 @@ import arrow.core.flatMap
 import com.example.kata.bank.service.delivery.BankWebApplication.Companion.canFail
 import com.example.kata.bank.service.delivery.BankWebApplication.Companion.many
 import com.example.kata.bank.service.delivery.BankWebApplication.Companion.mayBeMissing
-import com.example.kata.bank.service.delivery.StatementRequestInteractor
 import com.example.kata.bank.service.delivery.X
 import com.example.kata.bank.service.delivery.`in`.OpenAccountRequestDTO
 import com.example.kata.bank.service.delivery.`in`.StatementRequestDTO
@@ -20,10 +19,11 @@ import com.example.kata.bank.service.domain.accounts.OpenAccountRequest
 import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.infrastructure.accounts.out.AccountDTO
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
+import com.example.kata.bank.service.usecases.statements.StatementCreationUseCase
 import com.fasterxml.jackson.module.kotlin.readValue
 import spark.kotlin.Http
 
-class AccountsHandler(private val accountRepository: AccountRestrictedRepository, private val xApplicationService: StatementRequestInteractor) : Handler {
+class AccountsHandler(private val accountRepository: AccountRestrictedRepository, private val statementCreationUseCase: StatementCreationUseCase) : Handler {
     override fun register(http: Http) {
         http.get("/accounts", function = many(::list))
         http.post("/accounts", function = canFail(::add))
@@ -75,7 +75,7 @@ class AccountsHandler(private val accountRepository: AccountRestrictedRepository
                             .findBy(Id.of(accountId))
                             .map { account ->
                                 val id = account.id
-                                val statementId = xApplicationService.createAndSaveOperation(account.value, it)
+                                val statementId = statementCreationUseCase.createAndSaveOperation(account.value, it)
                                 MyResponse.links("", Link.self(Pair("accounts", id), Pair("statements", statementId)))
                             }
 

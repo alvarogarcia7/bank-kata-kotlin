@@ -31,6 +31,7 @@ import com.example.kata.bank.service.infrastructure.operations.OperationsReposit
 import com.example.kata.bank.service.infrastructure.operations.out.TimeDTO
 import com.example.kata.bank.service.infrastructure.operations.out.TransactionDTO
 import com.example.kata.bank.service.infrastructure.users.UsersSimpleRepository
+import com.example.kata.bank.service.usecases.statements.StatementCreationUseCase
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.github.kittinunf.fuel.core.FuelManager
 import com.github.kittinunf.fuel.core.Request
@@ -81,7 +82,7 @@ class E2EServiceFeatureTest {
                     OperationsHandler(
                             OperationService(),
                             accountRepository),
-                    AccountsHandler(accountRepository, StatementRequestInteractor(operationsRepository)),
+                    AccountsHandler(accountRepository, StatementCreationUseCase(operationsRepository)),
                     UsersHandler(UsersSimpleRepository()))
         }
     }
@@ -327,7 +328,7 @@ class E2EServiceFeatureTest {
                 .map {
                     it.value.deposit(Amount.Companion.of("100"), "rent, part 1")
                     it.value.deposit(Amount.Companion.of("200"), "rent, part 2")
-                    StatementRequestInteractor(operationsRepository).createAndSaveOperation(it.value, AccountRequest.StatementRequest.all())
+                    StatementCreationUseCase(operationsRepository).createAndSaveOperation(it.value, AccountRequest.StatementRequest.all())
                 }.getOrElse { throw UnreachableCode() }
 
         (HTTP::get)("/accounts/${accountId.value}/statements/${statementId.value}")
