@@ -155,18 +155,20 @@ class Account(
     }
 
     private fun secureOrInsecure(security: Option<Security>, tx: Tx, request1: Transaction.Transfer): Either<Persisted<SecureRequest>, Persisted<Transaction.Transfer>> {
-        val request = when (security) {
+        return when (security) {
             is Some -> {
-                SecureRequest(tx, security.t.generate(), request1)
+                val request = SecureRequest(tx, security.t.generate(), request1)
+                val persisted = createIdentityFor(request)
+                transactionRepository.save(persisted)
+                Either.left(persisted)
             }
             is None -> {
-                InsecureRequest(tx, request1)
+                val request = InsecureRequest(tx, request1)
+                val persisted = createIdentityFor(request)
+                transactionRepository.save(persisted)
+                return Either.right(persisted)
             }
-        }.mapBoth {
-            val persisted = createIdentityFor(it)
-            transactionRepository.save(persisted)
         }
-        return request
     }
 
     fun confirm(transactionId: Id) {
