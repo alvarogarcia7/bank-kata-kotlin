@@ -35,7 +35,8 @@ class AccountsHandler(private val accountRepository: AccountRestrictedRepository
     fun list(request: spark.Request, response: spark.Response): X.ResponseEntity<List<MyResponse<AccountDTO>>> {
         val payload = accountRepository
                 .findAll()
-                .map { (account, id) -> MyResponse.links(mapper.toDTO(account), Link.self(Pair("accounts", id))) }
+                .map { (account, id) -> Pair(mapper.toDTO(account), id) }
+                .map { (account, id) -> MyResponse.links(account, Link.self(Pair("accounts", id))) }
         return X.ok(payload)
     }
 
