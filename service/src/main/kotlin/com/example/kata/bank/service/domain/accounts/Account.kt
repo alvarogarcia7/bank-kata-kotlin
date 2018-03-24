@@ -116,6 +116,8 @@ class Account(
 
     companion object {
         fun transfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Workflow {
+            val workflowFrom = from.value.createTransferWorkflow(from.value.genTx(amount, description), from, to)
+            val workflowTo = from.value.createTransferWorkflow(from.value.genTx(amount, description), from, to)
             val part1 = from.value.tryOutgoing(from.value.genTx(amount, description), from, to)
             val part2 = to.value.tryIncoming(to.value.genTx(amount, description), from, to)
             val steps = listOf(part1, part2).map { chooseValue(it) }
