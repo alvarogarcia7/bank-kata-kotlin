@@ -79,27 +79,45 @@ class PremiumAccountShould : AccountShould() {
         val previousSenderBalance = sender.value.balance()
 
         val transfer = Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
-        if (transfer.outgointConfirmed()) {
-            if (transfer.incomingConfirmed()) {
-                transfer.commit()
-            } else {
-                transfer.denied()
-            }
-        } else {
-            transfer.denied()
-        }
 
-        fun transfer.confirmedOutgoing() {
-            if (transfer.incomingConfirmed()) {
-                transfer.commit()
-            } else {
-                transfer.denied()
+        class InitialState(private val transfer: Transaction.Transfer) {
+            fun startTransfer() {
+                if (transfer.isSecureOutgoing()) {
+                    return WaitingForOutgoing(transfer)
+                } else {
+                    if (transfer.isSecuredIncoming()) {
+                        return WaitingForIncoming(transfer)
+                    } else {
+                        return Committed()
+                    }
+                }
             }
         }
 
-        fun transfer.confirmedIncoming() {
-            transfer.commit()
+        class WaitingForOutgoingState {
+            fun confirmedOutgoing(code: String) {
+                if (transfer.isSecureIncoming()) {
+                    return WaitingForIncoming(transfer)
+                } else {
+                    return Committed()
+                }
+            }
+
+            fun rejected() {
+                return Rejected()
+            }
         }
+
+        class WaitingForIncomingState {
+            fun confirmedOutgoing(code: String) {
+                return Committed()
+            }
+
+            fun rejected() {
+                return Rejected()
+            }
+        }
+
         //do not confirm incoming transfer
 //                .map{Account.confirmTransfer( it as Transaction.Transfer.Incoming.Request)}})
 
