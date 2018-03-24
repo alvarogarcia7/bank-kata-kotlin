@@ -7,13 +7,15 @@ import com.example.kata.bank.service.delivery.handlers.UsersHandler
 import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.infrastructure.operations.OperationsRepository
 import com.example.kata.bank.service.infrastructure.users.UsersSimpleRepository
+import com.example.kata.bank.service.usecases.accounts.DepositUseCase
 import com.example.kata.bank.service.usecases.accounts.OpenAccountUseCase
+import com.example.kata.bank.service.usecases.accounts.TransferUseCase
 import com.example.kata.bank.service.usecases.statements.StatementCreationUseCase
 
 fun main(args: Array<String>) {
     val accountRepository = AccountRestrictedRepository(mutableListOf())
     val handlers = arrayOf(
-            OperationsHandler(accountRepository),
+            OperationsHandler(accountRepository, TransferUseCase(accountRepository), DepositUseCase(accountRepository)),
             AccountsHandler(
                     accountRepository,
                     StatementCreationUseCase(OperationsRepository()),
