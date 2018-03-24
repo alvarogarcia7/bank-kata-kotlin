@@ -43,14 +43,6 @@ class OperationsHandler(private val accountRepository: AccountRestrictedReposito
         val result = objectMapper.readValueOption<OperationRequest>(request.body())
                 .mapLeft { listOf(it) }
                 .flatMap { operationRequest ->
-                    //TODO REVIEW MR - do the dispatching here.
-                    //TODO AGB  through a common use case (???).
-                    //option 1
-                    operationRequest.getAssociatedCommand1().perform(Id.of(accountId), operationRequest)
-                    //option 2
-                    operationRequest.getAssociatedCommand2(Id.of(accountId)).perform(operationRequest)
-                    //option 3: getAssociatedCommand creates a reified command with all the dependencies (i.e., accountRepository)
-                    operationRequest.getAssociatedCommand3(Id.of(accountId), operationRequest).perform().get()
                     when (operationRequest) {
                         is OperationRequest.DepositRequest -> {
                             depositUseCase.deposit(Id.of(accountId), operationRequest.toUseCase())
@@ -64,7 +56,7 @@ class OperationsHandler(private val accountRepository: AccountRestrictedReposito
                 .mapLeft { ErrorsDTO.from(it) }
                 .mapLeft { MyResponse.noLinks(it) }
                 .mapLeft { X.badRequest(it) }
-                .map { MyResponse(it, listOf(Link("/accounts/$accountId/operations/${it.value}", "list", "GET"))) }
+                .map { MyResponse(Unit, listOf(Link("/accounts/$accountId/operations/${it.value}", "list", "GET"))) }
                 .map { X.ok(it) }
 
         return result
