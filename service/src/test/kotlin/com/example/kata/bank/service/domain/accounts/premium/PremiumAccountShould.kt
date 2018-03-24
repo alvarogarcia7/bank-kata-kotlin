@@ -88,6 +88,18 @@ class PremiumAccountShould : AccountShould() {
         } else {
             transfer.denied()
         }
+
+        fun transfer.confirmedOutgoing() {
+            if (transfer.incomingConfirmed()) {
+                transfer.commit()
+            } else {
+                transfer.denied()
+            }
+        }
+
+        fun transfer.confirmedIncoming() {
+            transfer.commit()
+        }
         //do not confirm incoming transfer
 //                .map{Account.confirmTransfer( it as Transaction.Transfer.Incoming.Request)}})
 
