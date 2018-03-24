@@ -41,12 +41,12 @@ class AccountsHandler(private val accountRepository: AccountRestrictedRepository
 
     fun add(request: spark.Request, response: spark.Response): Either<X.ResponseEntity<MyResponse<List<String>>>, X.ResponseEntity<MyResponse<AccountDTO>>> {
         val openAccountRequestDTO = objectMapper.readValue<OpenAccountRequestDTO>(request.body())
-        return (openAccountRequestDTO
+        return openAccountRequestDTO
                 .validate()
                 .flatMap { it -> openAccountUseCase.open(it) }
                 .map { (account, id) ->
                     MyResponse(mapper.toDTO(account), listOf(Link.self("accounts" to id)))
-                })
+                }
                 .mapLeft { it -> MyResponse(it.map { it.message!! }, listOf()) }
                 .mapLeft { it -> X.badRequest(it) }
                 .map { it -> X.ok(it) }
