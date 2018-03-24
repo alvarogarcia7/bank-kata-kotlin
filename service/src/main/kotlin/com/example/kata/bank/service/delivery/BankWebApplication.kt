@@ -2,12 +2,10 @@ package com.example.kata.bank.service.delivery
 
 import arrow.core.*
 import com.example.kata.bank.service.NotTestedOperation
-import com.example.kata.bank.service.delivery.`in`.StatementRequestDTO
 import com.example.kata.bank.service.delivery.application.SparkAdapter
 import com.example.kata.bank.service.delivery.handlers.Handler
 import com.example.kata.bank.service.delivery.json.JSONMapper
 import com.example.kata.bank.service.delivery.json.MyResponse
-import com.example.kata.bank.service.domain.AccountRequest
 import spark.Request
 import spark.Response
 import spark.kotlin.Http
@@ -101,11 +99,4 @@ class X {
     data class ResponseEntity<out T>(val statusCode: Int, val payload: Option<T>)
 }
 
-class StatementRequestFactory {
-    companion object {
-        fun create(request: StatementRequestDTO): AccountRequest {
-            return AccountRequest.StatementRequest.all()
-        }
-    }
-}
 

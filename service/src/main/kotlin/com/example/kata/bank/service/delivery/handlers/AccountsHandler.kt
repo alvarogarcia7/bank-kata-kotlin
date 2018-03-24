@@ -6,7 +6,6 @@ import arrow.core.flatMap
 import com.example.kata.bank.service.delivery.BankWebApplication.Companion.canFail
 import com.example.kata.bank.service.delivery.BankWebApplication.Companion.many
 import com.example.kata.bank.service.delivery.BankWebApplication.Companion.mayBeMissing
-import com.example.kata.bank.service.delivery.StatementRequestFactory
 import com.example.kata.bank.service.delivery.StatementRequestInteractor
 import com.example.kata.bank.service.delivery.X
 import com.example.kata.bank.service.delivery.`in`.OpenAccountRequestDTO
@@ -76,7 +75,7 @@ class AccountsHandler(private val accountRepository: AccountRestrictedRepository
                             .findBy(Id.of(accountId))
                             .map { account ->
                                 val id = account.id
-                                val statementId = xApplicationService.createAndSaveOperation(account.value, StatementRequestFactory.create(it))
+                                val statementId = xApplicationService.createAndSaveOperation(account.value, it)
                                 MyResponse.links("", Link.self(Pair("accounts", id), Pair("statements", statementId)))
                             }
 
