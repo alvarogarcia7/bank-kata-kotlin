@@ -8,6 +8,7 @@ import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRe
 import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.example.kata.bank.service.infrastructure.operations.OperationsRepository
 import com.example.kata.bank.service.infrastructure.users.UsersSimpleRepository
+import com.example.kata.bank.service.usecases.accounts.OpenAccountUseCase
 import com.example.kata.bank.service.usecases.statements.StatementCreationUseCase
 
 fun main(args: Array<String>) {
@@ -16,7 +17,8 @@ fun main(args: Array<String>) {
             OperationsHandler(OperationService(), accountRepository),
             AccountsHandler(
                     accountRepository,
-                    StatementCreationUseCase(OperationsRepository())),
+                    StatementCreationUseCase(OperationsRepository()),
+                    OpenAccountUseCase(accountRepository)),
             UsersHandler(UsersSimpleRepository()))
     BankWebApplication(*handlers).start(8080)
 }

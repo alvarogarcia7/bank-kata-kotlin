@@ -31,6 +31,7 @@ import com.example.kata.bank.service.infrastructure.operations.OperationsReposit
 import com.example.kata.bank.service.infrastructure.operations.out.TimeDTO
 import com.example.kata.bank.service.infrastructure.operations.out.TransactionDTO
 import com.example.kata.bank.service.infrastructure.users.UsersSimpleRepository
+import com.example.kata.bank.service.usecases.accounts.OpenAccountUseCase
 import com.example.kata.bank.service.usecases.statements.StatementCreationUseCase
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.github.kittinunf.fuel.core.FuelManager
@@ -82,7 +83,7 @@ class E2EServiceFeatureTest {
                     OperationsHandler(
                             OperationService(),
                             accountRepository),
-                    AccountsHandler(accountRepository, StatementCreationUseCase(operationsRepository)),
+                    AccountsHandler(accountRepository, StatementCreationUseCase(operationsRepository), OpenAccountUseCase(accountRepository)),
                     UsersHandler(UsersSimpleRepository()))
         }
     }

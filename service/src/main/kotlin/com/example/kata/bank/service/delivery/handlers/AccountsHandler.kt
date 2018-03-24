@@ -14,16 +14,15 @@ import com.example.kata.bank.service.delivery.json.MyResponse
 import com.example.kata.bank.service.delivery.json.hateoas.Link
 import com.example.kata.bank.service.delivery.out.ErrorsDTO
 import com.example.kata.bank.service.domain.Id
-import com.example.kata.bank.service.domain.Persisted
-import com.example.kata.bank.service.domain.accounts.OpenAccountRequest
 import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.infrastructure.accounts.out.AccountDTO
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
+import com.example.kata.bank.service.usecases.accounts.OpenAccountUseCase
 import com.example.kata.bank.service.usecases.statements.StatementCreationUseCase
 import com.fasterxml.jackson.module.kotlin.readValue
 import spark.kotlin.Http
 
-class AccountsHandler(private val accountRepository: AccountRestrictedRepository, private val statementCreationUseCase: StatementCreationUseCase) : Handler {
+class AccountsHandler(private val accountRepository: AccountRestrictedRepository, private val statementCreationUseCase: StatementCreationUseCase, val openAccountUseCase: OpenAccountUseCase) : Handler {
     override fun register(http: Http) {
         http.get("/accounts", function = many(::list))
         http.post("/accounts", function = canFail(::add))
@@ -44,12 +43,7 @@ class AccountsHandler(private val accountRepository: AccountRestrictedRepository
         val openAccountRequestDTO = objectMapper.readValue<OpenAccountRequestDTO>(request.body())
         return (openAccountRequestDTO
                 .validate()
-                .flatMap { OpenAccountRequest.parse(it.name!!) }
-                .map { Persisted.`for`(it, Id.random()) }
-                .map {
-                    accountRepository.save(it)
-                    it
-                }
+                .flatMap { it -> openAccountUseCase.open(it) }
                 .map { (account, id) ->
                     MyResponse(mapper.toDTO(account), listOf(Link.self("accounts" to id)))
                 })
