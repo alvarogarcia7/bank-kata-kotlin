@@ -23,7 +23,7 @@ import com.example.kata.bank.service.usecases.accounts.DepositUseCase
 import com.example.kata.bank.service.usecases.accounts.TransferUseCase
 import spark.kotlin.Http
 
-class OperationsHandler(private val accountRepository: AccountRestrictedRepository, val transferUseCase: TransferUseCase, val depositUseCase: DepositUseCase) : Handler {
+class OperationsHandler(private val accountRepository: AccountRestrictedRepository, private val transferUseCase: TransferUseCase, private val depositUseCase: DepositUseCase) : Handler {
     override fun register(http: Http) {
         http.get("/accounts/:accountId/operations/:operationId", function = mayBeMissing(::detail))
         http.get("/accounts/:accountId/operations", function = many(::list))
