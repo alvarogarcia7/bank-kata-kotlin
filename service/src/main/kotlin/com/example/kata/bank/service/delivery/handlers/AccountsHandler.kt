@@ -75,7 +75,7 @@ class AccountsHandler(private val accountRepository: AccountRestrictedRepository
                             .findBy(Id.of(accountId))
                             .map { account ->
                                 val id = account.id
-                                val statementId = statementCreationUseCase.createAndSaveOperation(account.value, it)
+                                val statementId = statementCreationUseCase.createStatement(account.value, it)
                                 MyResponse.links("", Link.self(Pair("accounts", id), Pair("statements", statementId)))
                             }
 

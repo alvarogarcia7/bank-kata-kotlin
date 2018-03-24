@@ -9,7 +9,7 @@ import com.example.kata.bank.service.infrastructure.operations.OperationsReposit
 import com.example.kata.bank.service.infrastructure.statement.Statement
 
 class StatementCreationUseCase(private val operationsRepository: OperationsRepository) {
-    fun createAndSaveOperation(account: Account, create: AccountRequest): Id {
+    fun createStatement(account: Account, create: AccountRequest): Id {
         val statement = create.apply<Statement>(account)
         val id = Id.random()
         operationsRepository.save(Persisted.`for`(Operation.Statement(statement), id))
