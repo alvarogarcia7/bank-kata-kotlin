@@ -13,6 +13,7 @@ import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.*
 import com.example.kata.bank.service.domain.transactions.Tx
 import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.example.kata.bank.service.infrastructure.statement.StatementLine
+import com.example.kata.bank.service.infrastructure.storage.InMemorySimpleRepository
 import com.example.kata.bank.service.infrastructure.transactions.TransactionSimpleRepository
 
 class Account(
@@ -24,7 +25,7 @@ class Account(
         val number: Number = Number.of(Id.random().value)
 ) {
 
-    private val transactionRepository: TransactionSimpleRepository = TransactionSimpleRepository()
+    private val transactionRepository: InMemorySimpleRepository<Transaction> = TransactionSimpleRepository()
 
     fun deposit(amount: Amount, description: String): Id {
         val transaction = createIdentityFor(Transaction.Deposit(Tx(amount, clock.getTime(), description)))
