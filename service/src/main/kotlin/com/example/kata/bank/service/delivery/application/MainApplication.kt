@@ -16,8 +16,7 @@ fun main(args: Array<String>) {
             OperationsHandler(OperationService(), accountRepository),
             AccountsHandler(
                     accountRepository,
-                    StatementRequestInteractor(accountRepository,
-                            OperationsRepository())),
+                    StatementRequestInteractor(OperationsRepository())),
             UsersHandler(UsersSimpleRepository()))
     BankWebApplication(*handlers).start(8080)
 }
