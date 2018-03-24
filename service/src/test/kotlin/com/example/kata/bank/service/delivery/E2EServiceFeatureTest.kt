@@ -26,7 +26,6 @@ import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRe
 import com.example.kata.bank.service.infrastructure.accounts.AccountsService
 import com.example.kata.bank.service.infrastructure.accounts.out.AccountDTO
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
-import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.example.kata.bank.service.infrastructure.operations.OperationsRepository
 import com.example.kata.bank.service.infrastructure.operations.out.TimeDTO
 import com.example.kata.bank.service.infrastructure.operations.out.TransactionDTO
@@ -81,7 +80,6 @@ class E2EServiceFeatureTest {
         private val configuredApplication: () -> BankWebApplication = {
             BankWebApplication(
                     OperationsHandler(
-                            OperationService(),
                             accountRepository),
                     AccountsHandler(accountRepository, StatementCreationUseCase(operationsRepository), OpenAccountUseCase(accountRepository)),
                     UsersHandler(UsersSimpleRepository()))

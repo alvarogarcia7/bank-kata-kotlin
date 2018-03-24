@@ -19,7 +19,7 @@ import spark.Response
 internal class OperationsHandlerShould {
     private val operationService = OperationService()
     private val accountRepository = AccountRestrictedRepository.aNew()
-    private val operationsHandler = OperationsHandler(operationService, accountRepository)
+    private val operationsHandler = OperationsHandler(accountRepository)
     private val fakeResponse: Response = mock { }
     @Test
     fun `complain when you don't have an account id`() {

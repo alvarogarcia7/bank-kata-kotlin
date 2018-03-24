@@ -1,6 +1,6 @@
 package com.example.kata.bank.service.delivery
 
-import arrow.core.Option
+import arrow.core.Either
 import arrow.core.getOrElse
 import com.example.kata.bank.service.ApplicationBooter
 import com.example.kata.bank.service.HTTP
@@ -13,13 +13,13 @@ import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
 import com.example.kata.bank.service.domain.accounts.Clock
+import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRepository
-import com.example.kata.bank.service.infrastructure.operations.AmountDTO
-import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.example.kata.bank.service.infrastructure.operations.OperationsRepository
-import com.example.kata.bank.service.infrastructure.operations.`in`.OperationRequest
 import com.example.kata.bank.service.infrastructure.users.UsersSimpleRepository
+import com.example.kata.bank.service.usecases.accounts.DepositUseCase
 import com.example.kata.bank.service.usecases.accounts.OpenAccountUseCase
+import com.example.kata.bank.service.usecases.accounts.TransferUseCase
 import com.example.kata.bank.service.usecases.statements.StatementCreationUseCase
 import com.github.kittinunf.fuel.core.FuelManager
 import com.nhaarman.mockito_kotlin.verify
@@ -38,12 +38,12 @@ class ServiceIntegrationTest {
 
     object Mocks {
         @JvmStatic
-        val operationService = Mockito.mock(OperationService::class.java)
+        val depositUseCase = Mockito.mock(DepositUseCase::class.java)
     }
 
     @BeforeEach
     fun resetMocks() {
-        Mockito.reset(Mocks.operationService)
+        Mockito.reset(Mocks.depositUseCase)
     }
 
     companion object {
@@ -68,17 +68,18 @@ class ServiceIntegrationTest {
             FuelManager.instance.basePath = "http://localhost:" + serverPort
         }
 
-        class MockOperationService : OperationService() {
-            override fun deposit(account: Account?, depositRequest: OperationRequest.DepositRequest): Option<Id> {
-                Mocks.operationService.deposit(account, depositRequest)
-                return super.deposit(account, depositRequest)
+        class MockOperationService : DepositUseCase(accountRepository) {
+            override fun deposit(accountId: Id, request: Request): Either<List<Exception>, Id> {
+                Mocks.depositUseCase.deposit(accountId, request)
+                return super.deposit(accountId, request)
             }
         }
 
         val accountRepository = AccountRestrictedRepository.aNew()
+        val transferUseCase: TransferUseCase = TransferUseCase(accountRepository)
         private val configuredApplication: () -> BankWebApplication = {
             BankWebApplication(
-                    OperationsHandler(MockOperationService(), accountRepository),
+                    OperationsHandler(accountRepository, transferUseCase, MockOperationService()),
                     AccountsHandler(accountRepository, StatementCreationUseCase(OperationsRepository()), OpenAccountUseCase(accountRepository)),
                     UsersHandler(UsersSimpleRepository())
             )
@@ -109,7 +110,7 @@ class ServiceIntegrationTest {
                     assertThat(response.statusCode).isEqualTo(200)
 
                     val account = accountRepository.findBy(accountId).map { it.value }.getOrElse { throw UnreachableCode() }
-                    verify(Mocks.operationService).deposit(account, OperationRequest.DepositRequest(AmountDTO.EUR("100.00"), description))
+                    verify(Mocks.depositUseCase).deposit(accountId, DepositUseCase.Request(Amount.of("100.00"), description))
                 }
     }
 
@@ -132,7 +133,7 @@ class ServiceIntegrationTest {
                     println(result)
                     assertThat(response.statusCode).isEqualTo(400)
 
-                    verifyZeroInteractions(Mocks.operationService)
+                    verifyZeroInteractions(Mocks.depositUseCase)
                 }
     }
 

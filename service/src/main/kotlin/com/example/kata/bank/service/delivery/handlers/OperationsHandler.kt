@@ -19,12 +19,13 @@ import com.example.kata.bank.service.domain.accounts.Account
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
-import com.example.kata.bank.service.infrastructure.operations.OperationService
 import com.example.kata.bank.service.infrastructure.operations.`in`.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.out.TransactionDTO
+import com.example.kata.bank.service.usecases.accounts.DepositUseCase
+import com.example.kata.bank.service.usecases.accounts.TransferUseCase
 import spark.kotlin.Http
 
-class OperationsHandler(private val operationService: OperationService, private val accountRepository: AccountRestrictedRepository) : Handler {
+class OperationsHandler(private val accountRepository: AccountRestrictedRepository, private val transferUseCase: TransferUseCase = TransferUseCase(accountRepository), private val depositUseCase: DepositUseCase = DepositUseCase(accountRepository)) : Handler {
     override fun register(http: Http) {
         http.get("/accounts/:accountId/operations/:operationId", function = mayBeMissing(::detail))
         http.get("/accounts/:accountId/operations", function = many(::list))
@@ -44,26 +45,13 @@ class OperationsHandler(private val operationService: OperationService, private 
         val result = objectMapper.readValueOption<OperationRequest>(request.body())
                 .mapLeft { listOf(it) }
                 .flatMap { operationRequest ->
+                    println(operationRequest)
                     when (operationRequest) {
                         is OperationRequest.DepositRequest -> {
-                            val depositId = accountFor(accountId)
-                            val x = Either.cond(depositId.isDefined(), { depositId.get() }, { listOf(Exception("No account")) })
-                                    .flatMap { account ->
-                                        val id = operationService.deposit(account, operationRequest)
-                                        Either.cond(id.isDefined(), { id.get() }, { listOf(Exception("Deposit failed")) })
-                                    }
-                            x
+                            depositUseCase(Id.of(accountId), operationRequest)
                         }
                         is OperationRequest.TransferRequest -> {
-                            accountRepository
-                                    .findBy(Account.Number.of(operationRequest.destination.number))
-                                    .flatMap { to ->
-                                        accountRepository.findBy(Id.of(accountId))
-                                                .map { from ->
-                                                    Account.transfer(Amount.of(operationRequest.amount.value), operationRequest.description, from, to)
-                                                }
-                                    }
-                            Either.right(Id.random())
+                            transferUseCase(Id.of(accountId), operationRequest)
                         }
                     }
                 }
@@ -77,6 +65,24 @@ class OperationsHandler(private val operationService: OperationService, private 
         return result
     }
 
+    private fun transferUseCase(accountId: Id, operationRequest: OperationRequest.TransferRequest): Either<Nothing, Id> {
+        return this.transferUseCase.transfer(accountId, mapToUseCase(operationRequest))
+    }
+
+    private fun mapToUseCase(operationRequest: OperationRequest.TransferRequest): TransferUseCase.In {
+        val amount = Amount.of(operationRequest.amount.value)
+        val description = operationRequest.description
+        return TransferUseCase.In(Account.Number.of(operationRequest.destination.number), amount, description)
+    }
+
+    private fun mapToUseCase(operationRequest: OperationRequest.DepositRequest): DepositUseCase.Request {
+        return DepositUseCase.Request(Amount.of(operationRequest.amount.value), operationRequest.description)
+    }
+
+    private fun depositUseCase(accountId: Id, operationRequest: OperationRequest.DepositRequest): Either<List<Exception>, Id> {
+        return depositUseCase.deposit(accountId, mapToUseCase(operationRequest))
+    }
+
     fun detail(request: spark.Request, response: spark.Response): Option<X.ResponseEntity<MyResponse<TransactionDTO>>> {
         val accountId: String? = request.params(":accountId")
         val operationId: String? = request.params(":operationId")
@@ -84,7 +90,7 @@ class OperationsHandler(private val operationService: OperationService, private 
             throw RuntimeException("invalid request") //TODO AGB
         }
 
-        return accountFor(accountId)
+        return accountFor(Id.of(accountId))
                 .flatMap {
                     it.find(Id.of(operationId))
                 }.map {
@@ -99,7 +105,7 @@ class OperationsHandler(private val operationService: OperationService, private 
             throw NotTestedOperation()
         }
 
-        val result = accountFor(accountId)
+        val result = accountFor(Id.of(accountId))
                 .map {
                     val operations = it.findAll().map { it.value }.map { mapper.toDTO(it) }
                     val response = StatementOutDTO(operations)
@@ -121,5 +127,5 @@ class OperationsHandler(private val operationService: OperationService, private 
         return X.ok(payload)
     }
 
-    private fun accountFor(accountId: String) = accountRepository.findBy(Id.of(accountId)).map { it.value }
+    private fun accountFor(id: Id) = accountRepository.findBy(id).map { it.value }
 }
