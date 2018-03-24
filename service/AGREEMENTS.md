@@ -6,7 +6,7 @@ Types of validations, that depend on the previous ones (cumulative):
   * all required values are present
     * (e.g., the account number is present)
   * values with correct format
-    * (e.g., the account number follows the <abbr title="Internation Bank Account Number">IBAN</abbr>
+    * (e.g., the account number follows the IBAN (International Bank Account Number) rules
   rules)
   * existing data
     * (e.g., there is an account with this number)
