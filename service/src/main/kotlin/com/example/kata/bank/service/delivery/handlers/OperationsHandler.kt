@@ -36,10 +36,7 @@ class OperationsHandler(private val accountRepository: AccountRestrictedReposito
 
     fun add(request: spark.Request, response: spark.Response): Either<X.ResponseEntity<MyResponse<ErrorsDTO>>, X.ResponseEntity<MyResponse<Unit>>> {
         val accountId: String = request.params(":accountId")
-                ?: return Either.left(listOf(Exception("Needs an :accountId")))
-                        .mapLeft { ErrorsDTO.from(it) }
-                        .mapLeft { MyResponse.noLinks(it) }
-                        .mapLeft { X.badRequest(it) }
+                ?: return error("Needs an :accountId")
         val result = objectMapper.readValueOption<OperationRequest>(request.body())
                 .mapLeft { listOf(it) }
                 .flatMap { operationRequest ->
@@ -52,14 +49,19 @@ class OperationsHandler(private val accountRepository: AccountRestrictedReposito
                         }
                     }
                 }
-                .mapLeft { listOf(Exception("No result")) }
-                .mapLeft { ErrorsDTO.from(it) }
-                .mapLeft { MyResponse.noLinks(it) }
-                .mapLeft { X.badRequest(it) }
+                .mapLeft { error("No result") }
                 .map { MyResponse(Unit, listOf(Link("/accounts/$accountId/operations/${it.value}", "list", "GET"))) }
                 .map { X.ok(it) }
 
         return result
+    }
+
+    private fun error(message: String): Either<List<Exception>, Any> {
+        return Either.left(this::processExceptions(listOf(Exception(message))))
+    }
+
+    fun processExceptions(it: List<Exception>): X.ResponseEntity<MyResponse<ErrorsDTO>> {
+        return X.badRequest(MyResponse.noLinks(ErrorsDTO.from(it)))
     }
 
     fun detail(request: spark.Request, response: spark.Response): Option<X.ResponseEntity<MyResponse<TransactionDTO>>> {
