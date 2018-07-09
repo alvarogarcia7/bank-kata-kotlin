@@ -1,8 +1,8 @@
 package com.example.kata.bank.service.domain.transactions
 
-import com.example.kata.bank.service.domain.accounts.IncomingTransfer
-import com.example.kata.bank.service.domain.accounts.OutgoingTransfer
-import com.example.kata.bank.service.domain.accounts.TransferPayload
+import com.example.kata.bank.service.domain.transfers.IncomingTransfer
+import com.example.kata.bank.service.domain.transfers.OutgoingTransfer
+import com.example.kata.bank.service.domain.transfers.TransferPayload
 import java.time.LocalDateTime
 
 
