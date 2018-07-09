@@ -48,7 +48,7 @@ sealed class StatementLine(open val balance: Amount) {
                 is Transaction.Cost -> {
                     Debit(transaction.tx.time, "", transaction.tx.amount, previousBalance.subtract(transaction.tx.amount))
                 }
-                is Transaction.Transfer -> TODO()
+                else -> TODO()
             }
         }
     }

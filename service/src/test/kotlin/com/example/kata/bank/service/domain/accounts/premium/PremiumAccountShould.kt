@@ -1,6 +1,7 @@
 package com.example.kata.bank.service.domain.accounts.premium
 
 import com.example.kata.bank.service.domain.AccountRequest
+import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
 import com.example.kata.bank.service.domain.accounts.AccountBuilder
 import com.example.kata.bank.service.domain.accounts.AccountShould
@@ -72,19 +73,22 @@ class PremiumAccountShould : AccountShould() {
     }
 
     @Test
-    fun `can confirm incoming secure transfers`() {
+    fun `funds do not change accounts until both accounts confirm the transfer`() {
         val (sender, _) = persistAndSize(AccountBuilder.aNew(this::account).outgoing(securityProvider).movements().build(), "sender")
         val (receiver, _) = persistAndSize(AccountBuilder.aNew(this::account).incoming(securityProvider).build(), "receiver")
         val previousReceiverBalance = receiver.value.balance()
         val previousSenderBalance = sender.value.balance()
 
-        val result = Account.transfer(Amount.of("100"), "scam transfer", sender, receiver).confirm("123456")
+        Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
+        confirmFirstPendingTransfer(sender)
         //do not confirm incoming transfer
-//                .map{Account.confirmTransfer( it as Transaction.Transfer.Incoming.Request)}})
 
         assertThat(receiver.value.balance()).isEqualTo(previousReceiverBalance)
-//        assertThat(sender.value.balance()).isEqualTo(previousSenderBalance) //TODO AGB need to decide this
+        assertThat(sender.value.balance()).isEqualTo(previousSenderBalance)
     }
+
+    private fun firstPendingTransferId(account: Persisted<Account>) =
+            account.value.pendingTransfers().entries.first().key
 
     //TODO AGB how to confirm both requests
 //    @Ignore
@@ -111,11 +115,17 @@ class PremiumAccountShould : AccountShould() {
         val previousReceiverBalance = receiver.value.balance()
         val previousSenderBalance = sender.value.balance()
 
-        Account.transfer(Amount.of("100"), "scam transfer", sender, receiver).confirm("123456")
+        Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
+        confirmFirstPendingTransfer(sender)
         //do not confirm incoming transfer
 
         assertThat(receiver.value.balance()).isEqualTo(previousReceiverBalance)
         assertThat(sender.value.balance()).isEqualTo(previousSenderBalance)
+    }
+
+    private fun confirmFirstPendingTransfer(account: Persisted<Account>) {
+        val transferId = firstPendingTransferId(account)
+        account.value.userConfirmOutgoing(transferId)
     }
 
 

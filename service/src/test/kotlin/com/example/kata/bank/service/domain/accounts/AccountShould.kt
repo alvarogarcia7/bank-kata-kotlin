@@ -1,14 +1,11 @@
 package com.example.kata.bank.service.domain.accounts
 
-import arrow.core.Either
-import arrow.core.Right
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.FakeClock
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
-import com.example.kata.bank.service.domain.transactions.Tx
 import com.nhaarman.mockito_kotlin.doAnswer
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.verify
@@ -86,7 +83,8 @@ abstract class AccountShould {
 
 
         invariant({
-            Account.transfer(sampleTransferAmount, dummy_description, origin, destination).confirm(securityProvider.generate())
+            Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
+            origin.value.userConfirmOutgoing(origin.value.pendingTransfers().entries.first().key)
         },
                 { ("same balance" to origin.value.balance().add(destination.value.balance())) })
     }
@@ -99,18 +97,10 @@ abstract class AccountShould {
         val destination = Persisted.`for`(AccountBuilder.aNew(this::account).clock(fakeClock).build(), Id.of("destination"))
 
 
-        val (part1, part2) = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
+        Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
 
         verify(securityProvider).generate()
-        val tx = Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description)
-//        assertThat(result.request).isEqualTo(Intermediate(
-//                tx,
-//                Request(Emitted(origin.id, destination), securityProvider.generate())))
         assertThat(origin.value.balance()).isEqualTo(initialBalance)
-    }
-
-    fun <A, B, C> Either<A, B>.flatMapLeft(f: (A) -> Either<C, B>): Either<C, B> {
-        return this.fold({ f(it) }, { Right(it) })
     }
 
     @Test
@@ -118,15 +108,10 @@ abstract class AccountShould {
         val (origin, initialBalance) = withBalance(AccountBuilder.aNew(this::account).clock(fakeClock).outgoing(securityProvider).movements().build(), Id.of("origin"))
         val (destination, destinationBalance) = withBalance(AccountBuilder.aNew(this::account).clock(fakeClock).build(), Id.of("destination"))
 
-        val result = Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
-        val result2 = result.confirm("123456")
+        Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
+        origin.value.userConfirmOutgoing(origin.value.pendingTransfers().entries.first().key)
 
         val softly = SoftAssertions()
-//        softly.assertThat(result.).isEqualTo(Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description))
-//        softly.assertThat(result.t1).isEqualTo(Intermediate(
-//                Tx(sampleTransferAmount, fakeClock.getTime(), dummy_description),
-//                Request.Request(origin, destination, "123456")
-//        ))
         softly.assertThat(origin.value.balance()).isEqualTo(initialBalance.subtract(sampleTransferAmount))
         softly.assertThat(destination.value.balance()).isEqualTo(destinationBalance.add(sampleTransferAmount))
         softly.assertAll()

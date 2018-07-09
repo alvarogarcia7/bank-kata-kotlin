@@ -4,12 +4,15 @@ import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
+import com.example.kata.bank.service.FinalState
+import com.example.kata.bank.service.State
 import com.example.kata.bank.service.domain.AccountRequest
 import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
-import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.*
+import com.example.kata.bank.service.domain.transactions.Transaction.Transfer
+import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.TransferRequest
 import com.example.kata.bank.service.domain.transactions.Tx
 import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.example.kata.bank.service.infrastructure.statement.StatementLine
@@ -23,9 +26,17 @@ class Account(
         private val incomingSecurity: Option<Security> = None,
         private val outgoingSecurity: Option<Security> = None,
         val number: Number = Number.of(Id.random().value)
-) {
+) : OutgoingTransfer, IncomingTransfer {
+
 
     private val transactionRepository: InMemorySimpleRepository<Transaction> = TransactionSimpleRepository()
+    private val pendingTransfers: MutableMap<Id, Pair<State<Transfer.TransferRequest>, Tx>> = mutableMapOf()
+
+
+    fun pendingTransfers(): Map<Id, State<Transfer.TransferRequest>> {
+        return pendingTransfers
+                .mapValues { a -> a.value.first }
+    }
 
     fun deposit(amount: Amount, description: String): Id {
         val transaction = createIdentityFor(Transaction.Deposit(Tx(amount, clock.getTime(), description)))
@@ -115,79 +126,60 @@ class Account(
     }
 
     companion object {
-        fun transfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>): Workflow {
-            val part1 = from.value.tryOutgoing(from.value.genTx(amount, description), from, to)
-            val part2 = to.value.tryIncoming(to.value.genTx(amount, description), from, to)
-            val steps = listOf(part1, part2).map { chooseValue(it) }
-            val finalOperation1 = chooseId(part1)
-            val finalOperation2 = chooseId(part2)
-            return Workflow.from(steps, listOf(Pair(from.value, finalOperation1), Pair(to.value, finalOperation2)))
-        }
-
-        private fun chooseId(part1: Either<Persisted<SecureRequest>, Persisted<Transaction.Transfer>>): Id {
-            return when (part1) {
-                is Either.Left -> {
-                    part1.a.id
-                }
-                is Either.Right -> {
-                    part1.b.id
-                }
-            }
-        }
-
-        private fun chooseValue(value: Either<Persisted<SecureRequest>, Persisted<Transaction.Transfer>>): Either<SecureRequest, Transaction.Transfer> {
-            return value.map { it.value }.mapLeft { it.value }
+        fun transfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>) {
+            TransferDiagram.Initial(TransferRequest(from.value, to.value, from.value.genTx(amount, description))).transition()
         }
     }
+
 
     private fun genTx(amount: Amount, description: String) = Tx(amount, clock.getTime(), description)
 
-    fun tryOutgoing(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Persisted<Transaction.Transfer.SecureRequest>, Persisted<Transaction.Transfer>> {
-        val security = this.outgoingSecurity
-        val request: Transaction.Transfer = Transaction.Transfer.Emitted(tx, Completed(from.id, to.id))
-        return secureOrInsecure(security, tx, request)
+    override fun confirmIncoming(transferId: Id) {
+        val tx = this.pendingTransfers[transferId]!!.second
+        transactionRepository.save(createIdentityFor(Transaction.IncomingCompletedTransfer(tx)))
     }
 
-    fun tryIncoming(tx: Tx, from: Persisted<Account>, to: Persisted<Account>): Either<Persisted<Transaction.Transfer.SecureRequest>, Persisted<Transaction.Transfer>> {
-        val security = this.incomingSecurity
-        val request: Transaction.Transfer = Transaction.Transfer.Received(tx, Completed(from.id, to.id))
-        return secureOrInsecure(security, tx, request)
+    override fun confirmOutgoing(transferId: Id) {
+        val state = this.pendingTransfers[transferId]!!
+        this.transactionRepository.save(createIdentityFor(Transaction.OutgoingCompletedTransfer(state.second)))
     }
 
-    private fun secureOrInsecure(security: Option<Security>, tx: Tx, request1: Transaction.Transfer): Either<Persisted<SecureRequest>, Persisted<Transaction.Transfer>> {
+    override fun userConfirmIncoming(transferId: Id) {
+        this.pendingTransfers[transferId]!!.first.transition()
+        this.pendingTransfers.remove(transferId)
+    }
+
+    override fun userConfirmOutgoing(transferId: Id) {
+        userConfirmIncoming(transferId)
+    }
+
+    override fun requestIncomingPayload(request: TransferRequest): Transfer {
+        return generateTransferPayload(incomingSecurity, request)
+    }
+
+    override fun requestOutgoingPayload(request: TransferRequest): Transfer {
+        return generateTransferPayload(outgoingSecurity, request)
+    }
+
+    private fun generateTransferPayload(security: Option<Security>, transferRequest: TransferRequest): Transfer {
         return when (security) {
             is Some -> {
-                val request = SecureRequest(tx, security.t.generate(), request1)
+                val request = Transfer(transferRequest.request, TransferPayload.SecureTransferPayload(Id.random(), security.t.generate(), transferRequest))
                 val persisted = createIdentityFor(request)
                 transactionRepository.save(persisted)
-                Either.left(persisted)
+                request
             }
             is None -> {
-                val request = InsecureRequest(tx, request1)
+                val request = Transfer(transferRequest.request, TransferPayload.NotSecureTransferPayload(Id.random(), transferRequest))
                 val persisted = createIdentityFor(request)
                 transactionRepository.save(persisted)
-                return Either.right(persisted)
+                request
             }
         }
     }
 
-    fun confirm(transactionId: Id) {
-        this.transactionRepository
-                .findBy(transactionId)
-                .map {
-                    when (it.value) {
-                        is SecureRequest -> {
-                            transactionRepository.save(createIdentityFor(it.value.transfer))
-                        }
-                        is InsecureRequest -> {
-                            transactionRepository.save(createIdentityFor(it.value.transfer))
-                        }
-                        else -> {
-                            throw IllegalArgumentException()
-                        }
-                    }
-
-                }
+    override fun register(transferId: Id, diagram: State<TransferRequest>, tx: Tx) {
+        this.pendingTransfers[transferId] = Pair(diagram, tx)
     }
 
     data class Number private constructor(val value: String) {
@@ -199,3 +191,95 @@ class Account(
     }
 }
 
+interface IncomingTransfer {
+    fun confirmIncoming(transferId: Id)
+    fun userConfirmIncoming(transferId: Id)
+    fun requestIncomingPayload(request: Transfer.TransferRequest): Transfer
+    fun register(transferId: Id, diagram: State<TransferRequest>, tx: Tx)
+}
+
+interface OutgoingTransfer {
+    fun confirmOutgoing(transferId: Id)
+    fun userConfirmOutgoing(transferId: Id)
+    fun requestOutgoingPayload(request: Transfer.TransferRequest): Transfer
+    fun register(transferId: Id, diagram: State<TransferRequest>, tx: Tx)
+}
+
+sealed class TransferPayload {
+    abstract val transferId: Id
+    abstract val request: TransferRequest
+
+    data class SecureTransferPayload(override val transferId: Id, val code: String, override val request: TransferRequest) : TransferPayload()
+    data class NotSecureTransferPayload(override val transferId: Id, override val request: TransferRequest) : TransferPayload()
+}
+
+sealed class TransferDiagram : State<TransferRequest> {
+
+    data class Initial(val transferRequest: TransferRequest) : State<TransferRequest> {
+        override fun transition(): State<TransferRequest> {
+            val outgoingPayload = transferRequest.from.requestOutgoingPayload(transferRequest)
+            val incomingTransferRequest = IncomingTransferRequest(outgoingPayload.payload.transferId, transferRequest)
+            return when (outgoingPayload.payload) {
+                is TransferPayload.SecureTransferPayload -> {
+                    val newState = WaitingForOutgoingConfirmation(incomingTransferRequest)
+                    transferRequest.from.register(outgoingPayload.payload.transferId, newState, outgoingPayload.tx)
+                    newState
+                }
+                is TransferPayload.NotSecureTransferPayload -> {
+                    val newState = IncomingRequest(incomingTransferRequest)
+                    transferRequest.from.register(outgoingPayload.payload.transferId, newState, outgoingPayload.tx)
+                    newState.transition()
+                    newState
+                }
+            }
+        }
+    }
+
+
+    data class IncomingTransferRequest(val incomingTransferId: Id, val TransferRequest: TransferRequest)
+    data class CompleteTransferRequest(val outgoingTransferId: Id, val incomingTransferRequest: IncomingTransferRequest)
+
+
+    data class WaitingForOutgoingConfirmation(val transferRequest: IncomingTransferRequest) : State<TransferRequest> {
+        override fun transition(): State<TransferRequest> {
+            return IncomingRequest(transferRequest).transition()
+        }
+    }
+
+    data class IncomingRequest(val transferRequest: IncomingTransferRequest) : State<TransferRequest> {
+        override fun transition(): State<TransferRequest> {
+            val to = transferRequest.TransferRequest.to
+            val payload = to.requestIncomingPayload(transferRequest.TransferRequest)
+            val transferRequest1 = CompleteTransferRequest(payload.payload.transferId, transferRequest)
+            return when (payload.payload) {
+                is TransferPayload.SecureTransferPayload -> {
+                    val newState = WaitingForIncomingConfirmation(transferRequest1)
+                    to.register(payload.payload.transferId, newState, payload.tx)
+                    newState
+                }
+                is TransferPayload.NotSecureTransferPayload -> {
+                    val newState = PerformingActions(transferRequest1)
+                    to.register(payload.payload.transferId, newState, payload.tx)
+                    newState.transition()
+                }
+            }
+        }
+    }
+
+    data class WaitingForIncomingConfirmation(val transferRequest: CompleteTransferRequest) : State<TransferRequest> {
+        override fun transition(): State<TransferRequest> {
+            return PerformingActions(transferRequest).transition()
+        }
+    }
+
+    data class PerformingActions(private val transferRequest: CompleteTransferRequest) : State<TransferRequest> {
+        override fun transition(): State<TransferRequest> {
+            val trRequest = transferRequest.incomingTransferRequest.TransferRequest
+            trRequest.from.confirmOutgoing(transferRequest.incomingTransferRequest.incomingTransferId)
+            trRequest.to.confirmIncoming(transferRequest.outgoingTransferId)
+            return Confirmed(transferRequest)
+        }
+    }
+
+    data class Confirmed(val transferRequest: CompleteTransferRequest) : FinalState<TransferRequest>()
+}
