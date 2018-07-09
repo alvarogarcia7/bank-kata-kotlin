@@ -11,7 +11,7 @@ import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.transactions.Transaction.Transfer
-import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.TransferRequest
+import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.Request
 import com.example.kata.bank.service.domain.transactions.Tx
 import com.example.kata.bank.service.domain.transfers.*
 import com.example.kata.bank.service.infrastructure.statement.Statement
@@ -30,10 +30,10 @@ class Account(
 
 
     private val transactionRepository: InMemorySimpleRepository<Transaction> = TransactionSimpleRepository()
-    private val pendingTransfers: MutableMap<Id, Pair<State<Transfer.TransferRequest>, Tx>> = mutableMapOf()
+    private val pendingTransfers: MutableMap<Id, Pair<State<Transfer.Request>, Tx>> = mutableMapOf()
 
 
-    fun pendingTransfers(): Map<Id, State<Transfer.TransferRequest>> {
+    fun pendingTransfers(): Map<Id, State<Transfer.Request>> {
         return pendingTransfers
                 .mapValues { a -> a.value.first }
     }
@@ -127,7 +127,7 @@ class Account(
 
     companion object {
         fun transfer(amount: Amount, description: String, from: Persisted<Account>, to: Persisted<Account>) {
-            TransferDiagram.Initial(TransferRequest(from.value, to.value, from.value.genTx(amount, description))).transition()
+            TransferDiagram.Initial(Request(from.value, to.value, from.value.genTx(amount, description))).transition()
         }
     }
 
@@ -170,25 +170,25 @@ class Account(
                 }
     }
 
-    override fun requestIncomingPayload(request: TransferRequest): Transfer {
+    override fun requestIncomingPayload(request: Request): Transfer {
         return generateTransferPayload(incomingSecurity, request)
     }
 
-    override fun requestOutgoingPayload(request: TransferRequest): Transfer {
+    override fun requestOutgoingPayload(request: Request): Transfer {
         return generateTransferPayload(outgoingSecurity, request)
     }
 
-    private fun generateTransferPayload(security: Option<Security>, transferRequest: TransferRequest): Transfer {
+    private fun generateTransferPayload(security: Option<Security>, request: Request): Transfer {
         val transferId = Id.random()
         return when (security) {
             is Some -> {
-                val request = Transfer(transferRequest.request, TransferPayload.SecureTransferPayload(transferId, security.t.generate(), transferRequest))
+                val request = Transfer(request.request, TransferPayload.SecureTransferPayload(transferId, security.t.generate(), request))
                 val persisted = Persisted.`for`(request, transferId)
                 transactionRepository.save(persisted)
                 request
             }
             is None -> {
-                val request = Transfer(transferRequest.request, TransferPayload.NotSecureTransferPayload(transferId, transferRequest))
+                val request = Transfer(request.request, TransferPayload.NotSecureTransferPayload(transferId, request))
                 val persisted = Persisted.`for`(request, transferId)
                 transactionRepository.save(persisted)
                 request
@@ -196,7 +196,7 @@ class Account(
         }
     }
 
-    override fun register(transferId: Id, diagram: State<TransferRequest>, tx: Tx) {
+    override fun register(transferId: Id, diagram: State<Request>, tx: Tx) {
         this.pendingTransfers[transferId] = Pair(diagram, tx)
     }
 

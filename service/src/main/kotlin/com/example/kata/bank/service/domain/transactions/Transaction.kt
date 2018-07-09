@@ -35,7 +35,7 @@ sealed class Transaction(open val tx: Tx) {
             return amount
         }
 
-        data class TransferRequest(val from: OutgoingTransfer, val to: IncomingTransfer, val request: Tx)
+        data class Request(val from: OutgoingTransfer, val to: IncomingTransfer, val request: Tx)
     }
 
     data class OutgoingCompletedTransfer(override val tx: Tx) : Transaction(tx) {

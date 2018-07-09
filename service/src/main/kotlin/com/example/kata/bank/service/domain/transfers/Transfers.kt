@@ -17,49 +17,49 @@ interface SecureOutgoingTransfer {
 
 interface IncomingTransfer {
     fun confirmIncoming(transferId: Id)
-    fun requestIncomingPayload(request: Transaction.Transfer.TransferRequest): Transaction.Transfer
-    fun register(transferId: Id, diagram: State<Transaction.Transfer.TransferRequest>, tx: Tx)
+    fun requestIncomingPayload(request: Transaction.Transfer.Request): Transaction.Transfer
+    fun register(transferId: Id, diagram: State<Transaction.Transfer.Request>, tx: Tx)
 }
 
 interface OutgoingTransfer {
     fun confirmOutgoing(transferId: Id)
-    fun requestOutgoingPayload(request: Transaction.Transfer.TransferRequest): Transaction.Transfer
-    fun register(transferId: Id, diagram: State<Transaction.Transfer.TransferRequest>, tx: Tx)
+    fun requestOutgoingPayload(request: Transaction.Transfer.Request): Transaction.Transfer
+    fun register(transferId: Id, diagram: State<Transaction.Transfer.Request>, tx: Tx)
 }
 
 sealed class TransferPayload {
     abstract val transferId: Id
-    abstract val request: Transaction.Transfer.TransferRequest
+    abstract val request: Transaction.Transfer.Request
     abstract fun validatedBy(userPinCode: PinCode): Boolean
 
-    data class SecureTransferPayload(override val transferId: Id, private val code: PinCode, override val request: Transaction.Transfer.TransferRequest) : TransferPayload() {
+    data class SecureTransferPayload(override val transferId: Id, private val code: PinCode, override val request: Transaction.Transfer.Request) : TransferPayload() {
         override fun validatedBy(userPinCode: PinCode): Boolean {
             return this.code.validatedBy(userPinCode)
         }
     }
 
-    data class NotSecureTransferPayload(override val transferId: Id, override val request: Transaction.Transfer.TransferRequest) : TransferPayload() {
+    data class NotSecureTransferPayload(override val transferId: Id, override val request: Transaction.Transfer.Request) : TransferPayload() {
         override fun validatedBy(userPinCode: PinCode): Boolean {
             return true
         }
     }
 }
 
-sealed class TransferDiagram : State<Transaction.Transfer.TransferRequest> {
+sealed class TransferDiagram : State<Transaction.Transfer.Request> {
 
-    data class Initial(private val transferRequest: Transaction.Transfer.TransferRequest) : State<Transaction.Transfer.TransferRequest> {
-        override fun transition(): State<Transaction.Transfer.TransferRequest> {
-            val outgoingPayload = transferRequest.from.requestOutgoingPayload(transferRequest)
-            val incomingTransferRequest = IncomingTransferRequest(outgoingPayload.payload.transferId, transferRequest)
+    data class Initial(private val request: Transaction.Transfer.Request) : State<Transaction.Transfer.Request> {
+        override fun transition(): State<Transaction.Transfer.Request> {
+            val outgoingPayload = request.from.requestOutgoingPayload(request)
+            val incomingTransferRequest = IncomingTransferRequest(outgoingPayload.payload.transferId, request)
             return when (outgoingPayload.payload) {
                 is TransferPayload.SecureTransferPayload -> {
                     val newState = WaitingForOutgoingConfirmation(incomingTransferRequest)
-                    transferRequest.from.register(outgoingPayload.payload.transferId, newState, outgoingPayload.tx)
+                    request.from.register(outgoingPayload.payload.transferId, newState, outgoingPayload.tx)
                     newState
                 }
                 is TransferPayload.NotSecureTransferPayload -> {
                     val newState = IncomingRequest(incomingTransferRequest)
-                    transferRequest.from.register(outgoingPayload.payload.transferId, newState, outgoingPayload.tx)
+                    request.from.register(outgoingPayload.payload.transferId, newState, outgoingPayload.tx)
                     newState.transition()
                     newState
                 }
@@ -68,20 +68,20 @@ sealed class TransferDiagram : State<Transaction.Transfer.TransferRequest> {
     }
 
 
-    data class IncomingTransferRequest(val incomingTransferId: Id, val TransferRequest: Transaction.Transfer.TransferRequest)
+    data class IncomingTransferRequest(val incomingTransferId: Id, val request: Transaction.Transfer.Request)
     data class CompleteTransferRequest(val outgoingTransferId: Id, val incomingTransferRequest: IncomingTransferRequest)
 
 
-    data class WaitingForOutgoingConfirmation(private val transferRequest: IncomingTransferRequest) : State<Transaction.Transfer.TransferRequest> {
-        override fun transition(): State<Transaction.Transfer.TransferRequest> {
+    data class WaitingForOutgoingConfirmation(private val transferRequest: IncomingTransferRequest) : State<Transaction.Transfer.Request> {
+        override fun transition(): State<Transaction.Transfer.Request> {
             return IncomingRequest(transferRequest).transition()
         }
     }
 
-    data class IncomingRequest(private val transferRequest: IncomingTransferRequest) : State<Transaction.Transfer.TransferRequest> {
-        override fun transition(): State<Transaction.Transfer.TransferRequest> {
-            val to = transferRequest.TransferRequest.to
-            val payload = to.requestIncomingPayload(transferRequest.TransferRequest)
+    data class IncomingRequest(private val transferRequest: IncomingTransferRequest) : State<Transaction.Transfer.Request> {
+        override fun transition(): State<Transaction.Transfer.Request> {
+            val to = transferRequest.request.to
+            val payload = to.requestIncomingPayload(transferRequest.request)
             val transferRequest1 = CompleteTransferRequest(payload.payload.transferId, transferRequest)
             return when (payload.payload) {
                 is TransferPayload.SecureTransferPayload -> {
@@ -98,20 +98,20 @@ sealed class TransferDiagram : State<Transaction.Transfer.TransferRequest> {
         }
     }
 
-    data class WaitingForIncomingConfirmation(private val transferRequest: CompleteTransferRequest) : State<Transaction.Transfer.TransferRequest> {
-        override fun transition(): State<Transaction.Transfer.TransferRequest> {
+    data class WaitingForIncomingConfirmation(private val transferRequest: CompleteTransferRequest) : State<Transaction.Transfer.Request> {
+        override fun transition(): State<Transaction.Transfer.Request> {
             return PerformingActions(transferRequest).transition()
         }
     }
 
-    data class PerformingActions(private val transferRequest: CompleteTransferRequest) : State<Transaction.Transfer.TransferRequest> {
-        override fun transition(): State<Transaction.Transfer.TransferRequest> {
-            val trRequest = transferRequest.incomingTransferRequest.TransferRequest
+    data class PerformingActions(private val transferRequest: CompleteTransferRequest) : State<Transaction.Transfer.Request> {
+        override fun transition(): State<Transaction.Transfer.Request> {
+            val trRequest = transferRequest.incomingTransferRequest.request
             trRequest.from.confirmOutgoing(transferRequest.incomingTransferRequest.incomingTransferId)
             trRequest.to.confirmIncoming(transferRequest.outgoingTransferId)
             return Confirmed(transferRequest)
         }
     }
 
-    data class Confirmed(val transferRequest: CompleteTransferRequest) : FinalState<Transaction.Transfer.TransferRequest>()
+    data class Confirmed(val transferRequest: CompleteTransferRequest) : FinalState<Transaction.Transfer.Request>()
 }
