@@ -13,10 +13,7 @@ import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.transactions.Transaction.Transfer
 import com.example.kata.bank.service.domain.transactions.Transaction.Transfer.TransferRequest
 import com.example.kata.bank.service.domain.transactions.Tx
-import com.example.kata.bank.service.domain.transfers.IncomingTransfer
-import com.example.kata.bank.service.domain.transfers.OutgoingTransfer
-import com.example.kata.bank.service.domain.transfers.TransferDiagram
-import com.example.kata.bank.service.domain.transfers.TransferPayload
+import com.example.kata.bank.service.domain.transfers.*
 import com.example.kata.bank.service.infrastructure.statement.Statement
 import com.example.kata.bank.service.infrastructure.statement.StatementLine
 import com.example.kata.bank.service.infrastructure.storage.InMemorySimpleRepository
@@ -29,7 +26,7 @@ class Account(
         private val incomingSecurity: Option<Security> = None,
         private val outgoingSecurity: Option<Security> = None,
         val number: Number = Number.of(Id.random().value)
-) : OutgoingTransfer, IncomingTransfer {
+) : OutgoingTransfer, SecureOutgoingTransfer, IncomingTransfer, SecureIncomingTransfer {
 
 
     private val transactionRepository: InMemorySimpleRepository<Transaction> = TransactionSimpleRepository()

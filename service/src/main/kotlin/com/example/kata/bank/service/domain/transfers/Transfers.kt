@@ -6,16 +6,21 @@ import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.transactions.Tx
 
+interface SecureIncomingTransfer {
+    fun userConfirmIncoming(transferId: Id)
+}
+interface SecureOutgoingTransfer {
+    fun userConfirmOutgoing(transferId: Id)
+}
+
 interface IncomingTransfer {
     fun confirmIncoming(transferId: Id)
-    fun userConfirmIncoming(transferId: Id)
     fun requestIncomingPayload(request: Transaction.Transfer.TransferRequest): Transaction.Transfer
     fun register(transferId: Id, diagram: State<Transaction.Transfer.TransferRequest>, tx: Tx)
 }
 
 interface OutgoingTransfer {
     fun confirmOutgoing(transferId: Id)
-    fun userConfirmOutgoing(transferId: Id)
     fun requestOutgoingPayload(request: Transaction.Transfer.TransferRequest): Transaction.Transfer
     fun register(transferId: Id, diagram: State<Transaction.Transfer.TransferRequest>, tx: Tx)
 }
