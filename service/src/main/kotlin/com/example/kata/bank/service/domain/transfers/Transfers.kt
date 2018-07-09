@@ -3,15 +3,16 @@ package com.example.kata.bank.service.domain.transfers
 import com.example.kata.bank.service.FinalState
 import com.example.kata.bank.service.State
 import com.example.kata.bank.service.domain.Id
+import com.example.kata.bank.service.domain.accounts.PinCode
 import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.transactions.Tx
 
 interface SecureIncomingTransfer {
-    fun userConfirmIncoming(transferId: Id)
+    fun userConfirmIncoming(transferId: Id, userPinCode: PinCode)
 }
 
 interface SecureOutgoingTransfer {
-    fun userConfirmOutgoing(transferId: Id)
+    fun userConfirmOutgoing(transferId: Id, userPinCode: PinCode)
 }
 
 interface IncomingTransfer {
@@ -29,9 +30,19 @@ interface OutgoingTransfer {
 sealed class TransferPayload {
     abstract val transferId: Id
     abstract val request: Transaction.Transfer.TransferRequest
+    abstract fun validatedBy(userPinCode: PinCode): Boolean
 
-    data class SecureTransferPayload(override val transferId: Id, val code: String, override val request: Transaction.Transfer.TransferRequest) : TransferPayload()
-    data class NotSecureTransferPayload(override val transferId: Id, override val request: Transaction.Transfer.TransferRequest) : TransferPayload()
+    data class SecureTransferPayload(override val transferId: Id, private val code: PinCode, override val request: Transaction.Transfer.TransferRequest) : TransferPayload() {
+        override fun validatedBy(userPinCode: PinCode): Boolean {
+            return this.code.validatedBy(userPinCode)
+        }
+    }
+
+    data class NotSecureTransferPayload(override val transferId: Id, override val request: Transaction.Transfer.TransferRequest) : TransferPayload() {
+        override fun validatedBy(userPinCode: PinCode): Boolean {
+            return true
+        }
+    }
 }
 
 sealed class TransferDiagram : State<Transaction.Transfer.TransferRequest> {

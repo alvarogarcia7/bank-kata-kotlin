@@ -6,6 +6,7 @@ import com.example.kata.bank.service.domain.Id
 import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
+import com.nhaarman.mockito_kotlin.atLeast
 import com.nhaarman.mockito_kotlin.doAnswer
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.verify
@@ -84,7 +85,7 @@ abstract class AccountShould {
 
         invariant({
             Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
-            origin.value.userConfirmOutgoing(origin.value.pendingTransfers().entries.first().key)
+            confirmFirstPendingOutogoingTransfer(origin)
         },
                 { ("same balance" to origin.value.balance().add(destination.value.balance())) })
     }
@@ -95,7 +96,6 @@ abstract class AccountShould {
         val origin = Persisted.`for`(account, Id.of("origin"))
         val initialBalance = origin.value.balance()
         val destination = Persisted.`for`(AccountBuilder.aNew(this::account).clock(fakeClock).build(), Id.of("destination"))
-
 
         Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
 
@@ -109,13 +109,21 @@ abstract class AccountShould {
         val (destination, destinationBalance) = withBalance(AccountBuilder.aNew(this::account).clock(fakeClock).build(), Id.of("destination"))
 
         Account.transfer(sampleTransferAmount, dummy_description, origin, destination)
-        origin.value.userConfirmOutgoing(origin.value.pendingTransfers().entries.first().key)
+        confirmFirstPendingOutogoingTransfer(origin)
 
         val softly = SoftAssertions()
         softly.assertThat(origin.value.balance()).isEqualTo(initialBalance.subtract(sampleTransferAmount))
         softly.assertThat(destination.value.balance()).isEqualTo(destinationBalance.add(sampleTransferAmount))
         softly.assertAll()
-        verify(securityProvider).generate()
+        verify(securityProvider, atLeast(1)).generate()
+    }
+
+    fun confirmFirstPendingOutogoingTransfer(account: Persisted<Account>) {
+        account.value.userConfirmOutgoing(account.value.pendingTransfers().entries.first().key, securityProvider.generate())
+    }
+
+    fun confirmFirstPendingIncomingTransfer(account: Persisted<Account>) {
+        account.value.userConfirmIncoming(account.value.pendingTransfers().entries.first().key, securityProvider.generate())
     }
 
     private fun invariant(sideEffect: () -> Any, vararg functions: () -> Pair<String, Any>) {
@@ -146,7 +154,7 @@ abstract class AccountShould {
     }
 
     protected val securityProvider = mock<Security> {
-        on { generate() } doAnswer { println("Your code for verifying the operation is: ");"123456" }
+        on { generate() } doAnswer { println("Your code for verifying the operation is: ");PinCode("123456") }
     }
 
     val sampleTransferAmount = Amount.of("100")

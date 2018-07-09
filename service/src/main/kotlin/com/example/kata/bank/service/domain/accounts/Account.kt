@@ -150,13 +150,24 @@ class Account(
                 }
     }
 
-    override fun userConfirmIncoming(transferId: Id) {
-        this.pendingTransfers[transferId]!!.first.transition()
-        this.pendingTransfers.remove(transferId)
+    override fun userConfirmIncoming(transferId: Id, userPinCode: PinCode) {
+        userConfirmTransfer(transferId, userPinCode)
     }
 
-    override fun userConfirmOutgoing(transferId: Id) {
-        userConfirmIncoming(transferId)
+    override fun userConfirmOutgoing(transferId: Id, userPinCode: PinCode) {
+        userConfirmTransfer(transferId, userPinCode)
+    }
+
+    private fun userConfirmTransfer(transferId: Id, userPinCode: PinCode) {
+        this.transactionRepository
+                .findBy(transferId)
+                .map { it ->
+                    val transferPayload = (it.value as Transfer).payload
+                    if (transferPayload.validatedBy(userPinCode)) {
+                        pendingTransfers[transferId]!!.first.transition()
+                        this.pendingTransfers.remove(transferId)
+                    }
+                }
     }
 
     override fun requestIncomingPayload(request: TransferRequest): Transfer {

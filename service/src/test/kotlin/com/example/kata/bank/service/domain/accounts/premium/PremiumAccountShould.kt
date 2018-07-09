@@ -5,6 +5,7 @@ import com.example.kata.bank.service.domain.Persisted
 import com.example.kata.bank.service.domain.accounts.Account
 import com.example.kata.bank.service.domain.accounts.AccountBuilder
 import com.example.kata.bank.service.domain.accounts.AccountShould
+import com.example.kata.bank.service.domain.accounts.PinCode
 import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
 import org.assertj.core.api.Assertions.assertThat
@@ -65,7 +66,7 @@ class PremiumAccountShould : AccountShould() {
         val (receiver, _) = persistAndSize(AccountBuilder.aNew(this::account).incoming(securityProvider).build(), "receiver")
         val previousBalance = receiver.value.balance()
 
-        val result = Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
+        Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
         //do not confirm incoming transfer
 
         //then the balance is not altered
@@ -80,7 +81,22 @@ class PremiumAccountShould : AccountShould() {
         val previousSenderBalance = sender.value.balance()
 
         Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
-        confirmFirstPendingTransfer(sender)
+        confirmFirstPendingOutogoingTransfer(sender)
+        //do not confirm incoming transfer
+
+        assertThat(receiver.value.balance()).isEqualTo(previousReceiverBalance)
+        assertThat(sender.value.balance()).isEqualTo(previousSenderBalance)
+    }
+
+    @Test
+    fun `funds do not change accounts because you cannot confirm with the wrong pincode`() {
+        val (sender, _) = persistAndSize(AccountBuilder.aNew(this::account).outgoing(securityProvider).movements().build(), "sender")
+        val (receiver, _) = persistAndSize(AccountBuilder.aNew(this::account).build(), "receiver")
+        val previousReceiverBalance = receiver.value.balance()
+        val previousSenderBalance = sender.value.balance()
+
+        Account.transfer(Amount.of("100"), "sample transfer", sender, receiver)
+        sender.value.userConfirmOutgoing(sender.value.pendingTransfers().entries.first().key, PinCode("0000"))
         //do not confirm incoming transfer
 
         assertThat(receiver.value.balance()).isEqualTo(previousReceiverBalance)
@@ -97,8 +113,8 @@ class PremiumAccountShould : AccountShould() {
         val previousTotalBalance = sender.value.balance().add(receiver.value.balance())
 
         Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
-        confirmFirstPendingTransfer(sender)
-        confirmFirstPendingTransfer(receiver)
+        confirmFirstPendingOutogoingTransfer(sender)
+        confirmFirstPendingIncomingTransfer(receiver)
 
         assertThat(sender.value.balance().add(receiver.value.balance())).isEqualTo(previousTotalBalance)
     }
@@ -111,18 +127,12 @@ class PremiumAccountShould : AccountShould() {
         val previousSenderBalance = sender.value.balance()
 
         Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
-        confirmFirstPendingTransfer(sender)
+        confirmFirstPendingOutogoingTransfer(sender)
         //do not confirm incoming transfer
 
         assertThat(receiver.value.balance()).isEqualTo(previousReceiverBalance)
         assertThat(sender.value.balance()).isEqualTo(previousSenderBalance)
     }
-
-    private fun confirmFirstPendingTransfer(account: Persisted<Account>) {
-        val transferId = firstPendingTransferId(account)
-        account.value.userConfirmOutgoing(transferId)
-    }
-
 
     private fun costsFor(account: Account) = account.findAll().map { it.value }.filter { it is Transaction.Cost }
 
