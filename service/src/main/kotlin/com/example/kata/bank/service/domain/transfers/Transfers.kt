@@ -32,13 +32,13 @@ sealed class TransferPayload {
     abstract val request: Transaction.Transfer.Request
     abstract fun validatedBy(userPinCode: PinCode): Boolean
 
-    data class SecureTransferPayload(override val transferId: Id, private val code: PinCode, override val request: Transaction.Transfer.Request) : TransferPayload() {
+    data class Secure(override val transferId: Id, private val code: PinCode, override val request: Transaction.Transfer.Request) : TransferPayload() {
         override fun validatedBy(userPinCode: PinCode): Boolean {
             return this.code.validatedBy(userPinCode)
         }
     }
 
-    data class NotSecureTransferPayload(override val transferId: Id, override val request: Transaction.Transfer.Request) : TransferPayload() {
+    data class NotSecure(override val transferId: Id, override val request: Transaction.Transfer.Request) : TransferPayload() {
         override fun validatedBy(userPinCode: PinCode): Boolean {
             return true
         }
@@ -52,12 +52,12 @@ sealed class TransferDiagram : State<Transaction.Transfer.Request> {
             val outgoingPayload = request.from.requestOutgoingPayload(request)
             val incomingTransferRequest = IncomingTransferRequest(outgoingPayload.payload.transferId, request)
             return when (outgoingPayload.payload) {
-                is TransferPayload.SecureTransferPayload -> {
+                is TransferPayload.Secure -> {
                     val newState = WaitingForOutgoingConfirmation(incomingTransferRequest)
                     request.from.register(outgoingPayload.payload.transferId, newState, outgoingPayload.tx)
                     newState
                 }
-                is TransferPayload.NotSecureTransferPayload -> {
+                is TransferPayload.NotSecure -> {
                     val newState = IncomingRequest(incomingTransferRequest)
                     request.from.register(outgoingPayload.payload.transferId, newState, outgoingPayload.tx)
                     newState.transition()
@@ -84,12 +84,12 @@ sealed class TransferDiagram : State<Transaction.Transfer.Request> {
             val payload = to.requestIncomingPayload(transferRequest.request)
             val transferRequest1 = CompleteTransferRequest(payload.payload.transferId, transferRequest)
             return when (payload.payload) {
-                is TransferPayload.SecureTransferPayload -> {
+                is TransferPayload.Secure -> {
                     val newState = WaitingForIncomingConfirmation(transferRequest1)
                     to.register(payload.payload.transferId, newState, payload.tx)
                     newState
                 }
-                is TransferPayload.NotSecureTransferPayload -> {
+                is TransferPayload.NotSecure -> {
                     val newState = PerformingActions(transferRequest1)
                     to.register(payload.payload.transferId, newState, payload.tx)
                     newState.transition()

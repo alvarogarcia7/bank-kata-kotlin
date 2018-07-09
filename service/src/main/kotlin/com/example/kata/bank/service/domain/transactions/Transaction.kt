@@ -30,23 +30,24 @@ sealed class Transaction(open val tx: Tx) {
         }
     }
 
-    data class Transfer(override val tx: Tx, val payload: TransferPayload) : Transaction(tx) {
+    class Transfer(override val tx: Tx, val payload: TransferPayload) : Transaction(tx) {
         override fun subtotal(amount: Amount): Amount {
             return amount
         }
 
         data class Request(val from: OutgoingTransfer, val to: IncomingTransfer, val request: Tx)
-    }
 
-    data class OutgoingCompletedTransfer(override val tx: Tx) : Transaction(tx) {
-        override fun subtotal(amount: Amount): Amount {
-            return amount.subtract(tx.amount)
+        data class OutgoingCompleted(override val tx: Tx) : Transaction(tx) {
+            override fun subtotal(amount: Amount): Amount {
+                return amount.subtract(tx.amount)
+            }
+        }
+
+        data class IncomingCompleted(override val tx: Tx) : Transaction(tx) {
+            override fun subtotal(amount: Amount): Amount {
+                return amount.add(tx.amount)
+            }
         }
     }
 
-    data class IncomingCompletedTransfer(override val tx: Tx) : Transaction(tx) {
-        override fun subtotal(amount: Amount): Amount {
-            return amount.add(tx.amount)
-        }
-    }
 }

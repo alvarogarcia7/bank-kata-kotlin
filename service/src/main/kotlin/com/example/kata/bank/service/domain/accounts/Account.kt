@@ -138,7 +138,7 @@ class Account(
         this.transactionRepository
                 .findBy(transferId)
                 .map { it ->
-                    this.transactionRepository.save(createIdentityFor(Transaction.IncomingCompletedTransfer(it.value.tx)))
+                    this.transactionRepository.save(createIdentityFor(Transfer.IncomingCompleted(it.value.tx)))
                 }
     }
 
@@ -146,7 +146,7 @@ class Account(
         this.transactionRepository
                 .findBy(transferId)
                 .map { it ->
-                    this.transactionRepository.save(createIdentityFor(Transaction.OutgoingCompletedTransfer(it.value.tx)))
+                    this.transactionRepository.save(createIdentityFor(Transfer.OutgoingCompleted(it.value.tx)))
                 }
     }
 
@@ -182,13 +182,13 @@ class Account(
         val transferId = Id.random()
         return when (security) {
             is Some -> {
-                val request = Transfer(request.request, TransferPayload.SecureTransferPayload(transferId, security.t.generate(), request))
+                val request = Transfer(request.request, TransferPayload.Secure(transferId, security.t.generate(), request))
                 val persisted = Persisted.`for`(request, transferId)
                 transactionRepository.save(persisted)
                 request
             }
             is None -> {
-                val request = Transfer(request.request, TransferPayload.NotSecureTransferPayload(transferId, request))
+                val request = Transfer(request.request, TransferPayload.NotSecure(transferId, request))
                 val persisted = Persisted.`for`(request, transferId)
                 transactionRepository.save(persisted)
                 request
