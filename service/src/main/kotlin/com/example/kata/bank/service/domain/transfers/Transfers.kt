@@ -47,7 +47,7 @@ sealed class TransferPayload {
 
 sealed class TransferDiagram : State<Transaction.Transfer.TransferRequest> {
 
-    data class Initial(val transferRequest: Transaction.Transfer.TransferRequest) : State<Transaction.Transfer.TransferRequest> {
+    data class Initial(private val transferRequest: Transaction.Transfer.TransferRequest) : State<Transaction.Transfer.TransferRequest> {
         override fun transition(): State<Transaction.Transfer.TransferRequest> {
             val outgoingPayload = transferRequest.from.requestOutgoingPayload(transferRequest)
             val incomingTransferRequest = IncomingTransferRequest(outgoingPayload.payload.transferId, transferRequest)
@@ -72,13 +72,13 @@ sealed class TransferDiagram : State<Transaction.Transfer.TransferRequest> {
     data class CompleteTransferRequest(val outgoingTransferId: Id, val incomingTransferRequest: IncomingTransferRequest)
 
 
-    data class WaitingForOutgoingConfirmation(val transferRequest: IncomingTransferRequest) : State<Transaction.Transfer.TransferRequest> {
+    data class WaitingForOutgoingConfirmation(private val transferRequest: IncomingTransferRequest) : State<Transaction.Transfer.TransferRequest> {
         override fun transition(): State<Transaction.Transfer.TransferRequest> {
             return IncomingRequest(transferRequest).transition()
         }
     }
 
-    data class IncomingRequest(val transferRequest: IncomingTransferRequest) : State<Transaction.Transfer.TransferRequest> {
+    data class IncomingRequest(private val transferRequest: IncomingTransferRequest) : State<Transaction.Transfer.TransferRequest> {
         override fun transition(): State<Transaction.Transfer.TransferRequest> {
             val to = transferRequest.TransferRequest.to
             val payload = to.requestIncomingPayload(transferRequest.TransferRequest)
@@ -98,7 +98,7 @@ sealed class TransferDiagram : State<Transaction.Transfer.TransferRequest> {
         }
     }
 
-    data class WaitingForIncomingConfirmation(val transferRequest: CompleteTransferRequest) : State<Transaction.Transfer.TransferRequest> {
+    data class WaitingForIncomingConfirmation(private val transferRequest: CompleteTransferRequest) : State<Transaction.Transfer.TransferRequest> {
         override fun transition(): State<Transaction.Transfer.TransferRequest> {
             return PerformingActions(transferRequest).transition()
         }
