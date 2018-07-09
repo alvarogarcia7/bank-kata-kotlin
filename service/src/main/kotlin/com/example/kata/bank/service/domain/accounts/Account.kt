@@ -135,13 +135,19 @@ class Account(
     private fun genTx(amount: Amount, description: String) = Tx(amount, clock.getTime(), description)
 
     override fun confirmIncoming(transferId: Id) {
-        val tx = this.pendingTransfers[transferId]!!.second
-        transactionRepository.save(createIdentityFor(Transaction.IncomingCompletedTransfer(tx)))
+        this.transactionRepository
+                .findBy(transferId)
+                .map { it ->
+                    this.transactionRepository.save(createIdentityFor(Transaction.IncomingCompletedTransfer(it.value.tx)))
+                }
     }
 
     override fun confirmOutgoing(transferId: Id) {
-        val state = this.pendingTransfers[transferId]!!
-        this.transactionRepository.save(createIdentityFor(Transaction.OutgoingCompletedTransfer(state.second)))
+        this.transactionRepository
+                .findBy(transferId)
+                .map { it ->
+                    this.transactionRepository.save(createIdentityFor(Transaction.OutgoingCompletedTransfer(it.value.tx)))
+                }
     }
 
     override fun userConfirmIncoming(transferId: Id) {
@@ -162,16 +168,17 @@ class Account(
     }
 
     private fun generateTransferPayload(security: Option<Security>, transferRequest: TransferRequest): Transfer {
+        val transferId = Id.random()
         return when (security) {
             is Some -> {
-                val request = Transfer(transferRequest.request, TransferPayload.SecureTransferPayload(Id.random(), security.t.generate(), transferRequest))
-                val persisted = createIdentityFor(request)
+                val request = Transfer(transferRequest.request, TransferPayload.SecureTransferPayload(transferId, security.t.generate(), transferRequest))
+                val persisted = Persisted.`for`(request, transferId)
                 transactionRepository.save(persisted)
                 request
             }
             is None -> {
-                val request = Transfer(transferRequest.request, TransferPayload.NotSecureTransferPayload(Id.random(), transferRequest))
-                val persisted = createIdentityFor(request)
+                val request = Transfer(transferRequest.request, TransferPayload.NotSecureTransferPayload(transferId, transferRequest))
+                val persisted = Persisted.`for`(request, transferId)
                 transactionRepository.save(persisted)
                 request
             }

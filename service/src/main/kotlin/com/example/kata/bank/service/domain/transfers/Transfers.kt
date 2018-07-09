@@ -9,6 +9,7 @@ import com.example.kata.bank.service.domain.transactions.Tx
 interface SecureIncomingTransfer {
     fun userConfirmIncoming(transferId: Id)
 }
+
 interface SecureOutgoingTransfer {
     fun userConfirmOutgoing(transferId: Id)
 }

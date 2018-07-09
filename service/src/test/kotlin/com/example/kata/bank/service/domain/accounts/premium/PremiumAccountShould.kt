@@ -90,23 +90,18 @@ class PremiumAccountShould : AccountShould() {
     private fun firstPendingTransferId(account: Persisted<Account>) =
             account.value.pendingTransfers().entries.first().key
 
-    //TODO AGB how to confirm both requests
-//    @Ignore
-//    @Test
-//    fun `no money is lost when transferring money and both accounts are protected`() {
-//        val (sender, _) = persistAndSize(AccountBuilder.aNew(this::account).outgoing(securityProvider).movements().build(), "sender")
-//        val (receiver, _) = persistAndSize(AccountBuilder.aNew(this::account).incoming(securityProvider).build(), "receiver")
-//        val previousTotalBalance = sender.value.balance().add(receiver.value.balance())
-//
-//        Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
-//                .mapLeft {
-//                    sender.value.confirmRequest(it, "123456")
-//                }.mapLeft {
-//                    receiver.value.confirmRequest(it, "123456")
-//                }
-//
-//        assertThat(sender.value.balance().add(receiver.value.balance())).isEqualTo(previousTotalBalance)
-//    }
+    @Test
+    fun `no money is lost when transferring money and both accounts are protected`() {
+        val (sender, _) = persistAndSize(AccountBuilder.aNew(this::account).outgoing(securityProvider).movements().build(), "sender")
+        val (receiver, _) = persistAndSize(AccountBuilder.aNew(this::account).incoming(securityProvider).build(), "receiver")
+        val previousTotalBalance = sender.value.balance().add(receiver.value.balance())
+
+        Account.transfer(Amount.of("100"), "scam transfer", sender, receiver)
+        confirmFirstPendingTransfer(sender)
+        confirmFirstPendingTransfer(receiver)
+
+        assertThat(sender.value.balance().add(receiver.value.balance())).isEqualTo(previousTotalBalance)
+    }
 
     @Test
     fun `as soon as the transfer is confirmed in the sender account, the money is not withdrawn`() {
