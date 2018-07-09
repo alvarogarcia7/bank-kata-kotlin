@@ -47,6 +47,9 @@ sealed class TransferPayload {
 
 sealed class TransferDiagram : State<Transaction.Transfer.Request> {
 
+    data class IncomingTransferRequest(val incomingTransferId: Id, val request: Transaction.Transfer.Request)
+    data class CompleteTransferRequest(val outgoingTransferId: Id, val incomingTransferRequest: IncomingTransferRequest)
+
     data class Initial(private val request: Transaction.Transfer.Request) : State<Transaction.Transfer.Request> {
         override fun transition(): State<Transaction.Transfer.Request> {
             val outgoingPayload = request.from.requestOutgoingPayload(request)
@@ -66,11 +69,6 @@ sealed class TransferDiagram : State<Transaction.Transfer.Request> {
             }
         }
     }
-
-
-    data class IncomingTransferRequest(val incomingTransferId: Id, val request: Transaction.Transfer.Request)
-    data class CompleteTransferRequest(val outgoingTransferId: Id, val incomingTransferRequest: IncomingTransferRequest)
-
 
     data class WaitingForOutgoingConfirmation(private val transferRequest: IncomingTransferRequest) : State<Transaction.Transfer.Request> {
         override fun transition(): State<Transaction.Transfer.Request> {
