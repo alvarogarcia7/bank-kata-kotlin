@@ -77,3 +77,10 @@ end there is a set of actions.
 Based on the way it has been implemented (only data is passed around, but
 not behaviour), this could be serialized / exposed over ReST.
 
+## Clock
+
+`f log --format="%s;%ct"|grep CLOCK|cut -d";" -f1` gives the messages
+`f log --format="%s;%ct"|grep CLOCK|cut -d";" -f2` gives the times in millis
+
+Then copy to a spreadsheet and calculate the difference when it is STOP
+
