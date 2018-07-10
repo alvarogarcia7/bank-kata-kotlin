@@ -27,8 +27,8 @@ import com.example.kata.bank.service.infrastructure.accounts.AccountsService
 import com.example.kata.bank.service.infrastructure.accounts.out.AccountDTO
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
 import com.example.kata.bank.service.infrastructure.operations.OperationsRepository
+import com.example.kata.bank.service.infrastructure.operations.out.StatementLineDTO
 import com.example.kata.bank.service.infrastructure.operations.out.TimeDTO
-import com.example.kata.bank.service.infrastructure.operations.out.TransactionDTO
 import com.example.kata.bank.service.infrastructure.users.UsersSimpleRepository
 import com.example.kata.bank.service.usecases.accounts.DepositUseCase
 import com.example.kata.bank.service.usecases.accounts.OpenAccountUseCase
@@ -289,7 +289,7 @@ class E2EServiceFeatureTest {
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     println(result.value)
-                    val response = http.mapper.readValue<List<MyResponse<TransactionDTO>>>(result.value)
+                    val response = http.mapper.readValue<List<MyResponse<StatementLineDTO>>>(result.value)
                     assertThat(response).hasSize(2)
                 }
     }
@@ -342,13 +342,13 @@ class E2EServiceFeatureTest {
                     val x = http.mapper.readValue<MyResponse<StatementOutDTO>>(result.value)
                     val deposits = setTime(x, fixedTimeDTO)
                     assertThat(deposits).contains(
-                            TransactionDTO(AmountDTO.EUR("100.00"), "rent, part 1", fixedTimeDTO, "deposit"),
-                            TransactionDTO(AmountDTO.EUR("200.00"), "rent, part 2", fixedTimeDTO, "deposit"))
+                            StatementLineDTO(AmountDTO.EUR("100.00"), "rent, part 1", fixedTimeDTO, "deposit", AmountDTO.EUR("0")),
+                            StatementLineDTO(AmountDTO.EUR("200.00"), "rent, part 2", fixedTimeDTO, "deposit", AmountDTO.EUR("0")))
                 }
     }
 
-    private fun setTime(coll: MyResponse<StatementOutDTO>, value: TimeDTO): List<TransactionDTO> {
-        return coll.response.transactions.map {
+    private fun setTime(coll: MyResponse<StatementOutDTO>, value: TimeDTO): List<StatementLineDTO> {
+        return coll.response.statementLines.map {
             it.copy(time = value)
         }
     }

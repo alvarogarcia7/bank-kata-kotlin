@@ -19,6 +19,8 @@ import com.example.kata.bank.service.infrastructure.statement.StatementLine
 import com.example.kata.bank.service.infrastructure.storage.InMemorySimpleRepository
 import com.example.kata.bank.service.infrastructure.transactions.TransactionSimpleRepository
 
+class StatementRepository : InMemorySimpleRepository<Statement>(mutableListOf())
+
 class Account(
         val clock: Clock,
         val name: String,
@@ -30,6 +32,7 @@ class Account(
 
 
     private val transactionRepository: InMemorySimpleRepository<Transaction> = TransactionSimpleRepository()
+    private val statementRepository = StatementRepository()
     private val pendingTransfers: MutableMap<Id, Pair<State<Transfer.Request>, Tx>> = mutableMapOf()
 
 
@@ -198,6 +201,10 @@ class Account(
 
     override fun register(transferId: Id, diagram: State<Request>, tx: Tx) {
         this.pendingTransfers[transferId] = Pair(diagram, tx)
+    }
+
+    fun findStatementById(id: Id): Option<Persisted<Statement>> {
+        return this.statementRepository.findBy(id)
     }
 
     data class Number private constructor(val value: String) {

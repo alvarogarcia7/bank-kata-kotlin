@@ -11,9 +11,9 @@ internal class AccountRepositoryShould {
     @Test
     fun `make the account number primary key`() {
         val repository = AccountRestrictedRepository.aNew()
-        repository.save(Persisted.`for`(Account(Clock.aNew(), "name1", number = Account.Number.of("11")), Id.random()))
+        repository.save(Persisted.`for`(Account(clock = Clock.aNew(), name = "name1", number = Account.Number.of("11")), Id.random()))
 
-        val result = repository.save(Persisted.`for`(Account(Clock.aNew(), "name1", number = Account.Number.of("11")), Id.random()))
+        val result = repository.save(Persisted.`for`(Account(clock = Clock.aNew(), name = "name1", number = Account.Number.of("11")), Id.random()))
 
         assertThat(result.mapLeft { it.map { it.message } }).isEqualTo(Either.left(listOf("Already exists account number: 11")))
     }

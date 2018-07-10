@@ -85,9 +85,10 @@ class OperationsHandler(private val accountRepository: AccountRestrictedReposito
         }
 
         val result = accountFor(Id.of(accountId))
-                .map {
-                    val operations = it.findAll().map { it.value }.map { mapper.toDTO(it) }
-                    val response = StatementOutDTO(operations)
+                .flatMap {
+                    it.findStatementById(Id.of(statementId!!))
+                }.map { it ->
+                    val response = mapper.toDTO(it.value)
                     MyResponse.links(response,
                             Link.self(Pair("accounts", Id.of(accountId)), Pair("operations", Id.of(statementId))))
                 }
