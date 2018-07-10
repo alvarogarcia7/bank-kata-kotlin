@@ -36,8 +36,10 @@ import com.example.kata.bank.service.usecases.accounts.OpenAccountUseCase
 import com.example.kata.bank.service.usecases.accounts.TransferUseCase
 import com.example.kata.bank.service.usecases.statements.StatementCreationUseCase
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.FuelManager
 import com.github.kittinunf.fuel.core.Request
+import com.github.kittinunf.result.Result
 import org.assertj.core.api.AbstractAssert
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
@@ -131,7 +133,7 @@ class E2EServiceFeatureTest {
         val accountId = Id.random()
         accountRepository.save(Persisted.`for`(aNewAccount("pepe", Account.Number.of("00-00-00-01")), accountId))
 
-        (HTTP::get)("/accounts/${accountId.value}")
+        (HTTP::get)(account(accountId))
                 .let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
@@ -157,7 +159,6 @@ class E2EServiceFeatureTest {
     private fun openAccount(name: String): Request {
         return (HTTP::post)("accounts", """{"name": "$name"}""")
     }
-
 
     @Test
     fun `deposit - a correct request`() {
@@ -189,6 +190,7 @@ class E2EServiceFeatureTest {
         TransactionAssert.assertThat(newOperations.last().value).isEqualToIgnoringDate(Transaction.Deposit(Tx(Amount.of("1234.56"), anyDate(), "rent for this month")))
     }
 
+
     @Test
     fun `wire transfer - a correct request`() {
 
@@ -211,7 +213,7 @@ class E2EServiceFeatureTest {
 	},
     "description": "rent for this month"
 }
-""").let(http::request)
+""".trimIndent()).let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     val response = http.mapper.readValue<MyResponse<Unit>>(result.value)
@@ -243,10 +245,10 @@ class E2EServiceFeatureTest {
 
     private val `operationsFor!` = this::operationsFor andThen this::forceGet
 
-
     private fun anyDate(): LocalDateTime {
         return LocalDateTime.now()
     }
+
 
     fun bIsSupersetOfA(a: List<Persisted<Transaction>>, b: List<Persisted<Transaction>>) {
         a.forEach {
@@ -273,9 +275,9 @@ class E2EServiceFeatureTest {
             fun assertThat(actual: Transaction): TransactionAssert {
                 return TransactionAssert(actual)
             }
+
         }
     }
-
     @Test
     fun `list the operations`() {
 
@@ -286,7 +288,7 @@ class E2EServiceFeatureTest {
                     it.value.deposit(Amount.Companion.of("100"), "rent, part 1")
                     it.value.deposit(Amount.Companion.of("200"), "rent, part 2")
                 }
-        (HTTP::get)("/accounts/${accountId.value}/operations")
+        (HTTP::get)(operations(accountId))
                 .let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
@@ -336,18 +338,26 @@ class E2EServiceFeatureTest {
                     StatementCreationUseCase(operationsRepository).createStatement(it.value, AccountRequest.StatementRequest.all())
                 }.getOrElse { throw UnreachableCode() }
 
-        (HTTP::get)("/accounts/${accountId.value}/statements/${statementId.value}")
+
+        (HTTP::get)(statement(accountId, statementId))
                 .let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
-                    println(result.value)
-                    val x = http.mapper.readValue<MyResponse<StatementOutDTO>>(result.value)
+                    result
+                }.let(readAsMyResponseStatementOutDTO)
+                .let { x ->
                     val deposits = setTime(x, fixedTimeDTO)
                     assertThat(deposits).contains(
                             StatementLineDTO(AmountDTO.EUR("100.00"), "rent, part 1", fixedTimeDTO, "deposit", AmountDTO.EUR("100.00")),
                             StatementLineDTO(AmountDTO.EUR("200.00"), "rent, part 2", fixedTimeDTO, "deposit", AmountDTO.EUR("300.00")))
                 }
     }
+
+    val readAsMyResponseStatementOutDTO: (Result.Success<String, FuelError>) -> MyResponse<StatementOutDTO> = { http.mapper.readValue(it.value) }
+
+
+    private fun statement(accountId: Id, statementId: Id) =
+            "/accounts/${accountId.value}/statements/${statementId.value}"
 
     private fun setTime(coll: MyResponse<StatementOutDTO>, value: TimeDTO): List<StatementLineDTO> {
         return coll.response.statementLines.map {
@@ -369,7 +379,11 @@ class E2EServiceFeatureTest {
                 }
     }
 
+    private fun operations(accountId: Id) = "/accounts/${accountId.value}/operations"
+
     private fun aNewAccount(accountNumber: Account.Number = Account.Number.of(Id.random().value)) = aNewAccount("savings account #" + Random().nextInt(10), accountNumber)
+
+    private fun account(accountId: Id) = "/accounts/${accountId.value}"
 
     private fun aNewAccount(accountName: String, accountNumber: Account.Number) = Account(Clock.aNew(), accountName, number = accountNumber)
 
