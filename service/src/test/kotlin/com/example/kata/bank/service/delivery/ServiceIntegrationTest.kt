@@ -79,7 +79,7 @@ class ServiceIntegrationTest {
         val transferUseCase: TransferUseCase = TransferUseCase(accountRepository)
         private val configuredApplication: () -> BankWebApplication = {
             BankWebApplication(
-                    OperationsHandler(accountRepository, transferUseCase, MockOperationService()),
+                    OperationsHandler(accountRepository, transferUseCase, MockOperationService(), OperationsRepository()),
                     AccountsHandler(accountRepository, StatementCreationUseCase(OperationsRepository()), OpenAccountUseCase(accountRepository)),
                     UsersHandler(UsersSimpleRepository())
             )

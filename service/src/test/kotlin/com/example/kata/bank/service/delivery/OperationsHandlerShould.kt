@@ -8,6 +8,7 @@ import com.example.kata.bank.service.delivery.out.ErrorsDTO
 import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
 import com.example.kata.bank.service.infrastructure.operations.OperationService
+import com.example.kata.bank.service.infrastructure.operations.OperationsRepository
 import com.example.kata.bank.service.infrastructure.operations.`in`.OperationRequest
 import com.example.kata.bank.service.usecases.accounts.DepositUseCase
 import com.example.kata.bank.service.usecases.accounts.TransferUseCase
@@ -21,7 +22,7 @@ import spark.Response
 internal class OperationsHandlerShould {
     private val operationService = OperationService()
     private val accountRepository = AccountRestrictedRepository.aNew()
-    private val operationsHandler = OperationsHandler(accountRepository, TransferUseCase(accountRepository), DepositUseCase(accountRepository))
+    private val operationsHandler = OperationsHandler(accountRepository, TransferUseCase(accountRepository), DepositUseCase(accountRepository), OperationsRepository())
     private val fakeResponse: Response = mock { }
     @Test
     fun `complain when you don't have an account id`() {

@@ -70,7 +70,8 @@ class UserFlowTest {
                     OperationsHandler(
                             accountRepository,
                             TransferUseCase(accountRepository),
-                            DepositUseCase(accountRepository)),
+                            DepositUseCase(accountRepository),
+                            operationsRepository),
                     AccountsHandler(accountRepository, StatementCreationUseCase(operationsRepository), OpenAccountUseCase(accountRepository)),
                     UsersHandler(UsersSimpleRepository()))
         }
@@ -86,7 +87,7 @@ class UserFlowTest {
         deposit10(accountId)
         val statementUri = `create statement and get its uri`(accountId)
         val response = `fetch statement`(statementUri)
-        assertThat(response.response.statementLines.last().balance).isEqualTo(AmountDTO.EUR("" + (4 * 10 - 1)))
+        assertThat(response.response.statementLines.first().balance).isEqualTo(AmountDTO.EUR("" + (4 * 10 - 1) + ".00"))
     }
 
     private fun `fetch statement`(statementUri: String) =

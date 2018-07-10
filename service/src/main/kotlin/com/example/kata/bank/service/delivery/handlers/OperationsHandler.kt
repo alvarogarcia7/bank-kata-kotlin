@@ -15,15 +15,17 @@ import com.example.kata.bank.service.delivery.json.readValueOption
 import com.example.kata.bank.service.delivery.out.ErrorsDTO
 import com.example.kata.bank.service.delivery.out.StatementOutDTO
 import com.example.kata.bank.service.domain.Id
+import com.example.kata.bank.service.domain.Operation
 import com.example.kata.bank.service.infrastructure.accounts.AccountRestrictedRepository
 import com.example.kata.bank.service.infrastructure.mapper.Mapper
+import com.example.kata.bank.service.infrastructure.operations.OperationsRepository
 import com.example.kata.bank.service.infrastructure.operations.`in`.OperationRequest
 import com.example.kata.bank.service.infrastructure.operations.out.TransactionDTO
 import com.example.kata.bank.service.usecases.accounts.DepositUseCase
 import com.example.kata.bank.service.usecases.accounts.TransferUseCase
 import spark.kotlin.Http
 
-class OperationsHandler(private val accountRepository: AccountRestrictedRepository, private val transferUseCase: TransferUseCase, private val depositUseCase: DepositUseCase) : Handler {
+class OperationsHandler(private val accountRepository: AccountRestrictedRepository, private val transferUseCase: TransferUseCase, private val depositUseCase: DepositUseCase, private val operationsRepository: OperationsRepository) : Handler {
     override fun register(http: Http) {
         http.get("/accounts/:accountId/operations/:operationId", function = mayBeMissing(::detail))
         http.get("/accounts/:accountId/operations", function = many(::list))
@@ -86,9 +88,9 @@ class OperationsHandler(private val accountRepository: AccountRestrictedReposito
 
         val result = accountFor(Id.of(accountId))
                 .flatMap {
-                    it.findStatementById(Id.of(statementId!!))
+                    operationsRepository.findBy(Id.of(statementId!!))
                 }.map { it ->
-                    val response = mapper.toDTO(it.value)
+                    val response = mapper.toDTO(it.value as Operation.Statement)
                     MyResponse.links(response,
                             Link.self(Pair("accounts", Id.of(accountId)), Pair("operations", Id.of(statementId))))
                 }

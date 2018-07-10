@@ -29,6 +29,7 @@ import com.example.kata.bank.service.infrastructure.operations.AmountDTO
 import com.example.kata.bank.service.infrastructure.operations.OperationsRepository
 import com.example.kata.bank.service.infrastructure.operations.out.StatementLineDTO
 import com.example.kata.bank.service.infrastructure.operations.out.TimeDTO
+import com.example.kata.bank.service.infrastructure.operations.out.TransactionDTO
 import com.example.kata.bank.service.infrastructure.users.UsersSimpleRepository
 import com.example.kata.bank.service.usecases.accounts.DepositUseCase
 import com.example.kata.bank.service.usecases.accounts.OpenAccountUseCase
@@ -84,7 +85,8 @@ class E2EServiceFeatureTest {
                     OperationsHandler(
                             accountRepository,
                             TransferUseCase(accountRepository),
-                            DepositUseCase(accountRepository)),
+                            DepositUseCase(accountRepository),
+                            operationsRepository),
                     AccountsHandler(accountRepository, StatementCreationUseCase(operationsRepository), OpenAccountUseCase(accountRepository)),
                     UsersHandler(UsersSimpleRepository()))
         }
@@ -289,7 +291,7 @@ class E2EServiceFeatureTest {
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
                     println(result.value)
-                    val response = http.mapper.readValue<List<MyResponse<StatementLineDTO>>>(result.value)
+                    val response = http.mapper.readValue<List<MyResponse<TransactionDTO>>>(result.value)
                     assertThat(response).hasSize(2)
                 }
     }
@@ -342,8 +344,8 @@ class E2EServiceFeatureTest {
                     val x = http.mapper.readValue<MyResponse<StatementOutDTO>>(result.value)
                     val deposits = setTime(x, fixedTimeDTO)
                     assertThat(deposits).contains(
-                            StatementLineDTO(AmountDTO.EUR("100.00"), "rent, part 1", fixedTimeDTO, "deposit", AmountDTO.EUR("0")),
-                            StatementLineDTO(AmountDTO.EUR("200.00"), "rent, part 2", fixedTimeDTO, "deposit", AmountDTO.EUR("0")))
+                            StatementLineDTO(AmountDTO.EUR("100.00"), "rent, part 1", fixedTimeDTO, "deposit", AmountDTO.EUR("100.00")),
+                            StatementLineDTO(AmountDTO.EUR("200.00"), "rent, part 2", fixedTimeDTO, "deposit", AmountDTO.EUR("300.00")))
                 }
     }
 

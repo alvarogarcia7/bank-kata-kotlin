@@ -14,11 +14,12 @@ import com.example.kata.bank.service.usecases.statements.StatementCreationUseCas
 
 fun main(args: Array<String>) {
     val accountRepository = AccountRestrictedRepository(mutableListOf())
+    val operationsRepository = OperationsRepository()
     val handlers = arrayOf(
-            OperationsHandler(accountRepository, TransferUseCase(accountRepository), DepositUseCase(accountRepository)),
+            OperationsHandler(accountRepository, TransferUseCase(accountRepository), DepositUseCase(accountRepository), operationsRepository),
             AccountsHandler(
                     accountRepository,
-                    StatementCreationUseCase(OperationsRepository()),
+                    StatementCreationUseCase(operationsRepository),
                     OpenAccountUseCase(accountRepository)),
             UsersHandler(UsersSimpleRepository()))
     BankWebApplication(*handlers).start(8080)

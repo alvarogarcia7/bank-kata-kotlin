@@ -4,8 +4,8 @@ import com.example.kata.bank.service.domain.transactions.Amount
 import com.example.kata.bank.service.domain.transactions.Transaction
 import com.example.kata.bank.service.domain.transactions.Tx
 import com.example.kata.bank.service.infrastructure.operations.AmountDTO
-import com.example.kata.bank.service.infrastructure.operations.out.StatementLineDTO
 import com.example.kata.bank.service.infrastructure.operations.out.TimeDTO
+import com.example.kata.bank.service.infrastructure.operations.out.TransactionDTO
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import java.time.LocalDateTime
@@ -16,7 +16,7 @@ class MapperShould {
         val time = LocalDateTime.of(2018, 10, 12, 23, 59)
         val description = "description"
         val domain = Transaction.Deposit(Tx(Amount.of("21.01"), time, description))
-        val dto = StatementLineDTO(AmountDTO.EUR("21.01"), description, TimeDTO("2018-10-12 23:59:00", "2018-10-12T23:59:00"), type = "deposit", balance = AmountDTO.EUR("0"))
+        val dto = TransactionDTO(AmountDTO.EUR("21.01"), description, TimeDTO("2018-10-12 23:59:00", "2018-10-12T23:59:00"), type = "deposit")
         Assertions.assertThat(Mapper().toDTO(domain)).isEqualTo(dto)
     }
 }
