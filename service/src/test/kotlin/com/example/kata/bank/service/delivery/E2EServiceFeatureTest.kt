@@ -112,7 +112,7 @@ class E2EServiceFeatureTest {
     @Test
     fun `create accounts`() {
 
-        HTTP.post("/accounts", "{\"name\": \"postperson savings account\"}")
+        HTTP.post("/accounts", AccountsHandlerClient.createAccount("postperson savings account"))
                 .let(http::request)
                 .let { (response, result) ->
                     assertThat(response.statusCode).isEqualTo(200)
