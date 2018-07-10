@@ -2,6 +2,7 @@ package com.example.kata.bank.service.delivery.e2e
 
 import com.example.kata.bank.service.ApplicationBooter
 import com.example.kata.bank.service.HTTP
+import com.example.kata.bank.service.delivery.AccountsHandlerClient
 import com.example.kata.bank.service.delivery.BankWebApplication
 import com.example.kata.bank.service.delivery.`in`.StatementRequestDTO
 import com.example.kata.bank.service.delivery.application.ApplicationEngine
@@ -96,8 +97,12 @@ class UserFlowTest {
     private fun `create statement and get its uri`(accountId: Id) =
             createStatement(accountId, StatementRequestDTO("statement")).let(http::request).let(readAsAny).links.first { it.rel == "self" }.href
 
-    private fun createAccount() =
-            Id.of((HTTP::post)("/accounts", """{"name": "${"john doe"}"}""").let(http::request).let(readAsAccountDto).let { it -> it.links.first { it.rel == "self" }.href.split("/").last() })
+    private fun createAccount(): Id {
+        val jsonPayload = AccountsHandlerClient.createAccount("john doe")
+        return Id.of((HTTP::post)("/accounts", jsonPayload).let(http::request).let(readAsAccountDto).let { it -> it.links.first { it.rel == "self" }.href.split("/").last() })
+    }
+
+
 
     val readAsAccountDto: (Pair<Response, Result.Success<String, FuelError>>) -> MyResponse<AccountDTO> = { (_, result) -> http.mapper.readValue(result.value) }
     val readAsStatementDto: (Pair<Response, Result.Success<String, FuelError>>) -> MyResponse<StatementOutDTO> = { (_, result) -> http.mapper.readValue(result.value) }
@@ -111,16 +116,7 @@ class UserFlowTest {
 
 
     private fun deposit10(accountId: Id) {
-        depositRequest(accountId, """
-    {
-        "type": "deposit",
-        "amount": {
-        "value": "10",
-        "currency": "EUR"
-    },
-        "description": "yet another deposit"
-    }
-            """).let(http::request)
+        depositRequest(accountId, AccountsHandlerClient.deposit("10")).let(http::request)
     }
 
 
