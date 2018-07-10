@@ -12,6 +12,7 @@ import com.example.kata.bank.service.delivery.handlers.AccountsHandler
 import com.example.kata.bank.service.delivery.handlers.OperationsHandler
 import com.example.kata.bank.service.delivery.handlers.UsersHandler
 import com.example.kata.bank.service.delivery.json.MyResponse
+import com.example.kata.bank.service.delivery.json.hateoas.Link
 import com.example.kata.bank.service.delivery.out.ErrorsDTO
 import com.example.kata.bank.service.delivery.out.StatementOutDTO
 import com.example.kata.bank.service.domain.AccountRequest
@@ -111,16 +112,16 @@ class E2EServiceFeatureTest {
                 .let(http::request)
                 .also { (response, _) ->
                     assertThat(response.statusCode).isEqualTo(200)
-                }.let { (_, result) -> http.mapper.readValue<List<MyResponse<AccountDTO>>>(result.value) }
+                }.let { (_, result) -> http.mapper.readValue(result.value) }
     }
 
     @Test
     fun `an account has a link to self`() {
-        openAccount("maria").let(http::request)
+        val accountId = createAccountLowLevel("maria")
 
-        readExistingAccounts().last()
+        fetchAccount(accountId)
                 .let { it ->
-                    it.links.find { it.rel == "self" }?.resource("accounts")!!
+                    assertThat(it.self()!!.resource("accounts").isDefined()).isTrue()
                 }
     }
 
@@ -142,14 +143,36 @@ class E2EServiceFeatureTest {
     @Test
     fun `create account`() {
         val accountName = "savings aNewAccount for maria"
-        openAccount(name = accountName)
-                .let(http::request)
-                .let { (response, result) ->
-                    println(result.value)
-                    assertThat(response.statusCode).isEqualTo(200)
-                    val r = http.mapper.readValue<MyResponse<AccountDTO>>(result.value)
-                    assertThat(r.response.name).isEqualTo(accountName)
+        val accountId = createAccountLowLevel(accountName)
+
+
+        fetchAccount(accountId)
+                .let {
+                    assertThat(it.response.name).isEqualTo(accountName)
                 }
+    }
+
+    private fun createAccountLowLevel(accountName: String): Id {
+        val accountId = openAccount(accountName)
+                .let(http::request)
+                .let { (_, response) -> http.mapper.readValue<MyResponse<AccountDTO>>(response.value) }
+                .selfHref().split("/").last()
+                .let { Id.of(it) }
+        return accountId
+    }
+
+    private fun fetchAccount(accountId: Id): MyResponse<AccountDTO> {
+        return HTTP.get("/accounts/${accountId.value}")
+                .let(http::request)
+                .let { (_, response) -> http.mapper.readValue<MyResponse<AccountDTO>>(response.value) }
+    }
+
+    fun <T> MyResponse<T>.selfHref(): String {
+        return this.self()!!.href
+    }
+
+    fun <T> MyResponse<T>.self(): Link? {
+        return links.first { it.rel == "self" }
     }
 
     private fun openAccount(name: String): Request {
