@@ -96,36 +96,32 @@ class E2EServiceFeatureTest {
 
 
     @Test
-    fun `list accounts`() {
-        accountRepository.save(Persisted.`for`(aNewAccount(), Id.random()))
-        accountRepository.save(Persisted.`for`(aNewAccount(), Id.random()))
-        accountRepository.save(Persisted.`for`(aNewAccount(), Id.random()))
+    fun `create multiple accounts`() {
+        val existingAccountSize = readExistingAccounts().size
 
+        openAccount("maria").let(http::request)
+        openAccount("maria").let(http::request)
+        openAccount("maria").let(http::request)
 
-        (HTTP::get)("/accounts")
+        assertThat(readExistingAccounts().size).isEqualTo(existingAccountSize + 3)
+    }
+
+    private fun readExistingAccounts(): List<MyResponse<AccountDTO>> {
+        return (HTTP::get)("/accounts")
                 .let(http::request)
-                .let { (response, result) ->
+                .also { (response, _) ->
                     assertThat(response.statusCode).isEqualTo(200)
-                    println(result.value)
-                    ""
-                }
+                }.let { (_, result) -> http.mapper.readValue<List<MyResponse<AccountDTO>>>(result.value) }
     }
 
     @Test
-    fun `create accounts`() {
+    fun `an account has a link to self`() {
+        openAccount("maria").let(http::request)
 
-        HTTP.post("/accounts", AccountsHandlerClient.createAccount("postperson savings account"))
-                .let(http::request)
-                .let { (response, result) ->
-                    assertThat(response.statusCode).isEqualTo(200)
-                    println(result.value)
-                    val account = http.mapper.readValue<MyResponse<AccountDTO>>(result.value)
-                    val statementPair = account.links.find { it.rel == "self" }?.resource("accounts")!!
-                    statementPair.map { (resource, idValue) ->
-                        assertThat(accountRepository.findBy(Id.of(idValue)).isDefined()).isTrue()
-                    }
+        readExistingAccounts().last()
+                .let { it ->
+                    it.links.find { it.rel == "self" }?.resource("accounts")!!
                 }
-
     }
 
     @Test
