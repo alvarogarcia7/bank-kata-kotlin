@@ -1,8 +1,8 @@
 package com.example.kata.bank.service.domain
 
 import com.example.kata.bank.service.domain.accounts.Clock
-import com.nhaarman.mockito_kotlin.doReturn
-import com.nhaarman.mockito_kotlin.mock
+import com.nhaarman.mockitokotlin2.doReturn
+import com.nhaarman.mockitokotlin2.mock
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 

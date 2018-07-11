@@ -12,10 +12,11 @@ import com.example.kata.bank.service.infrastructure.operations.OperationsReposit
 import com.example.kata.bank.service.infrastructure.operations.`in`.OperationRequest
 import com.example.kata.bank.service.usecases.accounts.DepositUseCase
 import com.example.kata.bank.service.usecases.accounts.TransferUseCase
-import com.nhaarman.mockito_kotlin.doReturn
-import com.nhaarman.mockito_kotlin.mock
+import com.nhaarman.mockitokotlin2.doReturn
+import com.nhaarman.mockitokotlin2.mock
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito
 import spark.Request
 import spark.Response
 
@@ -23,7 +24,7 @@ internal class OperationsHandlerShould {
     private val operationService = OperationService()
     private val accountRepository = AccountRestrictedRepository.aNew()
     private val operationsHandler = OperationsHandler(accountRepository, TransferUseCase(accountRepository), DepositUseCase(accountRepository), OperationsRepository())
-    private val fakeResponse: Response = mock { }
+    private val fakeResponse: Response = Mockito.mock(Response::class.java)
     @Test
     fun `complain when you don't have an account id`() {
         val fakeRequest = mock<Request> {

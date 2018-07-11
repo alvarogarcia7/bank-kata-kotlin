@@ -22,8 +22,8 @@ import com.example.kata.bank.service.usecases.accounts.OpenAccountUseCase
 import com.example.kata.bank.service.usecases.accounts.TransferUseCase
 import com.example.kata.bank.service.usecases.statements.StatementCreationUseCase
 import com.github.kittinunf.fuel.core.FuelManager
-import com.nhaarman.mockito_kotlin.verify
-import com.nhaarman.mockito_kotlin.verifyZeroInteractions
+import com.nhaarman.mockitokotlin2.verify
+import com.nhaarman.mockitokotlin2.verifyZeroInteractions
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll

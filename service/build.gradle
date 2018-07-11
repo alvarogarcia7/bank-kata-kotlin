@@ -41,7 +41,7 @@ dependencies {
     testRuntime "org.apache.logging.log4j:log4j-core:${log4jVersion}"
     testRuntime "org.apache.logging.log4j:log4j-jul:${log4jVersion}"
     testCompile "org.junit.platform:junit-platform-runner:${junitplatformversion}"
-    testCompile "com.nhaarman:mockito-kotlin:1.5.0"
+    testCompile 'com.nhaarman.mockitokotlin2:mockito-kotlin:2.0.0-RC1'
 
     compile "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
     compile "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
